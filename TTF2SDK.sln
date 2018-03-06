@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27004.2005
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TTF2SDK", "TTF2SDK\TTF2SDK.vcxproj", "{F07D9B2C-F871-495F-95A8-1A266ED9684E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F07D9B2C-F871-495F-95A8-1A266ED9684E}.Debug|x64.ActiveCfg = Debug|x64
+		{F07D9B2C-F871-495F-95A8-1A266ED9684E}.Debug|x64.Build.0 = Debug|x64
+		{F07D9B2C-F871-495F-95A8-1A266ED9684E}.Release|x64.ActiveCfg = Release|x64
+		{F07D9B2C-F871-495F-95A8-1A266ED9684E}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C34E858A-1A52-4AF1-8DB3-ACC47788AB14}
+	EndGlobalSection
+EndGlobal
