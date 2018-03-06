@@ -12,5 +12,6 @@
 #include <fstream>
 #include <MinHook/MinHook.h>
 #include "Util.h"
-#include "Logging.h"
+#include "Console.h"
+#include "Logger.h"
 #include "TTF2SDK.h"

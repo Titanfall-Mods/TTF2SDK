@@ -1,14 +1,12 @@
 #include "stdafx.h"
 
-TTF2SDK::TTF2SDK()
+TTF2SDK::TTF2SDK(std::unique_ptr<Console> console, std::unique_ptr<::Logger> logger)
+    : m_console(std::move(console)), m_logger(std::move(logger))
 {
-    auto logger = spdlog::get("logger");
-    //throw std::exception("Wat");
-    logger->info("TTF2SDK Initialised");
+    
 }
 
-TTF2SDK& TTF2SDK::GetInstance()
+spdlog::logger& TTF2SDK::Logger()
 {
-    static TTF2SDK instance;
-    return instance;
+    return m_logger->Get();
 }

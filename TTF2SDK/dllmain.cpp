@@ -1,39 +1,58 @@
 #include "stdafx.h"
+#include <iostream>
 
-DWORD WINAPI OnAttach(LPVOID lpThreadParameter)
+std::unique_ptr<TTF2SDK> SetupSDK()
 {
-    // Initialise logging - if we can't do that, we're screwed
-    try
-    {
-        Logging::GetInstance();
-    }
-    catch (std::exception&)
-    {
-        FreeLibraryAndExitThread((HMODULE)lpThreadParameter, 0);
-        return 0;
-    }
+    std::unique_ptr<Console> console;
+    std::unique_ptr<Logger> logger;
 
-    // Initialise the rest of the SDK
+    // Separate try catch because these are required for logging to work
     try
     {
-        TTF2SDK::GetInstance();
+        console = std::make_unique<Console>();
+        logger = std::make_unique<Logger>("TTF2SDK.log");
+    }
+    catch (std::exception)
+    {
+        return nullptr;
+    }
+    
+    try
+    {
+        return std::make_unique<TTF2SDK>(std::move(console), std::move(logger));
     }
     catch (std::exception& ex)
     {
-        spdlog::get("logger")->info("Failed to initialise SDK: {}", ex.what());
+        logger->Get().critical("Failed to initialise SDK: {}", ex.what());
+        return nullptr;
+    }
+}
+
+std::unique_ptr<TTF2SDK> g_SDK;
+
+DWORD WINAPI OnAttach(LPVOID lpThreadParameter)
+{
+    // Setup the SDK or unload the DLL if we can't
+    g_SDK = SetupSDK();
+    if (g_SDK == nullptr)
+    {
         FreeLibraryAndExitThread((HMODULE)lpThreadParameter, 0);
         return 0;
     }
 
-    // Wait for key press to unload DLL
+    g_SDK->Logger().info("Titanfall 2 SDK loaded");
+
+    // Process input
     while (true)
     {
-        if (GetAsyncKeyState(VK_F9))
+        std::string input;
+        std::cin >> input;
+
+        if (input == "unload")
         {
-            spdlog::get("logger")->info("Unloading DLL");
+            g_SDK->Logger().info("Unloading SDK");
             break;
         }
-        Sleep(100);
     }
 
     FreeLibraryAndExitThread((HMODULE)lpThreadParameter, 0);

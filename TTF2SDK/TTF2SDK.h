@@ -3,7 +3,9 @@
 class TTF2SDK
 {
 private:
-    TTF2SDK();
+    std::unique_ptr<Console> m_console;
+    std::unique_ptr<Logger> m_logger;
 public:
-    static TTF2SDK& GetInstance();
+    TTF2SDK(std::unique_ptr<Console> console, std::unique_ptr<Logger> logger);
+    spdlog::logger& Logger();
 };
