@@ -9,3 +9,6 @@ public:
     TTF2SDK(std::unique_ptr<Console> console, std::unique_ptr<Logger> logger);
     spdlog::logger& Logger();
 };
+
+TTF2SDK& SDK();
+bool SetupSDK();
