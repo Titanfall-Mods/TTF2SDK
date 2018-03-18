@@ -82,34 +82,33 @@ public:
             return;
         }
 
+        auto logger = spdlog::get("logger");
+
         m_hookedFunc = m_func;
 
-        if (MH_CreateHookEx(m_hookedFunc, detourFunc, &m_func) != MH_OK)
+        MH_STATUS status = MH_CreateHookEx(m_hookedFunc, detourFunc, &m_func);
+        if (status != MH_OK)
         {
+            logger->critical("MH_CreateHook returned {}", status);
             throw std::exception("Failed to hook function");
         }
 
-        if (MH_EnableHook(m_hookedFunc) != MH_OK)
+        status = MH_EnableHook(m_hookedFunc);
+        if (status != MH_OK)
         {
+            logger->critical("MH_EnableHook returned {}", status);
             throw std::exception("Failed to enable hook");
         }
 
         m_hooked = true;
-        spdlog::get("logger")->debug("Hooked function at {} - trampoline location: {}", (void*)m_hookedFunc, (void*)m_func);
+        logger->debug("Hooked function at {} - trampoline location: {}", (void*)m_hookedFunc, (void*)m_func);
     }
 
     ~HookedFunc()
     {
         if (m_hooked)
         {
-            if (MH_RemoveHook(m_hookedFunc) != MH_OK)
-            {
-                spdlog::get("logger")->warn("Failed to remove hook for function at {}", (void*)m_hookedFunc);
-            }
-            else
-            {
-                spdlog::get("logger")->debug("Removed hook for function at {}", (void*)m_hookedFunc);
-            }
+            MH_RemoveHook(m_hookedFunc);
         }
     }
 };

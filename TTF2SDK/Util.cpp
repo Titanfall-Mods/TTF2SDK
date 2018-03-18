@@ -35,4 +35,60 @@ namespace Util
 
         return output;
     }
+
+    template <DWORD(*Func)(HANDLE)>
+    void PerformThreadOperation()
+    {
+        auto logger = spdlog::get("logger");
+
+        // Take a snapshot of all running threads  
+        HANDLE hThreadSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+        if (hThreadSnap == INVALID_HANDLE_VALUE)
+        {
+            logger->error("Failed to call CreateToolhelp32Snapshot, cannot perform thread operation");
+            return;
+        }
+
+        // Fill in the size of the structure before using it. 
+        THREADENTRY32 te32;
+        te32.dwSize = sizeof(THREADENTRY32);
+
+        // Retrieve information about the first thread,
+        // and exit if unsuccessful
+        if (!Thread32First(hThreadSnap, &te32))
+        {
+            logger->error("Failed to call Thread32First, cannot perform thread operation");
+            CloseHandle(hThreadSnap);
+            return;
+        }
+
+        // Now walk the thread list of the system,
+        // and display information about each thread
+        // associated with the specified process
+        do
+        {
+            if (te32.th32OwnerProcessID == GetCurrentProcessId() && te32.th32ThreadID != GetCurrentThreadId())
+            {
+                HANDLE thread = OpenThread(THREAD_SUSPEND_RESUME, FALSE, te32.th32ThreadID);
+                if (thread != NULL)
+                {
+                    Func(thread);
+                    CloseHandle(thread);
+                }
+            }
+        }
+        while (Thread32Next(hThreadSnap, &te32));
+
+        CloseHandle(hThreadSnap);
+    }
+
+    void SuspendAllOtherThreads()
+    {
+        PerformThreadOperation<SuspendThread>();
+    }
+
+    void ResumeAllOtherThreads()
+    {
+        PerformThreadOperation<ResumeThread>();
+    }
 }

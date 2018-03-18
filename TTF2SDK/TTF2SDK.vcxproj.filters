@@ -36,6 +36,9 @@
     <ClInclude Include="SigScanning.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Squirrel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Util.cpp">

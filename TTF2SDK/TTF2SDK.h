@@ -11,7 +11,8 @@ public:
     ~TTF2SDK();
 
     void RunFrameHook(double time);
-    SQInteger BasePrintHook(void* sqVM);
+    SQInteger BasePrintHook(HSQUIRRELVM v);
+    void PrintFunc(HSQUIRRELVM v, const SQChar* s, va_list args);
 };
 
 TTF2SDK& SDK();

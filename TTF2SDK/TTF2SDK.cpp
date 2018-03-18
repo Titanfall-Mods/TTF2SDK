@@ -3,19 +3,8 @@
 std::unique_ptr<Console> g_console;
 std::unique_ptr<TTF2SDK> g_SDK;
 
-typedef void(*SQPRINTFUNCTION)(void*, const char *, ...);
-
 HookedFunc<void, double> _Host_RunFrame("engine.dll", "\x48\x8B\xC4\x48\x89\x58\x00\xF3\x0F\x11\x48\x00\xF2\x0F\x11\x40\x00", "xxxxxx?xxxx?xxxx?");
-HookedFunc<SQInteger, void*> basePrint("client.dll", "\x40\x53\x48\x83\xEC\x30\xBA\x00\x00\x00\x00\x48\x8B\xD9", "xxxxxxx????xxx");
-
-void newPrintFunc(void* v, const char* s, ...)
-{
-    va_list vl;
-    va_start(vl, s);
-    vprintf(s, vl);
-    va_end(vl);
-}
-
+HookedFunc<SQInteger, HSQUIRRELVM> base_print("client.dll", "\x40\x53\x48\x83\xEC\x30\xBA\x00\x00\x00\x00\x48\x8B\xD9", "xxxxxxx????xxx");
 
 template <typename T, T> struct SDKMemberWrapper;
 
@@ -33,6 +22,8 @@ struct SDKMemberWrapper<RT(T::*)(Args...), pF>
     }
 };
 
+#define WRAPPED_MEMBER(name) SDKMemberWrapper<decltype(&TTF2SDK::##name), &TTF2SDK::##name>::Call
+
 TTF2SDK::TTF2SDK()
 {
     m_logger = spdlog::get("logger");
@@ -43,24 +34,37 @@ TTF2SDK::TTF2SDK()
     }
 
     SigScanFuncRegistry::GetInstance().ResolveAll();
-    _Host_RunFrame.Hook(SDKMemberWrapper<decltype(&TTF2SDK::RunFrameHook), &TTF2SDK::RunFrameHook>::Call);
-    basePrint.Hook(SDKMemberWrapper<decltype(&TTF2SDK::BasePrintHook), &TTF2SDK::BasePrintHook>::Call);
+    _Host_RunFrame.Hook(WRAPPED_MEMBER(RunFrameHook));
+    base_print.Hook(WRAPPED_MEMBER(BasePrintHook));
 }
 
 void TTF2SDK::RunFrameHook(double time)
 {
-    m_logger->debug("_Host_RunFrame: {}", time);
+    //m_logger->debug("_Host_RunFrame: {}", time);
     return _Host_RunFrame(time);
 }
 
-SQInteger TTF2SDK::BasePrintHook(void* v)
+SQInteger TTF2SDK::BasePrintHook(HSQUIRRELVM v)
 {
-    SQPRINTFUNCTION* printFunc = (SQPRINTFUNCTION*)(*(uint64_t*)((uint64_t)v + 0x50) + 0x4350);
-    SQPRINTFUNCTION oldPrintFunc = *printFunc;
-    *printFunc = newPrintFunc;
-    SQInteger res = basePrint(v);
-    *printFunc = oldPrintFunc;
+    static auto printFuncLambda = [](HSQUIRRELVM v, const SQChar* s, ...) {
+        va_list vl;
+        va_start(vl, s);
+        g_SDK->PrintFunc(v, s, vl);
+        va_end(vl);
+    };
+
+    SQPRINTFUNCTION oldPrintFunc = _ss(v)->_printfunc;
+    _ss(v)->_printfunc = printFuncLambda;
+    SQInteger res = base_print(v);
+    _ss(v)->_printfunc = oldPrintFunc;
     return res;
+}
+
+void TTF2SDK::PrintFunc(HSQUIRRELVM v, const SQChar* s, va_list args)
+{
+    SQChar buf[1024];
+    vsnprintf(buf, _countof(buf), s, args); // TODO: retval
+    m_logger->info(buf);
 }
 
 TTF2SDK::~TTF2SDK()
@@ -120,7 +124,9 @@ bool SetupSDK()
 
     try
     {
+        Util::SuspendAllOtherThreads();
         g_SDK = std::make_unique<TTF2SDK>();
+        Util::ResumeAllOtherThreads();
         return true;
     }
     catch (std::exception& ex)
