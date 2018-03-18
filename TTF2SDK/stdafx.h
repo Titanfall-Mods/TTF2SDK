@@ -18,6 +18,7 @@
 #include <codecvt>
 #include <string>
 #include <fstream>
+#include <mutex>
 #include <MinHook/MinHook.h>
 #include "Util.h"
 #include "Console.h"

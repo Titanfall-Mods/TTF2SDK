@@ -1,5 +1,10 @@
 #pragma once
 
+#define SQ_SUCCEEDED(res) (res>=0)
+
+#define SQTrue	(1)
+#define SQFalse	(0)
+
 typedef long SQInteger;
 typedef unsigned long SQUnsignedInteger;
 typedef char SQChar;

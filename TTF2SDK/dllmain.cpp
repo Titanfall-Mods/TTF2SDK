@@ -18,15 +18,17 @@ DWORD WINAPI OnAttach(LPVOID lpThreadParameter)
     logger->info("Titanfall 2 SDK loaded");
 
     // Process input
-    while (true)
+    std::string input;
+    while (std::getline(std::cin, input))
     {
-        std::string input;
-        std::cin >> input;
-
         if (input == "unload")
         {
             logger->info("Unloading SDK");
             break;
+        }
+        else
+        {
+            SDK().SetCode(input);
         }
     }
 
