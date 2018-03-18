@@ -1,13 +1,17 @@
 #pragma once
 
+typedef long SQInteger;
+
 class TTF2SDK
 {
 private:
-    std::unique_ptr<Console> m_console;
-    std::unique_ptr<Logger> m_logger;
+    std::shared_ptr<spdlog::logger> m_logger;
 public:
-    TTF2SDK(std::unique_ptr<Console> console, std::unique_ptr<Logger> logger);
-    spdlog::logger& Logger();
+    TTF2SDK();
+    ~TTF2SDK();
+
+    void RunFrameHook(double time);
+    SQInteger BasePrintHook(void* sqVM);
 };
 
 TTF2SDK& SDK();

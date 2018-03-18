@@ -30,7 +30,10 @@
     <ClInclude Include="Console.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Logger.h">
+    <ClInclude Include="ModuleScan.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SigScanning.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -50,7 +53,10 @@
     <ClCompile Include="Console.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Logger.cpp">
+    <ClCompile Include="ModuleScan.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SigScanning.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

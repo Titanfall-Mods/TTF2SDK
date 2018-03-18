@@ -1,5 +1,9 @@
 #include "stdafx.h"
 #include <iostream>
+#include <functional>
+#include <string>
+
+const int MAX_SIG_SCAN_REGISTRATIONS = 100;
 
 DWORD WINAPI OnAttach(LPVOID lpThreadParameter)
 {
@@ -10,7 +14,8 @@ DWORD WINAPI OnAttach(LPVOID lpThreadParameter)
         return 0;
     }
 
-    SDK().Logger().info("Titanfall 2 SDK loaded");
+    auto logger = spdlog::get("logger");
+    logger->info("Titanfall 2 SDK loaded");
 
     // Process input
     while (true)
@@ -20,7 +25,7 @@ DWORD WINAPI OnAttach(LPVOID lpThreadParameter)
 
         if (input == "unload")
         {
-            SDK().Logger().info("Unloading SDK");
+            logger->info("Unloading SDK");
             break;
         }
     }
