@@ -20,6 +20,7 @@
 #include <fstream>
 #include <mutex>
 #include <MinHook/MinHook.h>
+#include <sstream>
 #include "Util.h"
 #include "Console.h"
 #include "ModuleScan.h"

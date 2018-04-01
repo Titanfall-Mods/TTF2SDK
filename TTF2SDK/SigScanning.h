@@ -45,10 +45,15 @@ public:
         m_func = reinterpret_cast<T(*)(Args...)>(ptr);
     }
 
-    T operator()(Args&&... args)
+    void* GetFuncPtr()
+    {
+        return reinterpret_cast<void*>(m_func);
+    }
+
+    /*T operator()(Args&&... args)
     {
         return m_func(std::forward<Args>(args)...);
-    }
+    }*/
 
     T operator()(Args... args)
     {
