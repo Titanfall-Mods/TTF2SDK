@@ -50,11 +50,6 @@ public:
         return reinterpret_cast<void*>(m_func);
     }
 
-    /*T operator()(Args&&... args)
-    {
-        return m_func(std::forward<Args>(args)...);
-    }*/
-
     T operator()(Args... args)
     {
         return m_func(args...);
@@ -115,5 +110,107 @@ public:
         {
             MH_RemoveHook(m_hookedFunc);
         }
+    }
+};
+
+enum ExecutionContext
+{
+    CONTEXT_CLIENT,
+    CONTEXT_SERVER
+};
+
+template<typename T>
+class SharedFunc
+{
+    T m_clientFunc;
+    T m_serverFunc;
+
+public:
+    SharedFunc(const char* signature, const char* mask) : m_clientFunc("client.dll", signature, mask), m_serverFunc("server.dll", signature, mask)
+    {
+
+    }
+
+    T& GetClientFunc()
+    {
+        return m_clientFunc;
+    }
+
+    T& GetServerFunc()
+    {
+        return m_serverFunc;
+    }
+
+    template<ExecutionContext context>
+    T& GetFuncForContext() = delete;
+
+    template<>
+    T& GetFuncForContext<CONTEXT_CLIENT>()
+    {
+        return m_clientFunc;
+    }
+
+    template<>
+    T& GetFuncForContext<CONTEXT_SERVER>()
+    {
+        return m_serverFunc;
+    }
+};
+
+template<typename T, typename... Args>
+class SharedSigFunc : public SharedFunc<SigScanFunc<T, Args...>>
+{
+public:
+    SharedSigFunc(const char* signature, const char* mask) : SharedFunc(signature, mask)
+    {
+
+    }
+
+    T CallClient(Args... args)
+    {
+        return GetFuncForContext<CONTEXT_CLIENT>()(args...);
+    }
+
+    T CallServer(Args... args)
+    {
+        return GetFuncForContext<CONTEXT_SERVER>()(args...);
+    }
+
+    template<ExecutionContext context>
+    T Call(Args... args)
+    {
+        return GetFuncForContext<context>()(args...);
+    }
+};
+
+template<typename T, typename... Args>
+class SharedHookedFunc : public SharedFunc<HookedFunc<T, Args...>>
+{
+public:
+    SharedHookedFunc(const char* signature, const char* mask) : SharedFunc(signature, mask)
+    {
+
+    }
+
+    void Hook(T(*clientDetourFunc)(Args...), T(*serverDetourFunc)(Args...))
+    {
+        GetClientFunc().Hook(clientDetourFunc);
+        GetServerFunc().Hook(serverDetourFunc);
+    }
+
+    T CallClient(Args... args)
+    {
+        return GetFuncForContext<CONTEXT_CLIENT>()(args...);
+    }
+
+    T CallServer(Args... args)
+    {
+        return GetFuncForContext<CONTEXT_SERVER>()(args...);
+    }
+
+    template<ExecutionContext context>
+    T Call(Args... args)
+    {
+        return GetFuncForContext<context>()(args...);
     }
 };

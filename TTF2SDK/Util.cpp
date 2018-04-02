@@ -91,4 +91,14 @@ namespace Util
     {
         PerformThreadOperation<ResumeThread>();
     }
+
+    ThreadSuspender::ThreadSuspender()
+    {
+        Util::SuspendAllOtherThreads();
+    }
+
+    ThreadSuspender::~ThreadSuspender()
+    {
+        Util::ResumeAllOtherThreads();
+    }
 }

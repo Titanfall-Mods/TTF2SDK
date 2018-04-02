@@ -14,6 +14,20 @@ struct ServerVM
     HSQUIRRELVM sqvm;
 };
 
+struct CompileBufferState
+{
+    const SQChar* buffer;
+    const SQChar* bufferPlusLength;
+    const SQChar* bufferAgain;
+
+    CompileBufferState(const std::string& code)
+    {
+        buffer = code.c_str();
+        bufferPlusLength = code.c_str() + code.size();
+        bufferAgain = code.c_str();
+    }
+};
+
 class TTF2SDK
 {
 private:
@@ -33,9 +47,16 @@ public:
     ~TTF2SDK();
 
     void RunFrameHook(double absTime, float frameTime);
-    SQInteger ClientBasePrintHook(HSQUIRRELVM v);
-    SQInteger ServerBasePrintHook(HSQUIRRELVM v);
+
+    template<ExecutionContext context>
+    SQInteger BasePrintHook(HSQUIRRELVM v);
     void PrintFunc(HSQUIRRELVM v, const SQChar* source, const SQChar* s, va_list args);
+
+    template<ExecutionContext context>
+    void CompilerErrorHook(HSQUIRRELVM v, const SQChar* sErr, const SQChar* sSource, SQInteger line, SQInteger column);
+
+    template<ExecutionContext context>
+    int64_t PrepareScriptHook(void* unk, HSQUIRRELVM v, CompileBufferState* compileState, const SQChar* chunkName);
 
     HSQUIRRELVM GetClientSQVM()
     {

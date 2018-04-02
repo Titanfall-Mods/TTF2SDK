@@ -7,4 +7,26 @@ namespace Util
     std::string DataToHex(const char* input, size_t len);
     void SuspendAllOtherThreads();
     void ResumeAllOtherThreads();
+
+    struct ThreadSuspender
+    {
+        ThreadSuspender();
+        ~ThreadSuspender();
+    };
+
+    constexpr const char* GetContextName(ExecutionContext context)
+    {
+        if (context == CONTEXT_CLIENT)
+        {
+            return "CLIENT";
+        }
+        else if (context == CONTEXT_SERVER)
+        {
+            return "SERVER";
+        }
+        else
+        {
+            return "UNKNOWN";
+        }
+    }
 }

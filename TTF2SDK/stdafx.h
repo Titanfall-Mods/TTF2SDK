@@ -21,9 +21,9 @@
 #include <mutex>
 #include <MinHook/MinHook.h>
 #include <sstream>
-#include "Util.h"
 #include "Console.h"
 #include "ModuleScan.h"
 #include "SigScanning.h"
+#include "Util.h"
 #include "Squirrel.h"
 #include "TTF2SDK.h"
