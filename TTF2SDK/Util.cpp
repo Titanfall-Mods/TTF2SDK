@@ -101,4 +101,14 @@ namespace Util
     {
         Util::ResumeAllOtherThreads();
     }
+
+    void FindAndReplaceAll(std::string& data, const std::string& search, const std::string& replace)
+    {
+        size_t pos = data.find(search);
+        while (pos != std::string::npos)
+        {
+            data.replace(pos, search.size(), replace);
+            pos = data.find(search, pos + search.size());
+        }
+    }
 }

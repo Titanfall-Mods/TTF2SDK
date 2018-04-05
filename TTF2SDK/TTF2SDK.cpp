@@ -43,16 +43,6 @@ struct SDKMemberWrapper<RT(T::*)(Args...), pF>
 
 #define WRAPPED_MEMBER(name) SDKMemberWrapper<decltype(&TTF2SDK::##name), &TTF2SDK::##name>::Call
 
-void findAndReplaceAll(std::string& data, const std::string& toSearch, const std::string& replaceStr)
-{
-    size_t pos = data.find(toSearch);
-    while (pos != std::string::npos)
-    {
-        data.replace(pos, toSearch.size(), replaceStr);
-        pos = data.find(toSearch, pos + toSearch.size());
-    }
-}
-
 TTF2SDK::TTF2SDK()
 {
     m_logger = spdlog::get("logger");
@@ -98,9 +88,6 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
                 SQRESULT callRes = sq_call.CallServer(v, 1, SQFalse, SQFalse);
                 m_logger->debug("sq_call returned {}", callRes);
             }
-            
-            //SQRESULT res = server_execute_script(v, code.c_str(), code.size(), "console_script");
-            //m_logger->debug("res = {}", res);
         }
         else
         {
@@ -191,7 +178,7 @@ int64_t TTF2SDK::PrepareScriptHook(void* unk, HSQUIRRELVM v, CompileBufferState*
         std::stringstream buffer;
         buffer << f.rdbuf();
         code = buffer.str();
-        findAndReplaceAll(code, "\r\n", "\n");
+        Util::FindAndReplaceAll(code, "\r\n", "\n");
         state = CompileBufferState(code);
         return prepare_script.Call<context>(unk, v, &state, chunkName);
     }

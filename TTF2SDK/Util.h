@@ -29,4 +29,6 @@ namespace Util
             return "UNKNOWN";
         }
     }
+
+    void FindAndReplaceAll(std::string& data, const std::string& search, const std::string& replace);
 }
