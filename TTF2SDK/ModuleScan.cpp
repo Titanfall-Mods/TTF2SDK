@@ -49,7 +49,7 @@ void* ModuleScan::Scan(const char* sig, const char* mask, size_t sigLength)
     char* pData = m_moduleBase;
     char* pEnd = m_moduleBase + m_moduleLen;
 
-    while (pData < pEnd)
+    while (pData < (pEnd - sigLength))
     {
         int i;
         for (i = 0; i < sigLength; i++)
