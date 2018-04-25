@@ -111,4 +111,21 @@ namespace Util
             pos = data.find(search, pos + search.size());
         }
     }
+
+    void* ResolveLibraryFunction(const std::string& module, const std::string& funcName)
+    {
+        HMODULE hModule = GetModuleHandle(Util::Widen(module).c_str());
+        if (!hModule)
+        {
+            throw std::runtime_error(fmt::sprintf("GetModuleHandle failed for %s (Error = 0x%X)", module, GetLastError()));
+        }
+
+        FARPROC funcAddr = GetProcAddress(hModule, funcName.c_str());
+        if (!funcAddr)
+        {
+            throw std::runtime_error(fmt::sprintf("GetProcAddress failed for %s (Error = 0x%X)", funcName, GetLastError()));
+        }
+
+        return funcAddr;
+    }
 }

@@ -68,7 +68,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\thirdparty\MinHook</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libMinHook-x64-v141-md.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DbgHelp.lib;libMinHook-x64-v141-md.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -90,18 +90,23 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\thirdparty\MinHook</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libMinHook-x64-v141-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DbgHelp.lib;libMinHook-x64-v141-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Console.h" />
+    <ClInclude Include="IEngineClient.h" />
+    <ClInclude Include="IEngineServer.h" />
+    <ClInclude Include="IFileSystem.h" />
     <ClInclude Include="ModuleScan.h" />
     <ClInclude Include="SigScanning.h" />
+    <ClInclude Include="SourceInterface.h" />
     <ClInclude Include="Squirrel.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TTF2SDK.h" />
     <ClInclude Include="Util.h" />
+    <ClInclude Include="VTableHooking.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Console.cpp" />

@@ -2,12 +2,14 @@
 
 typedef long SQInteger;
 
+// TODO: Combine these
 struct ClientVM
 {
     unsigned char Data[8];
     HSQUIRRELVM sqvm;
 };
 
+// TODO: Combine these
 struct ServerVM
 {
     unsigned char Data[8];
@@ -28,6 +30,48 @@ struct CompileBufferState
     }
 };
 
+class FileReplacementManager
+{
+    std::string m_searchPath;
+    //std::shared_mutex m_filesMutex;
+    //std::unordered_set<std::string> m_filesToOverride;
+
+public:
+    // TODO: Must include trailing slash
+    FileReplacementManager(const std::string& searchPath) : m_searchPath(searchPath)
+    {
+        // TODO: Move this into a function that C# can call. It should call tolower on the input and also add both slash versions.
+        // Alternatively, just replace the set comparison function with a case insensitive function and one that doesn't care about slashes.
+        //m_filesToOverride.emplace("scripts\\damage\\damageflags.txt");
+        //m_filesToOverride.emplace("scripts/damage/damageflags.txt");
+        //m_filesToOverride.emplace("scripts/vscripts/sp/_sp_sh_init.gnut");
+        //m_filesToOverride.emplace("scripts\\vscripts\\sp\\_sp_sh_init.gnut");
+    }
+
+    bool ShouldReplaceFile(const std::string& path)
+    {
+        //std::shared_lock<std::shared_mutex> lock(m_filesMutex);
+        //if (m_filesToOverride.find(path) != m_filesToOverride.end())
+        //{
+        //    m_logger->info("IFileSystem::ReadFromCache: blocking cache response for {}", path);
+        //    return false;
+        //}
+        std::ifstream f(m_searchPath + path);
+        return f.good();
+    }
+
+    const std::string& GetSearchPath()
+    {
+        return m_searchPath;
+    }
+};
+
+struct VPKInfo
+{
+    unsigned char unknown[5];
+    char path[255];
+};
+
 class TTF2SDK
 {
 private:
@@ -35,6 +79,8 @@ private:
 
     ClientVM** m_ppClientVM = nullptr;
     ServerVM** m_ppServerVM = nullptr;
+    
+    FileReplacementManager m_replacementManager;
 
     std::mutex m_mutex;
     std::atomic_bool m_shouldRunClientCode = false;
@@ -42,11 +88,21 @@ private:
     std::atomic_bool m_shouldRunServerCode = false;
     std::string m_serverCodeToRun = "";
 
+    SourceInterface<IFileSystem> m_fileSystem;
+    SourceInterface<IEngineClient> m_engineClient;
+    SourceInterface<IEngineServer> m_engineServer;
+
 public:
     TTF2SDK();
     ~TTF2SDK();
 
     void RunFrameHook(double absTime, float frameTime);
+
+    // Filesystem stuff
+    void AddSearchPathHook(IFileSystem* fileSystem, const char* pPath, const char* pathID, SearchPathAdd_t addType);
+    bool ReadFromCacheHook(IFileSystem* fileSystem, const char* path, void* result);
+    __int32* ReadFileFromVPKHook(VPKInfo* vpkInfo, __int32* b, char* filename);
+    unsigned int* MountVPKHook(IFileSystem* fileSystem, const char* vpkPath);
 
     template<ExecutionContext context>
     SQInteger BasePrintHook(HSQUIRRELVM v);
@@ -54,9 +110,6 @@ public:
 
     template<ExecutionContext context>
     void CompilerErrorHook(HSQUIRRELVM v, const SQChar* sErr, const SQChar* sSource, SQInteger line, SQInteger column);
-
-    template<ExecutionContext context>
-    int64_t PrepareScriptHook(void* unk, HSQUIRRELVM v, CompileBufferState* compileState, const SQChar* chunkName);
 
     HSQUIRRELVM GetClientSQVM()
     {

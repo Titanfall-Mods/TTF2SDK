@@ -39,6 +39,21 @@
     <ClInclude Include="Squirrel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="IFileSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VTableHooking.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SourceInterface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IEngineClient.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IEngineServer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Util.cpp">

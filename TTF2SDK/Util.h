@@ -31,4 +31,5 @@ namespace Util
     }
 
     void FindAndReplaceAll(std::string& data, const std::string& search, const std::string& replace);
+    void* ResolveLibraryFunction(const std::string& module, const std::string& funcName);
 }

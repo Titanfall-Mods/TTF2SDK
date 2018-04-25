@@ -14,16 +14,25 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/bundled/printf.h>
 
+#include <shared_mutex>
+#include <unordered_set>
 #include <locale>
 #include <codecvt>
 #include <string>
 #include <fstream>
+#include <regex>
 #include <mutex>
 #include <MinHook/MinHook.h>
 #include <sstream>
+#include <DbgHelp.h>
 #include "Console.h"
 #include "ModuleScan.h"
 #include "SigScanning.h"
+#include "SourceInterface.h"
 #include "Util.h"
 #include "Squirrel.h"
+#include "IFileSystem.h"
+#include "IEngineClient.h"
+#include "IEngineServer.h"
+#include "VTableHooking.h"
 #include "TTF2SDK.h"
