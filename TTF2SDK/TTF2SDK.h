@@ -79,6 +79,7 @@ private:
 
     ClientVM** m_ppClientVM = nullptr;
     ServerVM** m_ppServerVM = nullptr;
+    ID3D11Device** m_ppD3D11Device = nullptr;
     
     FileReplacementManager m_replacementManager;
 

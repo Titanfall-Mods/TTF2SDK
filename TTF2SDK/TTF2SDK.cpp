@@ -65,6 +65,7 @@ SigScanFunc<void> pakFunc1("rtech_game.dll", "\x48\x89\x5C\x24\x00\x48\x89\x6C\x
 
 SigScanFunc<void> clientVMFinder("client.dll", "\x44\x8B\xC2\x48\x8B\xD1\x48\x8B\x0D\x00\x00\x00\x00", "xxxxxxxxx????");
 SigScanFunc<void> serverVMFinder("server.dll", "\x48\x89\x5C\x24\x00\x55\x48\x83\xEC\x00\x48\x8B\x05\x00\x00\x00\x00\x48\x8B\xEA", "xxxx?xxxx?xxx????xxx");
+SigScanFunc<void> d3d11DeviceFinder("materialsystem_dx11.dll", "\x48\x83\xEC\x00\x33\xC0\x89\x54\x24\x00\x4C\x8B\xC9\x48\x8B\x0D\x00\x00\x00\x00\xC7\x44\x24\x00\x00\x00\x00\x00", "xxx?xxxxx?xxxxxx????xxx?????");
 
 template <typename T, T> struct SDKMemberWrapper;
 
@@ -252,6 +253,14 @@ __int64 textureFunc2(__int64 a1)
     return 0;
 }
 
+void(*origTextureFunc1)(__int64 a1, __int64 a2, __int64 a3, __int64 a4);
+void logTextureFunc1(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
+{
+    const char* name = *(const char**)(a1 + 8);
+    spdlog::get("logger")->warn("texture func 1: {}", name);
+    origTextureFunc1(a1, a2, a3, a4);
+}
+
 void doNothing()
 {
     return;
@@ -262,11 +271,26 @@ __int64 doNothing2()
     return 0;
 }
 
+std::unordered_set<std::string> shaders;
+std::mutex a;
+std::atomic_bool shouldLogAlloc = true;
+
+
 void(*origShaderFunc1)(__int64 a1, __int64 a2);
 void shader_func1(__int64 a1, __int64 a2)
 {
     const char* name = *(const char**)(a1);
-    spdlog::get("logger")->warn("shader func 1: {}", (name != NULL) ? name : "NULL");
+    int type = *((int*)(a1 + 8));
+
+    {
+        std::lock_guard<std::mutex> l(a);
+        spdlog::get("logger")->warn("shader func 1: {}, type = {}", (name != NULL) ? name : "NULL", type);
+        if (shaders.find(name) == shaders.end()) {
+            spdlog::get("logger")->warn("^^^ NEW SHADER ^^^");
+            shaders.emplace(name);
+        }
+    }
+
     origShaderFunc1(a1, a2);
 }
 
@@ -351,50 +375,12 @@ void* pHeapAlloc;
 LPVOID WINAPI HeapAllocHook(_In_ HANDLE hHeap, _In_ DWORD dwFlags, _In_ SIZE_T dwBytes)
 {
     LPVOID mem = origHeapAlloc(hHeap, dwFlags, dwBytes);
-    if (!inAlloc)
+    if (!inAlloc && shouldLogAlloc)
     {
         std::lock_guard<std::mutex> l(m);
         inAlloc = true;
         allocated += dwBytes;
         allocSizes[(void*)mem] = dwBytes;
-
-        CONTEXT threadContext = { 0 };
-        GetThreadContext(GetCurrentThread(), &threadContext);
-
-        STACKFRAME64 frame = { 0 };
-        frame.AddrPC.Offset = threadContext.Rip;
-        frame.AddrPC.Mode = AddrModeFlat;
-        frame.AddrFrame.Offset = threadContext.Rsp;
-        frame.AddrFrame.Mode = AddrModeFlat;
-        frame.AddrStack.Offset = threadContext.Rsp;
-        frame.AddrStack.Mode = AddrModeFlat;
-
-        BOOL res = StackWalk64(
-            IMAGE_FILE_MACHINE_AMD64,
-            GetCurrentProcess(),
-            GetCurrentThread(),
-            &frame,
-            &threadContext,
-            NULL,
-            SymFunctionTableAccess64,
-            SymGetModuleBase64,
-            NULL
-        );
-
-        if (!res)
-        {
-            allocCallers[mem] = NULL;
-        }
-        else
-        {
-            allocCallers[mem] = (void*)frame.AddrPC.Offset;
-        }
-
-        if (dwBytes == 270336)
-        {
-            spdlog::get("logger")->info("it's the magic size!");
-        }
-
         inAlloc = false;
     }
     return mem;
@@ -405,7 +391,7 @@ void* pHeapFree;
 BOOL WINAPI HeapFreeHook(_In_ HANDLE hHeap, _In_ DWORD  dwFlags, _In_ LPVOID lpMem)
 {
     __int64 size = 0;
-    if (!inAlloc)
+    if (!inAlloc && shouldLogAlloc)
     {
         std::lock_guard<std::mutex> l(m);
         inAlloc = true;
@@ -418,6 +404,20 @@ BOOL WINAPI HeapFreeHook(_In_ HANDLE hHeap, _In_ DWORD  dwFlags, _In_ LPVOID lpM
         inAlloc = false;
     }
     return origHeapFree(hHeap, dwFlags, lpMem);
+}
+
+struct MatFunc1
+{
+    void* data;
+    int size;
+};
+
+__int64(*Material_func1Orig)(__int64, MatFunc1*);
+
+__int64 Material_func1hook(__int64 a1, MatFunc1* a2)
+{
+    spdlog::get("logger")->warn("Material_func1 data = {}, size = {}", a2->data, a2->size);
+    return Material_func1Orig(a1, a2);
 }
 
 void printAllocs()
@@ -499,6 +499,12 @@ TTF2SDK::TTF2SDK()
     origShaderFunc1 = (decltype(origShaderFunc1))registrations[13].func1;
     registrations[13].func1 = shader_func1;
 
+    Material_func1Orig = (decltype(Material_func1Orig))registrations[4].func1;
+    registrations[4].func1 = Material_func1hook;
+
+    origTextureFunc1 = (decltype(origTextureFunc1))registrations[12].func1;
+    registrations[12].func1 = logTextureFunc1;
+
     base_print.Hook(WRAPPED_MEMBER(BasePrintHook<CONTEXT_CLIENT>), WRAPPED_MEMBER(BasePrintHook<CONTEXT_SERVER>));
     sqstd_compiler_error.Hook(WRAPPED_MEMBER(CompilerErrorHook<CONTEXT_CLIENT>), WRAPPED_MEMBER(CompilerErrorHook<CONTEXT_SERVER>));
 
@@ -506,6 +512,16 @@ TTF2SDK::TTF2SDK()
 
     pHeapAlloc = Util::ResolveLibraryFunction("kernel32.dll", "HeapAlloc");
     pHeapFree = Util::ResolveLibraryFunction("kernel32.dll", "HeapFree");
+
+    // Get pointer to d3d device
+    funcBase = (char*)d3d11DeviceFinder.GetFuncPtr();
+    offset = *(int*)(funcBase + 16);
+    m_ppD3D11Device = (ID3D11Device**)(funcBase + 20 + offset);
+
+    m_logger->debug("m_ppD3D11Device = {}", (void*)m_ppD3D11Device);
+    m_logger->debug("pD3D11Device = {}", (void*)*m_ppD3D11Device);
+    m_logger->debug("queryinterface = {}", offsetof(ID3D11DeviceVtbl, QueryInterface));
+    m_logger->debug("address of the func = {}", (void*)(((char*)(*m_ppD3D11Device)->lpVtbl) + offsetof(ID3D11DeviceVtbl, QueryInterface)));
 }
 
 void hookHeap()
@@ -708,6 +724,14 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
             {
                 isSpawningExternalMapModel = !isSpawningExternalMapModel;
                 m_logger->warn("isSpawningExternalMapModel = {}", isSpawningExternalMapModel);
+            }
+            else if (code == "printshaders")
+            {
+                for (auto it : shaders)
+                {
+                    m_logger->warn("{}", it);
+                }
+                m_logger->warn("num shaders = {}", shaders.size());
             }
             else
             {

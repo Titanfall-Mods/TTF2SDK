@@ -14,6 +14,13 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/bundled/printf.h>
 
+//#undef __cplusplus
+#define D3D11_NO_HELPERS
+#define CINTERFACE
+#include <d3d11.h>
+#undef CINTERFACE
+//#define __cplusplus
+
 #include <shared_mutex>
 #include <unordered_set>
 #include <locale>
