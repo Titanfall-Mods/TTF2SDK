@@ -79,7 +79,7 @@ private:
 
     ClientVM** m_ppClientVM = nullptr;
     ServerVM** m_ppServerVM = nullptr;
-    ID3D11Device** m_ppD3D11Device = nullptr;
+    
     
     FileReplacementManager m_replacementManager;
 
@@ -94,6 +94,8 @@ private:
     SourceInterface<IEngineServer> m_engineServer;
 
 public:
+    ID3D11Device** m_ppD3D11Device = nullptr;
+
     TTF2SDK();
     ~TTF2SDK();
 
@@ -111,6 +113,8 @@ public:
 
     template<ExecutionContext context>
     void CompilerErrorHook(HSQUIRRELVM v, const SQChar* sErr, const SQChar* sSource, SQInteger line, SQInteger column);
+
+    void compileShaders();
 
     HSQUIRRELVM GetClientSQVM()
     {
