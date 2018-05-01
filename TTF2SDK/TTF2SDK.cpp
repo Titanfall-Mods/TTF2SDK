@@ -74,6 +74,10 @@ HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateComputeShader), &ID3D11Device
 
 HookedFunc<void, __int64> AddTextureToStats("materialsystem_dx11.dll", "\x40\x53\x48\x83\xEC\x00\x48\x8B\xD9\x48\x8D\x0D\x00\x00\x00\x00\xFF\x15\x00\x00\x00\x00\x0F\xB7\x43\x00", "xxxxx?xxxxxx????xx????xxx?");
 
+HookedFunc<bool, char*> LoadPakForLevel("engine.dll", "\x48\x81\xEC\x00\x00\x00\x00\x48\x8D\x54\x24\x00\x41\xB8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8D\x4C\x24\x00", "xxx????xxxx?xx????x????xxxx?");
+
+SigScanFunc<__int64, void*, void*> CModelLoader_UnloadModel("engine.dll", "\x48\x89\x5C\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x48\x8B\xDA\x8B\x92\x00\x00\x00\x00", "xxxx?xxxx????xxxxx????");
+
 template <typename T, T> struct SDKMemberWrapper;
 
 template<typename T, typename RT, typename... Args, RT(T::*pF)(Args...)>
@@ -358,6 +362,12 @@ void TTF2SDK::compileShaders()
     }
 }
 
+bool LoadPakForLevelHook(char* levelName)
+{
+    spdlog::get("logger")->warn("LoadPakForLevel: {}", levelName);
+    return LoadPakForLevel(levelName);
+}
+
 int FirstFuncOfInterestHook(IEngineClient* engineClient, const char* mapName, char a3)
 {
     spdlog::get("logger")->warn("FirstFuncOfInterest: {}, {}", mapName, (int)a3);
@@ -422,17 +432,26 @@ void V_FixSlashes(char *pname, char separator)
 bool isSpawningExternalMapModel = false;
 std::string currentExternalMapName;
 
+void* g_modelLoader = NULL;
 
+
+std::unordered_set<__int64> loadedPaks;
 std::unordered_set<std::string> texturesToLoad;
 std::unordered_set<std::string> materialsToLoad;
 std::unordered_set<std::string> shadersToLoad;
-
+std::unordered_set<void*> loadedModels;
 
 std::regex textureFileRegex("^(.+\\d\\d)");
 std::regex mapFromVPKRegex("client_(.+)\\.bsp");
 
 __int64 Studio_LoadModelHook(void* modelLoader, void* model)
 {
+    g_modelLoader = modelLoader;
+    if (isSpawningExternalMapModel)
+    {
+        loadedModels.insert(model);
+    }
+
     model_t* actualModel = (model_t*)model;
     spdlog::get("logger")->debug("Studio_LoadModel: {}, {}", model, actualModel->szName);
     __int64 retval = Studio_LoadModel(modelLoader, model);
@@ -454,11 +473,14 @@ void freeHook(__int64 a1, void* a2)
 AllocFuncs* savedAllocFuncs = 0;
 void* savedINeedThis = 0;
 
+std::unordered_map<__int64, std::string> pakMap;
+
 __int64 pakFunc3Hook(const char* src, AllocFuncs* allocFuncs, int val)
 {
     __int64 retVal = pakFunc3(src, allocFuncs, val);
     spdlog::get("logger")->warn("pakFunc3: src = {}, allocFuncs = {}, val = {}, ret = {}", src, (void*)allocFuncs, val, retVal);
     savedAllocFuncs = allocFuncs;
+    pakMap.emplace(retVal, src);
     return retVal;
 }
 
@@ -477,10 +499,18 @@ __int64 pakFunc13Hook(const char* arg1)
     return retVal;
 }
 
+void unloadPaks();
+
 __int64 pakFunc6Hook(unsigned int arg1, void* arg2)
 {
+    spdlog::get("logger")->warn("pakFunc6 START: arg1 = {}, arg2 = {}", arg1, arg2);
+    if (pakMap[arg1] == "sp_training.rpak")
+    {
+        spdlog::get("logger")->warn("found training, unloading ours first");
+        unloadPaks();
+    }
     __int64 retVal = pakFunc6(arg1, arg2);
-    spdlog::get("logger")->warn("pakFunc6: arg1 = {}, arg2 = {}, retval = {}", arg1, arg2, retVal);
+    spdlog::get("logger")->warn("pakFunc6 END: arg1 = {}, arg2 = {}, retval = {}", arg1, arg2, retVal);
     return retVal;
 }
 
@@ -549,30 +579,106 @@ void logTextureFunc1(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
     }
 }
 
-void(*origTextureFunc3)(void *Dst, void *Src, void *a3);
-void textureFunc3Hook(void *Dst, void *Src, void *a3)
-{
-    if (!isSpawningExternalMapModel)
-    {
-        return origTextureFunc3(Dst, Src, a3);
-    }
-    else
-    {
-        const char* name = *(const char**)((char*)Src + 8);
-        std::string strName(name);
-        if (texturesToLoad.find(strName) != texturesToLoad.end())
-        {
-            // hey, we need to actually load this!
-            spdlog::get("logger")->warn("textureFunc3 for {}", strName);
-            spdlog::get("logger")->warn("calling original textureFunc3");
-            origTextureFunc3(Dst, Src, a3);
-        }
-    }
-}
+std::atomic_bool isUnloadingCustomPaks = false;
 
 void doNothing()
 {
     return;
+}
+
+void unloadPaks()
+{
+    isUnloadingCustomPaks = true;
+    for (__int64 pakId : loadedPaks)
+    {
+        spdlog::get("logger")->warn("unloading custom pak {}", pakId);
+        __int64 ret3 = pakFunc6(pakId, &doNothing);
+        spdlog::get("logger")->warn("unloaded custom pak {}, ret = {}", pakId, ret3);
+    }
+    loadedPaks.clear();
+    texturesToLoad.clear();
+    materialsToLoad.clear();
+    shadersToLoad.clear();
+    spdlog::get("logger")->warn("unloading models");
+    for (void* model : loadedModels)
+    {
+        CModelLoader_UnloadModel(g_modelLoader, model);
+    }
+    spdlog::get("logger")->warn("finishedunloading models");
+    loadedModels.clear();
+    isUnloadingCustomPaks = false;
+}
+
+#pragma pack(push,1)
+struct TexData
+{
+    char unknown[8];
+    const char* name;
+    char unknown2[18];
+    bool someBool;
+    char unknown3[245];
+    ID3D11Texture2D* texture2D;
+    ID3D11ShaderResourceView* SRView;
+};
+#pragma pack(pop)
+
+__int64(*origTextureFunc2)(__int64 texData);
+__int64 textureFunc2Hook(__int64 texData)
+{
+    TexData* data = (TexData*)texData;
+    spdlog::get("logger")->warn("texture func 2: {}", data->name);
+    if (isUnloadingCustomPaks)
+    {
+        if (texturesToLoad.find(data->name) != texturesToLoad.end())
+        {
+            spdlog::get("logger")->warn("texture was custom loaded, so calling origTextureFunc2");
+            if (data->texture2D != NULL && data->SRView != NULL)
+            {
+                spdlog::get("logger")->warn("texture safe to unload");
+                origTextureFunc2(texData);
+            }
+            
+        }
+        return ERROR_SUCCESS;
+    }
+    else
+    {
+        return origTextureFunc2(texData);
+    }
+}
+
+void(*origTextureFunc3)(void *Dst, void *Src, void *a3);
+void textureFunc3Hook(void *Dst, void *Src, void *a3)
+{
+    const char* name = NULL;
+    if (Src != NULL)
+    {
+        name = *(const char**)((char*)Src + 8);
+    }
+    else if (Dst != NULL)
+    {
+        name = *(const char**)((char*)Dst + 8);
+    }
+
+    if (!isSpawningExternalMapModel && !isUnloadingCustomPaks)
+    {
+        spdlog::get("logger")->warn("textureFunc3 for {}", name != NULL ? name : "NULL");
+        return origTextureFunc3(Dst, Src, a3);
+    }
+    else
+    {
+        if (name != NULL)
+        {
+            std::string strName(name);
+            if (texturesToLoad.find(strName) != texturesToLoad.end())
+            {
+                // hey, we need to actually load this!
+                spdlog::get("logger")->warn("textureFunc3 for {}", strName);
+                spdlog::get("logger")->warn("calling original textureFunc3");
+                origTextureFunc3(Dst, Src, a3);
+            }
+        }
+    }
 }
 
 __int64 doNothing2()
@@ -604,6 +710,7 @@ void shader_func1(__int64 a1, __int64 a2)
             overrideShaders = false;
         }
 
+        overrideShaders = false;
         origShaderFunc1(a1, a2);
         overrideShaders = false;
     }
@@ -624,9 +731,6 @@ unsigned __int64 LoadMaterialsHook(__int64 a1, signed int* phdr, __int64 a3, __i
             char *v15 = (char *)v14 + *v14;
             if (*v15 == '\\' || *v15 == '/')
                 ++v15;
-            char *v16 = (char *)phdr + *(signed int *)((char *)phdr + phdr[55]);
-            if (*v16 == '\\' || *v16 == '/')
-                ++v16;
 
             char path[MAX_PATH];
             strcpy_s(path, v15);
@@ -661,7 +765,7 @@ unsigned __int64 LoadMaterialsHook(__int64 a1, signed int* phdr, __int64 a3, __i
                 spdlog::get("logger")->warn("Material {} not already loaded, will reload pak", strPath);
             }
 
-            spdlog::get("logger")->warn("i = {}, v15 = {}, v16 = {}", i, v15, v16);
+            spdlog::get("logger")->warn("i = {}, v15 = {}", i, v15);
         }
 
         if (needsPakReload)
@@ -675,6 +779,7 @@ unsigned __int64 LoadMaterialsHook(__int64 a1, signed int* phdr, __int64 a3, __i
             spdlog::get("logger")->warn("my pakFunc3 for {} ret = {}", pakName.c_str(), ret);
             if (ret != -1)
             {
+                loadedPaks.insert(ret);
                 __int64 ret2 = pakFunc9(ret, &doNothing, &doNothing);
                 spdlog::get("logger")->warn("my pakFunc9 for {} ret = {}", pakName.c_str(), ret2);
             }
@@ -832,6 +937,7 @@ TTF2SDK::TTF2SDK()
     pakFunc13.Hook(pakFunc13Hook);
     pakFunc6.Hook(pakFunc6Hook);
     CStudioRenderContext_LoadMaterials.Hook(LoadMaterialsHook);
+    LoadPakForLevel.Hook(LoadPakForLevelHook);
 
     unsigned char* addTextureToStatsBase = (unsigned char*)AddTextureToStats.GetFuncPtr();
     {
@@ -857,6 +963,9 @@ TTF2SDK::TTF2SDK()
 
     origTextureFunc1 = (decltype(origTextureFunc1))registrations[12].func1;
     registrations[12].func1 = logTextureFunc1;
+
+    origTextureFunc2 = (decltype(origTextureFunc2))registrations[12].func2;
+    registrations[12].func2 = textureFunc2Hook;
 
     origTextureFunc3 = (decltype(origTextureFunc3))registrations[12].func3;
     registrations[12].func3 = textureFunc3Hook;
@@ -1073,143 +1182,143 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
     if (m_shouldRunServerCode)
     {
         auto v = GetServerSQVM();
-        if (v != nullptr)
+        std::string code = GetServerCode();
+        if (code == "load")
         {
-            std::string code = GetServerCode();
-            if (code == "load")
-            {
-                void* origFuncs1[16];
-                void* origFuncs2[16];
+            void* origFuncs1[16];
+            void* origFuncs2[16];
 
-                //for (int i = 0; i < 16; i++)
-                //{
-                //    if (i == 13 || i == 4 || i == 6 || i == 7 || i == 8 || i == 12)
-                //    {
-                //        origFuncs1[i] = registrations[i].func1;
-                //        origFuncs2[i] = registrations[i].func2;
-                //        if (registrations[i].func1 != NULL)
-                //        {
-                //            registrations[i].func1 = doNothing;
-                //        }
-                //        
-                //        if (registrations[i].func2 != NULL)
-                //        {
-                //            registrations[i].func2 = textureFunc2;
-                //        }
-                //    }
-                //}
+            //for (int i = 0; i < 16; i++)
+            //{
+            //    if (i == 13 || i == 4 || i == 6 || i == 7 || i == 8 || i == 12)
+            //    {
+            //        origFuncs1[i] = registrations[i].func1;
+            //        origFuncs2[i] = registrations[i].func2;
+            //        if (registrations[i].func1 != NULL)
+            //        {
+            //            registrations[i].func1 = doNothing;
+            //        }
+            //        
+            //        if (registrations[i].func2 != NULL)
+            //        {
+            //            registrations[i].func2 = textureFunc2;
+            //        }
+            //    }
+            //}
 
-                origFunc1 = registrations[12].func1;
-                void* origFunc2 = registrations[12].func2;
-                origAllocFunc = (decltype(origAllocFunc))*((**g_pMemAllocSingleton) + 1);
-                origFreeFunc = (decltype(origFreeFunc))*((**g_pMemAllocSingleton) + 5);
-                {
-                    TempReadWrite rw(**g_pMemAllocSingleton);
-                    // *((**g_pMemAllocSingleton) + 1) = &memAllocAllocHook;
-                     //*((**g_pMemAllocSingleton) + 5) = &memFreeHook;
-                }
+            origFunc1 = registrations[12].func1;
+            void* origFunc2 = registrations[12].func2;
+            origAllocFunc = (decltype(origAllocFunc))*((**g_pMemAllocSingleton) + 1);
+            origFreeFunc = (decltype(origFreeFunc))*((**g_pMemAllocSingleton) + 5);
+            {
+                TempReadWrite rw(**g_pMemAllocSingleton);
+                // *((**g_pMemAllocSingleton) + 1) = &memAllocAllocHook;
+                //*((**g_pMemAllocSingleton) + 5) = &memFreeHook;
+            }
 
-                // m_logger->warn("original func1 = {}", origFunc1);
-                 //registrations[12].func1 = &doNothing2;
-                 //registrations[12].func2 = &doNothing2;
-                void* origAlloc = savedAllocFuncs->allocFunc;
-                void* origFree = savedAllocFuncs->freeFunc;
-                //savedAllocFuncs->allocFunc = allocHook;
-                //savedAllocFuncs->freeFunc = freeHook;
-                //hookHeap();
-                cachedMaterialData.clear();
-                preload("sp_boomtown_start.rpak");
-                preload("sp_boomtown_end.rpak");
-                preload("sp_crashsite.rpak");
-                preload("sp_sewers1.rpak");
-                preload("sp_skyway_v1.rpak");
-                preload("sp_timeshift_spoke02.rpak");
-                preload("sp_tday.rpak");
-                preload("sp_s2s.rpak");
-                preload("sp_beacon_spoke0.rpak");
-                //unhookHeap();
-                m_logger->warn("allocated = {}", allocated);
-                //savedAllocFuncs->allocFunc = (decltype(savedAllocFuncs->allocFunc))origAlloc;
-                //savedAllocFuncs->freeFunc = (decltype(savedAllocFuncs->freeFunc))origFree;
-                {
-                    TempReadWrite rw(**g_pMemAllocSingleton);
-                    //*((**g_pMemAllocSingleton) + 1) = origAllocFunc;
-                   // *((**g_pMemAllocSingleton) + 5) = origFreeFunc;
-                }
-                //registrations[12].func1 = origFunc1;
-                //registrations[12].func2 = origFunc2;
+            // m_logger->warn("original func1 = {}", origFunc1);
+            //registrations[12].func1 = &doNothing2;
+            //registrations[12].func2 = &doNothing2;
+            void* origAlloc = savedAllocFuncs->allocFunc;
+            void* origFree = savedAllocFuncs->freeFunc;
+            //savedAllocFuncs->allocFunc = allocHook;
+            //savedAllocFuncs->freeFunc = freeHook;
+            //hookHeap();
+            cachedMaterialData.clear();
+            preload("sp_boomtown_start.rpak");
+            preload("sp_boomtown_end.rpak");
+            preload("sp_crashsite.rpak");
+            preload("sp_sewers1.rpak");
+            preload("sp_skyway_v1.rpak");
+            preload("sp_timeshift_spoke02.rpak");
+            preload("sp_tday.rpak");
+            preload("sp_s2s.rpak");
+            preload("sp_beacon_spoke0.rpak");
+            //unhookHeap();
+            m_logger->warn("allocated = {}", allocated);
+            //savedAllocFuncs->allocFunc = (decltype(savedAllocFuncs->allocFunc))origAlloc;
+            //savedAllocFuncs->freeFunc = (decltype(savedAllocFuncs->freeFunc))origFree;
+            {
+                TempReadWrite rw(**g_pMemAllocSingleton);
+                //*((**g_pMemAllocSingleton) + 1) = origAllocFunc;
+                // *((**g_pMemAllocSingleton) + 5) = origFreeFunc;
+            }
+            //registrations[12].func1 = origFunc1;
+            //registrations[12].func2 = origFunc2;
 
-                //for (int i = 0; i < 16; i++)
-                //{
-                //    if (i == 13 || i == 4 || i == 6 || i == 7 || i == 8 || i == 12)
-                //    {
-                //        registrations[i].func1 = origFuncs1[i];
-                //        registrations[i].func2 = origFuncs2[i];
-                //    }
-                //}
-            }
-            else if (code == "printregs")
+            //for (int i = 0; i < 16; i++)
+            //{
+            //    if (i == 13 || i == 4 || i == 6 || i == 7 || i == 8 || i == 12)
+            //    {
+            //        registrations[i].func1 = origFuncs1[i];
+            //        registrations[i].func2 = origFuncs2[i];
+            //    }
+            //}
+        }
+        else if (code == "printregs")
+        {
+            printRegs();
+        }
+        else if (code == "printallocs")
+        {
+            printAllocs();
+        }
+        else if (code == "spawnmodelmode")
+        {
+            isSpawningExternalMapModel = !isSpawningExternalMapModel;
+            m_logger->warn("isSpawningExternalMapModel = {}", isSpawningExternalMapModel);
+        }
+        else if (code == "printshaders")
+        {
+            for (auto it : shaders)
             {
-                printRegs();
+                m_logger->warn("{}", it);
             }
-            else if (code == "printallocs")
+            m_logger->warn("num shaders = {}", shaders.size());
+        }
+        else if (code == "printmats")
+        {
+            printCachedMatData();
+        }
+        else if (code == "compileshaders")
+        {
+            compileShaders();
+        }
+        else if (code == "printtoload")
+        {
+            m_logger->info("Textures:");
+            for (auto t : texturesToLoad)
             {
-                printAllocs();
+                m_logger->info("\t{}", t);
             }
-            else if (code == "spawnmodelmode")
-            {
-                isSpawningExternalMapModel = !isSpawningExternalMapModel;
-                m_logger->warn("isSpawningExternalMapModel = {}", isSpawningExternalMapModel);
-            }
-            else if (code == "printshaders")
-            {
-                for (auto it : shaders)
-                {
-                    m_logger->warn("{}", it);
-                }
-                m_logger->warn("num shaders = {}", shaders.size());
-            }
-            else if (code == "printmats")
-            {
-                printCachedMatData();
-            }
-            else if (code == "compileshaders")
-            {
-                compileShaders();
-            }
-            else if (code == "printtoload")
-            {
-                m_logger->info("Textures:");
-                for (auto t : texturesToLoad)
-                {
-                    m_logger->info("\t{}", t);
-                }
 
-                m_logger->info("Materials:");
-                for (auto t : materialsToLoad)
-                {
-                    m_logger->info("\t{}", t);
-                }
-
-                m_logger->info("Shaders:");
-                for (auto t : shadersToLoad)
-                {
-                    m_logger->info("\t{}", t);
-                }
-            }
-            else
+            m_logger->info("Materials:");
+            for (auto t : materialsToLoad)
             {
-                m_logger->info("Executing SERVER code: {}", code);
-                CompileBufferState s(code);
-                SQRESULT compileRes = sq_compilebuffer.CallServer(v, &s, "console", -1, 1);
-                m_logger->debug("sq_compilebuffer returned {}", compileRes);
-                if (SQ_SUCCEEDED(compileRes)) {
-                    sq_pushroottable.CallServer(v);
-                    SQRESULT callRes = sq_call.CallServer(v, 1, SQFalse, SQFalse);
-                    m_logger->debug("sq_call returned {}", callRes);
-                }
+                m_logger->info("\t{}", t);
             }
-            
+
+            m_logger->info("Shaders:");
+            for (auto t : shadersToLoad)
+            {
+                m_logger->info("\t{}", t);
+            }
+        }
+        else if (code == "unloadpaks")
+        {
+            unloadPaks();
+        }
+        else if (v != nullptr)
+        {
+            m_logger->info("Executing SERVER code: {}", code);
+            CompileBufferState s(code);
+            SQRESULT compileRes = sq_compilebuffer.CallServer(v, &s, "console", -1, 1);
+            m_logger->debug("sq_compilebuffer returned {}", compileRes);
+            if (SQ_SUCCEEDED(compileRes)) {
+                sq_pushroottable.CallServer(v);
+                SQRESULT callRes = sq_call.CallServer(v, 1, SQFalse, SQFalse);
+                m_logger->debug("sq_call returned {}", callRes);
+            }
         }
         else
         {
