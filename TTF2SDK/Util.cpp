@@ -128,4 +128,16 @@ namespace Util
 
         return funcAddr;
     }
+
+    void FixSlashes(char* pname, char separator)
+    {
+        while (*pname)
+        {
+            if (*pname == '\\' || *pname == '/')
+            {
+                *pname = separator;
+            }
+            pname++;
+        }
+    }
 }

@@ -21,8 +21,10 @@
 
 #include <d3dcompiler.h>
 
+// TODO: clean these up
 #include <shared_mutex>
 #include <unordered_set>
+#include <filesystem>
 #include <locale>
 #include <codecvt>
 #include <string>
@@ -39,7 +41,7 @@
 #include "Util.h"
 #include "Squirrel.h"
 #include "IFileSystem.h"
-#include "IEngineClient.h"
-#include "IEngineServer.h"
+#include "IVEngineServer.h"
 #include "VTableHooking.h"
+#include "FileSystemManager.h"
 #include "TTF2SDK.h"

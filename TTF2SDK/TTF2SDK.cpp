@@ -3,6 +3,11 @@
 std::unique_ptr<Console> g_console;
 std::unique_ptr<TTF2SDK> g_SDK;
 
+TTF2SDK& SDK()
+{
+    return *g_SDK;
+}
+
 /*
 [12:13 AM] Wilko: so for things that are currently in my existing mod
 [12:14 AM] Wilko: i need to be able to load/compile new scripts the same way the game does it (atm I'm automatically adding all my shit to the end of an existing file)
@@ -28,12 +33,13 @@ the two requests btw are "ability to load a VPK manually"
 
 // so i need: qword_7FFD271A1F00 and off_7FFD14F55E20
 
+#define WRAPPED_MEMBER(name) MemberWrapper<decltype(&TTF2SDK::##name), &TTF2SDK::##name, decltype(&SDK), &SDK>::Call
+
 struct AllocFuncs
 {
     void* (*allocFunc)(__int64 a1, size_t a2, size_t a3);
     void(*freeFunc)(__int64 a1, void* a2);
 };
-
 
 HookedFunc<void, double, float> _Host_RunFrame("engine.dll", "\x48\x8B\xC4\x48\x89\x58\x00\xF3\x0F\x11\x48\x00\xF2\x0F\x11\x40\x00", "xxxxxx?xxxx?xxxx?");
 
@@ -45,20 +51,14 @@ SharedHookedFunc<void, HSQUIRRELVM, const SQChar*, const SQChar*, SQInteger, SQI
 
 HookedFunc<__int64, void*, void*> Studio_LoadModel("engine.dll", "\x48\x89\x6C\x24\x00\x41\x56\x48\x83\xEC\x00\x83\x8A\x00\x00\x00\x00\x00", "xxxx?xxxxx?xx?????");
 
-HookedVTableFunc<decltype(&IFileSystem::VTable::AddSearchPath), &IFileSystem::VTable::AddSearchPath> IFileSystem_AddSearchPath;
-HookedVTableFunc<decltype(&IFileSystem::VTable::ReadFromCache), &IFileSystem::VTable::ReadFromCache> IFileSystem_ReadFromCache;
-HookedVTableFunc<decltype(&IFileSystem::VTable::MountVPK), &IFileSystem::VTable::MountVPK> IFileSystem_MountVPK;
 
-HookedVTableFunc<decltype(&IEngineClient::VTable::FirstFuncOfInterest), &IEngineClient::VTable::FirstFuncOfInterest> IEngineClient_FirstFuncOfInterest;
-HookedVTableFunc<decltype(&IEngineClient::VTable::SecondFuncOfInterest), &IEngineClient::VTable::SecondFuncOfInterest> IEngineClient_SecondFuncOfInterest;
-
-HookedVTableFunc<decltype(&IEngineServer::VTable::SpewFunc), &IEngineServer::VTable::SpewFunc> IEngineServer_SpewFunc;
+HookedVTableFunc<decltype(&IVEngineServer::VTable::SpewFunc), &IVEngineServer::VTable::SpewFunc> IVEngineServer_SpewFunc;
 
 HookedFunc<unsigned __int64, __int64, signed int*, __int64, __int64, unsigned int> CStudioRenderContext_LoadMaterials("studiorender.dll", "\x40\x53\x55\x57", "xxxx");
 
 HookedFunc<__int64, const char*, AllocFuncs*, int> pakFunc3("rtech_game.dll", "\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x00\x48\x8B\xF1\x48\x8D\x0D\x00\x00\x00\x00", "xxxx?xxxx?xxxx?xxxxxx????");
 HookedFunc<__int64, __int64, void*, void*> pakFunc9("rtech_game.dll", "\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x00\x8B\xD9", "xxxx?xxxx?xxxx?xxxx?xx");
-HookedFunc<__int32*, VPKInfo*, __int32*, char*> ReadFileFromVPK("filesystem_stdio.dll", "\x48\x89\x5C\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x49\x8B\xC0\x48\x8B\xDA", "xxxx?xxxx????xxxxxx");
+
 HookedFunc<__int64, const char*> pakFunc13("rtech_game.dll", "\x48\x83\xEC\x00\x48\x8D\x15\x00\x00\x00\x00", "xxx?xxx????");
 HookedFunc<__int64, unsigned int, void*> pakFunc6("rtech_game.dll", "\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x00\x48\x8B\xDA\x8B\xF9", "xxxx?xxxx?xxxxx");
 SigScanFunc<void> pakFunc1("rtech_game.dll", "\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x41\x56\x41\x57\x48\x83\xEC\x00\x8B\x01", "xxxx?xxxx?xxxx?xxxxxxxx?xx");
@@ -72,29 +72,10 @@ HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreatePixelShader), &ID3D11DeviceVt
 HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateVertexShader), &ID3D11DeviceVtbl::CreateVertexShader> ID3D11Device_CreateVertexShader;
 HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateComputeShader), &ID3D11DeviceVtbl::CreateComputeShader> ID3D11Device_CreateComputeShader;
 
-HookedFunc<void, __int64> AddTextureToStats("materialsystem_dx11.dll", "\x40\x53\x48\x83\xEC\x00\x48\x8B\xD9\x48\x8D\x0D\x00\x00\x00\x00\xFF\x15\x00\x00\x00\x00\x0F\xB7\x43\x00", "xxxxx?xxxxxx????xx????xxx?");
-
 HookedFunc<bool, char*> LoadPakForLevel("engine.dll", "\x48\x81\xEC\x00\x00\x00\x00\x48\x8D\x54\x24\x00\x41\xB8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8D\x4C\x24\x00", "xxx????xxxx?xx????x????xxxx?");
 
 SigScanFunc<__int64, void*, void*> CModelLoader_UnloadModel("engine.dll", "\x48\x89\x5C\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x48\x8B\xDA\x8B\x92\x00\x00\x00\x00", "xxxx?xxxx????xxxxx????");
 
-template <typename T, T> struct SDKMemberWrapper;
-
-template<typename T, typename RT, typename... Args, RT(T::*pF)(Args...)>
-struct SDKMemberWrapper<RT(T::*)(Args...), pF>
-{
-    static RT Call(Args&&... args)
-    {
-        return ((*g_SDK).*pF)(std::forward<Args>(args)...);
-    }
-
-    static RT Call(Args... args)
-    {
-        return ((*g_SDK).*pF)(args...);
-    }
-};
-
-#define WRAPPED_MEMBER(name) SDKMemberWrapper<decltype(&TTF2SDK::##name), &TTF2SDK::##name>::Call
 
 struct CShaderGlue
 {
@@ -362,29 +343,7 @@ void TTF2SDK::compileShaders()
     }
 }
 
-bool LoadPakForLevelHook(char* levelName)
-{
-    spdlog::get("logger")->warn("LoadPakForLevel: {}", levelName);
-    return LoadPakForLevel(levelName);
-}
-
-int FirstFuncOfInterestHook(IEngineClient* engineClient, const char* mapName, char a3)
-{
-    spdlog::get("logger")->warn("FirstFuncOfInterest: {}, {}", mapName, (int)a3);
-    //int res2 = IEngineClient_FirstFuncOfInterest(engineClient, "sp_boomtown_start", 0);
-    //spdlog::get("logger")->warn("res2: {}", res2);
-    int res1 = IEngineClient_FirstFuncOfInterest(engineClient, mapName, a3);
-    spdlog::get("logger")->warn("res1: {}", res1);
-    return res1;
-}
-
-int SecondFuncOfInterest(IEngineClient* engineClient, const char* mapName)
-{
-    spdlog::get("logger")->warn("SecondFuncOfInterest: {}", mapName);
-    return IEngineClient_SecondFuncOfInterest(engineClient, mapName);
-}
-
-__int64 SpewFuncHook(IEngineServer* engineServer, SpewType_t type, const char* format, va_list args)
+__int64 SpewFuncHook(IVEngineServer* engineServer, SpewType_t type, const char* format, va_list args)
 {
     char pTempBuffer[5020];
 
@@ -392,7 +351,7 @@ __int64 SpewFuncHook(IEngineServer* engineServer, SpewType_t type, const char* f
     if (val == -1)
     {
         spdlog::get("logger")->warn("Failed to call _vsnprintf for SpewFunc");
-        return IEngineServer_SpewFunc(engineServer, type, format, args);
+        return IVEngineServer_SpewFunc(engineServer, type, format, args);
     }
 
     if (type == SPEW_MESSAGE)
@@ -408,7 +367,7 @@ __int64 SpewFuncHook(IEngineServer* engineServer, SpewType_t type, const char* f
         spdlog::get("logger")->info("SERVER ({}): {}", type, pTempBuffer);
     }
 
-    return IEngineServer_SpewFunc(engineServer, type, format, args);
+    return IVEngineServer_SpewFunc(engineServer, type, format, args);
 }
 
 struct model_t
@@ -416,18 +375,6 @@ struct model_t
     unsigned char fnHandle[4];
     char szName[250];
 };
-
-void V_FixSlashes(char *pname, char separator)
-{
-    while (*pname)
-    {
-        if (*pname == '\\' || *pname == '/')
-        {
-            *pname = separator;
-        }
-        pname++;
-    }
-}
 
 bool isSpawningExternalMapModel = false;
 std::string currentExternalMapName;
@@ -442,7 +389,7 @@ std::unordered_set<std::string> shadersToLoad;
 std::unordered_set<void*> loadedModels;
 
 std::regex textureFileRegex("^(.+\\d\\d)");
-std::regex mapFromVPKRegex("client_(.+)\\.bsp");
+
 
 __int64 Studio_LoadModelHook(void* modelLoader, void* model)
 {
@@ -458,20 +405,7 @@ __int64 Studio_LoadModelHook(void* modelLoader, void* model)
     return retval;
 }
 
-void* allocHook(__int64 a1, size_t a2, size_t a3)
-{
-    spdlog::get("logger")->warn("allocFunc: a2 = {}, a3 = {}", a2, a3);
-    return _aligned_malloc(a2, a3);
-}
-
-void freeHook(__int64 a1, void* a2)
-{
-    spdlog::get("logger")->warn("freeFunc: a2 = {}", a2);
-    _aligned_free(a2);
-}
-
 AllocFuncs* savedAllocFuncs = 0;
-void* savedINeedThis = 0;
 
 std::unordered_map<__int64, std::string> pakMap;
 
@@ -488,7 +422,6 @@ __int64 pakFunc9Hook(__int64 pakInstance, void* iNeedThis, void* cb)
 {
     __int64 retVal = pakFunc9(pakInstance, iNeedThis, cb);
     spdlog::get("logger")->warn("pakFunc9: pak = {}, iNeedThis = {}, cb = {}, ret = {}", pakInstance, iNeedThis, cb, retVal);
-    savedINeedThis = iNeedThis;
     return retVal;
 }
 
@@ -531,16 +464,6 @@ struct TypeRegistration {
 
 TypeRegistration* registrations;
 void**** g_pMemAllocSingleton;
-
-void* origFunc1;
-
-
-__int64 textureFunc2(__int64 a1)
-{
-    //const char* name = (const char*)(a1 + 8);
-    //spdlog::get("logger")->warn("texture func 2");
-    return 0;
-}
 
 std::unordered_set<std::string> textureNames;
 std::mutex tn;
@@ -688,8 +611,6 @@ __int64 doNothing2()
 
 std::unordered_set<std::string> shaders;
 std::mutex a;
-std::atomic_bool shouldLogAlloc = true;
-
 
 void(*origShaderFunc1)(__int64 a1, __int64 a2);
 void shader_func1(__int64 a1, __int64 a2)
@@ -734,7 +655,7 @@ unsigned __int64 LoadMaterialsHook(__int64 a1, signed int* phdr, __int64 a3, __i
 
             char path[MAX_PATH];
             strcpy_s(path, v15);
-            V_FixSlashes(path, '\\');
+            Util::FixSlashes(path, '\\');
             std::string strPath(path);
 
             // Check if it's in the material map
@@ -796,49 +717,6 @@ unsigned __int64 LoadMaterialsHook(__int64 a1, signed int* phdr, __int64 a3, __i
     return CStudioRenderContext_LoadMaterials(a1, phdr, a3, a4, a5);
 }
 
-std::mutex m;
-size_t allocated = 0;
-std::unordered_map<void*, __int64> allocSizes;
-std::unordered_map<void*, void*> allocCallers;
-std::atomic_bool inAlloc = false;
-
-
-LPVOID (WINAPI*origHeapAlloc)(_In_ HANDLE hHeap, _In_ DWORD dwFlags, _In_ SIZE_T dwBytes);
-void* pHeapAlloc;
-LPVOID WINAPI HeapAllocHook(_In_ HANDLE hHeap, _In_ DWORD dwFlags, _In_ SIZE_T dwBytes)
-{
-    LPVOID mem = origHeapAlloc(hHeap, dwFlags, dwBytes);
-    if (!inAlloc && shouldLogAlloc)
-    {
-        std::lock_guard<std::mutex> l(m);
-        inAlloc = true;
-        allocated += dwBytes;
-        allocSizes[(void*)mem] = dwBytes;
-        inAlloc = false;
-    }
-    return mem;
-}
-
-BOOL(WINAPI*origHeapFree)(_In_ HANDLE hHeap, _In_ DWORD dwFlags, _In_ LPVOID lpMem);
-void* pHeapFree;
-BOOL WINAPI HeapFreeHook(_In_ HANDLE hHeap, _In_ DWORD  dwFlags, _In_ LPVOID lpMem)
-{
-    __int64 size = 0;
-    if (!inAlloc && shouldLogAlloc)
-    {
-        std::lock_guard<std::mutex> l(m);
-        inAlloc = true;
-        if (allocSizes.find(lpMem) != allocSizes.end())
-        {
-            size = allocSizes[lpMem];
-            allocSizes[lpMem] = 0;
-        }
-        allocated -= size;
-        inAlloc = false;
-    }
-    return origHeapFree(hHeap, dwFlags, lpMem);
-}
-
 struct MatFunc1
 {
     void* data;
@@ -861,36 +739,9 @@ __int64 Material_func1hook(__int64 a1, MatFunc1* a2)
     return Material_func1Orig(a1, a2);
 }
 
-void printAllocs()
-{
-    size_t largest = 0;
-    size_t sum = 0;
-    auto logger = spdlog::get("logger");
-    for (auto it : allocSizes) {
-        if (it.second != 0)
-        {
-            logger->info("{}: {}", it.first, it.second);
-            sum += it.second;
-            if (it.second > largest)
-            {
-                largest = it.second;
-            }
-        }
-    }
-    logger->info("largest = {}", largest);
-    logger->info("sum = {}", sum);
-}
-
-void AddTextureToStats_Hook(__int64 a1)
-{
-    return;
-}
-
-TTF2SDK::TTF2SDK()
-    : m_replacementManager("D:\\dev\\ttf2\\searchpath\\"), // TODO: make this a configuration setting. Also make sure it has a trailing slash.
-      m_fileSystem("filesystem_stdio.dll", "VFileSystem017"),
-      m_engineClient("engine.dll", "VEngineClient013"),
-      m_engineServer("engine.dll", "VEngineServer022")
+TTF2SDK::TTF2SDK() :
+    m_engineServer("engine.dll", "VEngineServer022"),
+    m_fsManager("D:\\dev\\ttf2\\searchpath\\") // TODO: make this a configuration setting. Also make sure it has a trailing slash.
 {
     m_logger = spdlog::get("logger");
 
@@ -921,15 +772,7 @@ TTF2SDK::TTF2SDK()
     offset = *(int*)(funcBase + 13);
     m_ppServerVM = (ServerVM**)(funcBase + 17 + offset);
 
-    // Hook functions
-    IFileSystem_AddSearchPath.Hook(m_fileSystem->m_vtable, WRAPPED_MEMBER(AddSearchPathHook));
-    IFileSystem_ReadFromCache.Hook(m_fileSystem->m_vtable, WRAPPED_MEMBER(ReadFromCacheHook));
-    IFileSystem_MountVPK.Hook(m_fileSystem->m_vtable, WRAPPED_MEMBER(MountVPKHook));
-    ReadFileFromVPK.Hook(WRAPPED_MEMBER(ReadFileFromVPKHook));
-
-    IEngineClient_FirstFuncOfInterest.Hook(m_engineClient->m_vtable, FirstFuncOfInterestHook);
-    IEngineClient_SecondFuncOfInterest.Hook(m_engineClient->m_vtable, SecondFuncOfInterest);
-    IEngineServer_SpewFunc.Hook(m_engineServer->m_vtable, SpewFuncHook);
+    IVEngineServer_SpewFunc.Hook(m_engineServer->m_vtable, SpewFuncHook);
 
     Studio_LoadModel.Hook(Studio_LoadModelHook);
     pakFunc3.Hook(pakFunc3Hook);
@@ -937,19 +780,6 @@ TTF2SDK::TTF2SDK()
     pakFunc13.Hook(pakFunc13Hook);
     pakFunc6.Hook(pakFunc6Hook);
     CStudioRenderContext_LoadMaterials.Hook(LoadMaterialsHook);
-    LoadPakForLevel.Hook(LoadPakForLevelHook);
-
-    unsigned char* addTextureToStatsBase = (unsigned char*)AddTextureToStats.GetFuncPtr();
-    {
-        TempReadWrite rw(addTextureToStatsBase);
-        addTextureToStatsBase += 0x33;
-        //addTextureToStatsBase[0] = 0x90;
-        //addTextureToStatsBase[1] = 0x90;
-        //addTextureToStatsBase[2] = 0x90;
-        //addTextureToStatsBase[3] = 0x90;
-    }
-
-    //AddTextureToStats.Hook(AddTextureToStats_Hook);
 
     __int64 base = (__int64)pakFunc1.GetFuncPtr() + 33;
     __int32 offsetAgain = *((__int32*)(base - 4));
@@ -975,9 +805,6 @@ TTF2SDK::TTF2SDK()
 
     _Host_RunFrame.Hook(WRAPPED_MEMBER(RunFrameHook));
 
-    pHeapAlloc = Util::ResolveLibraryFunction("kernel32.dll", "HeapAlloc");
-    pHeapFree = Util::ResolveLibraryFunction("kernel32.dll", "HeapFree");
-
     // Get pointer to d3d device
     funcBase = (char*)d3d11DeviceFinder.GetFuncPtr();
     offset = *(int*)(funcBase + 16);
@@ -996,43 +823,9 @@ TTF2SDK::TTF2SDK()
     compileShaders();
 }
 
-void hookHeap()
+FileSystemManager& TTF2SDK::GetFSManager()
 {
-    auto m_logger = spdlog::get("logger");
-
-    MH_STATUS status = MH_CreateHookEx(pHeapAlloc, HeapAllocHook, &origHeapAlloc);
-    if (status != MH_OK)
-    {
-        m_logger->critical("MH_CreateHook returned {}", status);
-        throw std::exception("Failed to hook function");
-    }
-
-    status = MH_EnableHook(pHeapAlloc);
-    if (status != MH_OK)
-    {
-        m_logger->critical("MH_EnableHook returned {}", status);
-        throw std::exception("Failed to enable hook");
-    }
-
-    status = MH_CreateHookEx(pHeapFree, HeapFreeHook, &origHeapFree);
-    if (status != MH_OK)
-    {
-        m_logger->critical("MH_CreateHook returned {}", status);
-        throw std::exception("Failed to hook function");
-    }
-
-    status = MH_EnableHook(pHeapFree);
-    if (status != MH_OK)
-    {
-        m_logger->critical("MH_EnableHook returned {}", status);
-        throw std::exception("Failed to enable hook");
-    }
-}
-
-void unhookHeap()
-{
-    MH_RemoveHook(pHeapAlloc);
-    MH_RemoveHook(pHeapFree);
+    return m_fsManager;
 }
 
 void addTextureIfNeeded(MaterialData& data, const std::string& matName, const char* ext)
@@ -1138,92 +931,14 @@ void printRegs()
     }
 }
 
-__int64(*origFreeFunc)(void* allocator, void* mem);
-__int64(*origAllocFunc)(void* allocator, __int64 size);
-
-__int64 memFreeHook(void* allocator, void* mem)
-{
-    __int64 size = 0;
-    {
-        std::lock_guard<std::mutex> l(m);
-        if (allocSizes.find(mem) != allocSizes.end())
-        {
-            size = allocSizes[mem];
-        }
-        allocated -= size;
-    }
-
-    spdlog::get("logger")->warn("freeing {} at {}", size, mem);
-    return origFreeFunc(allocator, mem);
-}
-
-__int64 memAllocAllocHook(void* allocator, __int64 size)
-{
-    __int64 mem = origAllocFunc(allocator, size);
-    spdlog::get("logger")->warn("allocated {} at {}", size, (void*)mem);
-    {
-        std::lock_guard<std::mutex> l(m);
-        allocated += size;
-        allocSizes[(void*)mem] = size;
-    }
-    return mem;
-}
-
 void TTF2SDK::RunFrameHook(double absTime, float frameTime)
 {
-    static bool searchPathAdded = false;
-    if (!searchPathAdded)
-    {
-        m_logger->info("Adding mod search path: {}", m_replacementManager.GetSearchPath());
-        IFileSystem_AddSearchPath(m_fileSystem, m_replacementManager.GetSearchPath().c_str(), "GAME", PATH_ADD_TO_HEAD);
-        searchPathAdded = true;
-    }
-
     if (m_shouldRunServerCode)
     {
         auto v = GetServerSQVM();
         std::string code = GetServerCode();
         if (code == "load")
         {
-            void* origFuncs1[16];
-            void* origFuncs2[16];
-
-            //for (int i = 0; i < 16; i++)
-            //{
-            //    if (i == 13 || i == 4 || i == 6 || i == 7 || i == 8 || i == 12)
-            //    {
-            //        origFuncs1[i] = registrations[i].func1;
-            //        origFuncs2[i] = registrations[i].func2;
-            //        if (registrations[i].func1 != NULL)
-            //        {
-            //            registrations[i].func1 = doNothing;
-            //        }
-            //        
-            //        if (registrations[i].func2 != NULL)
-            //        {
-            //            registrations[i].func2 = textureFunc2;
-            //        }
-            //    }
-            //}
-
-            origFunc1 = registrations[12].func1;
-            void* origFunc2 = registrations[12].func2;
-            origAllocFunc = (decltype(origAllocFunc))*((**g_pMemAllocSingleton) + 1);
-            origFreeFunc = (decltype(origFreeFunc))*((**g_pMemAllocSingleton) + 5);
-            {
-                TempReadWrite rw(**g_pMemAllocSingleton);
-                // *((**g_pMemAllocSingleton) + 1) = &memAllocAllocHook;
-                //*((**g_pMemAllocSingleton) + 5) = &memFreeHook;
-            }
-
-            // m_logger->warn("original func1 = {}", origFunc1);
-            //registrations[12].func1 = &doNothing2;
-            //registrations[12].func2 = &doNothing2;
-            void* origAlloc = savedAllocFuncs->allocFunc;
-            void* origFree = savedAllocFuncs->freeFunc;
-            //savedAllocFuncs->allocFunc = allocHook;
-            //savedAllocFuncs->freeFunc = freeHook;
-            //hookHeap();
             cachedMaterialData.clear();
             preload("sp_boomtown_start.rpak");
             preload("sp_boomtown_end.rpak");
@@ -1234,34 +949,10 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
             preload("sp_tday.rpak");
             preload("sp_s2s.rpak");
             preload("sp_beacon_spoke0.rpak");
-            //unhookHeap();
-            m_logger->warn("allocated = {}", allocated);
-            //savedAllocFuncs->allocFunc = (decltype(savedAllocFuncs->allocFunc))origAlloc;
-            //savedAllocFuncs->freeFunc = (decltype(savedAllocFuncs->freeFunc))origFree;
-            {
-                TempReadWrite rw(**g_pMemAllocSingleton);
-                //*((**g_pMemAllocSingleton) + 1) = origAllocFunc;
-                // *((**g_pMemAllocSingleton) + 5) = origFreeFunc;
-            }
-            //registrations[12].func1 = origFunc1;
-            //registrations[12].func2 = origFunc2;
-
-            //for (int i = 0; i < 16; i++)
-            //{
-            //    if (i == 13 || i == 4 || i == 6 || i == 7 || i == 8 || i == 12)
-            //    {
-            //        registrations[i].func1 = origFuncs1[i];
-            //        registrations[i].func2 = origFuncs2[i];
-            //    }
-            //}
         }
         else if (code == "printregs")
         {
             printRegs();
-        }
-        else if (code == "printallocs")
-        {
-            printAllocs();
         }
         else if (code == "spawnmodelmode")
         {
@@ -1353,86 +1044,6 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
     return _Host_RunFrame(absTime, frameTime);
 }
 
-void TTF2SDK::AddSearchPathHook(IFileSystem* fileSystem, const char* pPath, const char* pathID, SearchPathAdd_t addType)
-{
-    m_logger->debug("IFileSystem::AddSearchPath: path = {}, pathID = {}, addType = {}", pPath, pathID != nullptr ? pathID : "", addType);
-
-    // Add the path as intended
-    IFileSystem_AddSearchPath(fileSystem, pPath, pathID, addType);
-
-    // Add our search path to the head again to make sure we're first
-    IFileSystem_AddSearchPath(fileSystem, m_replacementManager.GetSearchPath().c_str(), "GAME", PATH_ADD_TO_HEAD);
-}
-
-bool TTF2SDK::ReadFromCacheHook(IFileSystem* fileSystem, const char* path, void* result)
-{
-    // If the path is one of our replacements, we will not allow the cache to respond
-    if (m_replacementManager.ShouldReplaceFile(path))
-    {
-        m_logger->info("IFileSystem::ReadFromCache: blocking cache response for {}", path);
-        return false;
-    }
-
-    bool res = IFileSystem_ReadFromCache(fileSystem, path, result);
-    m_logger->debug("IFileSystem::ReadFromCache: path = {}, res = {}", path, res);
-    return res;
-}
-
-__int32* TTF2SDK::ReadFileFromVPKHook(VPKInfo* vpkInfo, __int32* b, char* filename)
-{
-    // If the path is one of our replacements, we will not allow the cache to respond
-    if (m_replacementManager.ShouldReplaceFile(filename))
-    {
-        m_logger->info("ReadFileFromVPK: blocking response for {} from {}", filename, vpkInfo->path);
-        *b = -1;
-        return b;
-    }
-
-    __int32* result = ReadFileFromVPK(vpkInfo, b, filename);
-    m_logger->debug("ReadFileFromVPK: vpk = {}, file = {}, result = {}", vpkInfo->path, filename, *b);
-
-    if (isSpawningExternalMapModel)
-    {
-        std::smatch m;
-        std::string strPath(vpkInfo->path);
-        std::regex_search(strPath, m, mapFromVPKRegex);
-        if (!m.empty())
-        {
-            currentExternalMapName = m[1];
-        }
-
-        m_logger->warn("Set currentExternalMapName = {}", currentExternalMapName);
-    }
-
-    return result;
-}
-
-unsigned int* TTF2SDK::MountVPKHook(IFileSystem* fileSystem, const char* vpkPath)
-{
-    m_logger->debug("IFileSystem::MountVPK: vpkPath = {}", vpkPath);
-    unsigned int* res = IFileSystem_MountVPK(fileSystem, vpkPath);
-    if (strcmp(vpkPath, "vpk/client_sp_boomtown_start.bsp") != 0)
-    {
-        unsigned int* res2 = IFileSystem_MountVPK(fileSystem, "vpk/client_sp_boomtown_start.bsp"); // TODO: Remove this
-        m_logger->debug("injected res = {}", (void*)res2);
-        res2 = IFileSystem_MountVPK(fileSystem, "vpk/client_sp_crashsite.bsp"); // TODO: Remove this
-        m_logger->debug("injected res = {}", (void*)res2);
-        res2 = IFileSystem_MountVPK(fileSystem, "vpk/client_sp_timeshift_spoke02.bsp"); // TODO: Remove this
-        m_logger->debug("injected res = {}", (void*)res2);
-        res2 = IFileSystem_MountVPK(fileSystem, "vpk/client_sp_skyway_v1.bsp"); // TODO: Remove this
-        m_logger->debug("injected res = {}", (void*)res2);
-        res2 = IFileSystem_MountVPK(fileSystem, "vpk/client_sp_tday.bsp"); // TODO: Remove this
-        m_logger->debug("injected res = {}", (void*)res2);
-        res2 = IFileSystem_MountVPK(fileSystem, "vpk/client_sp_sewers1.bsp"); // TODO: Remove this
-        m_logger->debug("injected res = {}", (void*)res2);
-        res2 = IFileSystem_MountVPK(fileSystem, "vpk/client_sp_s2s.bsp"); // TODO: Remove this
-        m_logger->debug("injected res = {}", (void*)res2);
-        res2 = IFileSystem_MountVPK(fileSystem, "vpk/client_sp_beacon_spoke0.bsp"); // TODO: Remove this
-        m_logger->debug("injected res = {}", (void*)res2);
-    }
-    return res;
-}
-
 template<ExecutionContext context>
 SQInteger TTF2SDK::BasePrintHook(HSQUIRRELVM v)
 {
@@ -1479,11 +1090,6 @@ TTF2SDK::~TTF2SDK()
     MH_Uninitialize();
 }
 
-TTF2SDK& SDK()
-{
-    return *g_SDK;
-}
-
 void SetupLogger(const char* filename)
 {
     // Create sinks to file and console
@@ -1506,7 +1112,11 @@ void SetupLogger(const char* filename)
     // Create logger from sink
     auto logger = std::make_shared<spdlog::logger>("logger", begin(sinks), end(sinks));
     logger->set_pattern("[%T] [%l] [thread %t] %v");
+#ifdef _DEBUG
     logger->set_level(spdlog::level::debug);
+#else
+    logger->set_level(spdlog::level::info);
+#endif
 
     if (fileError)
     {

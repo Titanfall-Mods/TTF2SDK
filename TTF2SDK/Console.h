@@ -4,6 +4,7 @@ class FileStreamWrapper
 {
 private:
     FILE* m_file;
+
 public:
     FileStreamWrapper(const char* filename, const char* mode, FILE* oldStrea);
     ~FileStreamWrapper();
@@ -26,5 +27,4 @@ private:
 public:
     Console();
     ~Console();
-
 };

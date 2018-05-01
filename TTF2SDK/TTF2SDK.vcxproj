@@ -95,8 +95,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Console.h" />
-    <ClInclude Include="IEngineClient.h" />
-    <ClInclude Include="IEngineServer.h" />
+    <ClInclude Include="FileSystemManager.h" />
+    <ClInclude Include="IVEngineServer.h" />
     <ClInclude Include="IFileSystem.h" />
     <ClInclude Include="ModuleScan.h" />
     <ClInclude Include="SigScanning.h" />
@@ -111,6 +111,7 @@
   <ItemGroup>
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="FileSystemManager.cpp" />
     <ClCompile Include="ModuleScan.cpp" />
     <ClCompile Include="SigScanning.cpp" />
     <ClCompile Include="stdafx.cpp">
