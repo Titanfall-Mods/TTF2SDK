@@ -43,6 +43,7 @@
 #include "IFileSystem.h"
 #include "IVEngineServer.h"
 #include "IVEngineClient.h"
+#include "ICvar.h"
 #include "VTableHooking.h"
 #include "ConCommandManager.h"
 #include "SquirrelManager.h"

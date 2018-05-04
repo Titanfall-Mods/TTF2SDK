@@ -1,12 +1,20 @@
 #pragma once
 
-struct ConCommand
+class ConCommand
 {
-    unsigned char data[0x70];
-    virtual ~ConCommand()
-    {
-
-    }
+    unsigned char               unknown[0x68];
+public:
+    virtual	void    			EngineDestructor(void) {}
+    virtual	bool				IsCommand(void) const { return false; }
+    virtual bool				IsFlagSet(int flag) { return false; }
+    virtual void				AddFlags(int flags) {}
+    virtual void				RemoveFlags(int flags) {}
+    virtual int					GetFlags() const { return 0; }
+    virtual const char			*GetName(void) const { return nullptr; }
+    virtual const char			*GetHelpText(void) const { return nullptr; }
+    virtual bool				IsRegistered(void) const { return false; }
+    // NOTE: there are more virtual methods here
+    // NOTE: Not using the engine's destructor here because it doesn't do anything useful for us
 };
 
 // From Source SDK
@@ -83,10 +91,13 @@ class ConCommandManager
 private:
     std::shared_ptr<spdlog::logger> m_logger;
     std::list<ConCommand> m_commands;
+    SourceInterface<ICvar> m_cvar;
 
 public:
     ConCommandManager();
     ~ConCommandManager();
     void RegisterCommand(const char* name, void(*callback)(const CCommand&), const char* helpString, int flags);
     void ExecuteCommand(const std::string& commandStr);
+    void UnregisterCommand(ConCommand& command);
+    void UnregisterAllCommands();
 };

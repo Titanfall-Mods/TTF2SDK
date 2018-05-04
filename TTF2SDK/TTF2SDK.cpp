@@ -1001,9 +1001,9 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
 
 TTF2SDK::~TTF2SDK()
 {
-    m_sqManager.release();
-    m_conCommandManager.release();
-    m_fsManager.release();
+    m_sqManager.reset();
+    m_conCommandManager.reset();
+    m_fsManager.reset();
     
     MH_Uninitialize();
 }
@@ -1068,4 +1068,9 @@ bool SetupSDK()
         spdlog::get("logger")->critical("Failed to initialise SDK: {}", ex.what());
         return false;
     }
+}
+
+void FreeSDK()
+{
+    g_SDK.reset();
 }

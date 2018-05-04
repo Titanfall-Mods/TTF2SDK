@@ -97,6 +97,7 @@
     <ClInclude Include="ConCommandManager.h" />
     <ClInclude Include="Console.h" />
     <ClInclude Include="FileSystemManager.h" />
+    <ClInclude Include="ICvar.h" />
     <ClInclude Include="IVEngineClient.h" />
     <ClInclude Include="IVEngineServer.h" />
     <ClInclude Include="IFileSystem.h" />

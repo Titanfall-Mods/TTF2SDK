@@ -32,3 +32,4 @@ public:
 
 TTF2SDK& SDK();
 bool SetupSDK();
+void FreeSDK();

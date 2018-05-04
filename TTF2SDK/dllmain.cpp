@@ -32,6 +32,7 @@ DWORD WINAPI OnAttach(LPVOID lpThreadParameter)
         }
     }
 
+    FreeSDK();
     FreeLibraryAndExitThread((HMODULE)lpThreadParameter, 0);
     return 0;
 }

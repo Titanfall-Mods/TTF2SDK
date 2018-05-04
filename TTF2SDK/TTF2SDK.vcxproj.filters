@@ -60,6 +60,9 @@
     <ClInclude Include="IVEngineClient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ICvar.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Util.cpp">
