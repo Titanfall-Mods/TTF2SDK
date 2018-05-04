@@ -21,19 +21,14 @@ DWORD WINAPI OnAttach(LPVOID lpThreadParameter)
     std::string input;
     while (std::getline(std::cin, input))
     {
-        auto space = input.find(" ");
         if (input == "unload")
         {
             logger->info("Unloading SDK");
             break;
         }
-        else if (input.find("run_server ") == 0)
+        else
         {
-            SDK().SetServerCode(std::string(input.begin() + space + 1, input.end()));
-        }
-        else if (input.find("run_client ") == 0)
-        {
-            SDK().SetClientCode(std::string(input.begin() + space + 1, input.end()));
+            SDK().GetConCommandManager().ExecuteCommand(input);
         }
     }
 

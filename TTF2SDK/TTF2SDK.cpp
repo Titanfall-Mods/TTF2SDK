@@ -43,12 +43,6 @@ struct AllocFuncs
 
 HookedFunc<void, double, float> _Host_RunFrame("engine.dll", "\x48\x8B\xC4\x48\x89\x58\x00\xF3\x0F\x11\x48\x00\xF2\x0F\x11\x40\x00", "xxxxxx?xxxx?xxxx?");
 
-SharedHookedFunc<SQInteger, HSQUIRRELVM> base_print("\x40\x53\x48\x83\xEC\x30\xBA\x00\x00\x00\x00\x48\x8B\xD9\xE8\x00\x00\x00\x00\x8B\x53\x68", "xxxxxxx????xxxx????xxx");
-SharedSigFunc<SQRESULT, HSQUIRRELVM, CompileBufferState*, const SQChar*, int, int> sq_compilebuffer("\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x41\x56\x41\x57\x48\x83\xEC\x50\x41\x8B\xE9", "xxxx?xxxx?xxxx?xxxxxxxxxxxx");
-SharedSigFunc<void, HSQUIRRELVM> sq_pushroottable("\x8B\x51\x68\x44\x8B\xC2\x49\xC1\xE0\x04\x8D\x42\x01\x4C\x03\x41\x70\x89\x41\x68\xF7\x81\xB8", "xxxxxxxxxxxxxxxxxxxxxxx");
-SharedSigFunc<SQRESULT, HSQUIRRELVM, SQInteger, SQBool, SQBool> sq_call("\x4C\x8B\xDC\x49\x89\x5B\x00\x49\x89\x6B\x00\x49\x89\x73\x00\x57\x41\x56\x41\x57\x48\x83\xEC\x00\x44\x8B\xF2", "xxxxxx?xxx?xxx?xxxxxxxx?xxx");
-SharedHookedFunc<void, HSQUIRRELVM, const SQChar*, const SQChar*, SQInteger, SQInteger> sqstd_compiler_error("\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x48\x89\x7C\x24\x00\x41\x56\x48\x81\xEC\x00\x00\x00\x00\x48\x8B\x41\x50", "xxxx?xxxx?xxxx?xxxx?xxxxx????xxxx");
-
 HookedFunc<__int64, void*, void*> Studio_LoadModel("engine.dll", "\x48\x89\x6C\x24\x00\x41\x56\x48\x83\xEC\x00\x83\x8A\x00\x00\x00\x00\x00", "xxxx?xxxxx?xx?????");
 
 
@@ -63,8 +57,6 @@ HookedFunc<__int64, const char*> pakFunc13("rtech_game.dll", "\x48\x83\xEC\x00\x
 HookedFunc<__int64, unsigned int, void*> pakFunc6("rtech_game.dll", "\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x00\x48\x8B\xDA\x8B\xF9", "xxxx?xxxx?xxxxx");
 SigScanFunc<void> pakFunc1("rtech_game.dll", "\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x41\x56\x41\x57\x48\x83\xEC\x00\x8B\x01", "xxxx?xxxx?xxxx?xxxxxxxx?xx");
 
-SigScanFunc<void> clientVMFinder("client.dll", "\x44\x8B\xC2\x48\x8B\xD1\x48\x8B\x0D\x00\x00\x00\x00", "xxxxxxxxx????");
-SigScanFunc<void> serverVMFinder("server.dll", "\x48\x89\x5C\x24\x00\x55\x48\x83\xEC\x00\x48\x8B\x05\x00\x00\x00\x00\x48\x8B\xEA", "xxxx?xxxx?xxx????xxx");
 SigScanFunc<void> d3d11DeviceFinder("materialsystem_dx11.dll", "\x48\x83\xEC\x00\x33\xC0\x89\x54\x24\x00\x4C\x8B\xC9\x48\x8B\x0D\x00\x00\x00\x00\xC7\x44\x24\x00\x00\x00\x00\x00", "xxx?xxxxx?xxxxxx????xxx?????");
 
 HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateGeometryShader), &ID3D11DeviceVtbl::CreateGeometryShader> ID3D11Device_CreateGeometryShader;
@@ -75,7 +67,6 @@ HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateComputeShader), &ID3D11Device
 HookedFunc<bool, char*> LoadPakForLevel("engine.dll", "\x48\x81\xEC\x00\x00\x00\x00\x48\x8D\x54\x24\x00\x41\xB8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8D\x4C\x24\x00", "xxx????xxxx?xx????x????xxxx?");
 
 SigScanFunc<__int64, void*, void*> CModelLoader_UnloadModel("engine.dll", "\x48\x89\x5C\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x48\x8B\xDA\x8B\x92\x00\x00\x00\x00", "xxxx?xxxx????xxxxx????");
-
 
 struct CShaderGlue
 {
@@ -741,36 +732,20 @@ __int64 Material_func1hook(__int64 a1, MatFunc1* a2)
 
 TTF2SDK::TTF2SDK() :
     m_engineServer("engine.dll", "VEngineServer022"),
-    m_fsManager("D:\\dev\\ttf2\\searchpath\\") // TODO: make this a configuration setting. Also make sure it has a trailing slash.
+    m_engineClient("engine.dll", "VEngineClient013")
 {
     m_logger = spdlog::get("logger");
 
-    //SymInitialize(GetCurrentProcess(), NULL, TRUE);
-
-    HMODULE mod = LoadLibraryW(L"tier0.dll");
-    g_pMemAllocSingleton = (void****)GetProcAddress(mod, "g_pMemAllocSingleton");
-    m_logger->warn("g_pMemAllocSingleton = {}", (void*)g_pMemAllocSingleton);
-    if (g_pMemAllocSingleton == NULL)
-    {
-        throw std::exception("g_pMemAllocSingleton was NULL");
-    }
+    SigScanFuncRegistry::GetInstance().ResolveAll();
 
     if (MH_Initialize() != MH_OK)
     {
         throw std::exception("Failed to initialise MinHook");
     }
 
-    SigScanFuncRegistry::GetInstance().ResolveAll();
-
-    // Resolve pointer to VM structure in client.dll
-    char* funcBase = (char*)clientVMFinder.GetFuncPtr();
-    int offset = *(int*)(funcBase + 9);
-    m_ppClientVM = (ClientVM**)(funcBase + 13 + offset);
-
-    // Resolve pointer to VM structure in server.dll
-    funcBase = (char*)serverVMFinder.GetFuncPtr();
-    offset = *(int*)(funcBase + 13);
-    m_ppServerVM = (ServerVM**)(funcBase + 17 + offset);
+    m_conCommandManager.reset(new ConCommandManager());
+    m_fsManager.reset(new FileSystemManager("D:\\dev\\ttf2\\searchpath\\"));
+    m_sqManager.reset(new SquirrelManager(*m_conCommandManager));
 
     IVEngineServer_SpewFunc.Hook(m_engineServer->m_vtable, SpewFuncHook);
 
@@ -800,14 +775,12 @@ TTF2SDK::TTF2SDK() :
     origTextureFunc3 = (decltype(origTextureFunc3))registrations[12].func3;
     registrations[12].func3 = textureFunc3Hook;
 
-    base_print.Hook(WRAPPED_MEMBER(BasePrintHook<CONTEXT_CLIENT>), WRAPPED_MEMBER(BasePrintHook<CONTEXT_SERVER>));
-    sqstd_compiler_error.Hook(WRAPPED_MEMBER(CompilerErrorHook<CONTEXT_CLIENT>), WRAPPED_MEMBER(CompilerErrorHook<CONTEXT_SERVER>));
 
     _Host_RunFrame.Hook(WRAPPED_MEMBER(RunFrameHook));
 
     // Get pointer to d3d device
-    funcBase = (char*)d3d11DeviceFinder.GetFuncPtr();
-    offset = *(int*)(funcBase + 16);
+    char* funcBase = (char*)d3d11DeviceFinder.GetFuncPtr();
+    int offset = *(int*)(funcBase + 16);
     m_ppD3D11Device = (ID3D11Device**)(funcBase + 20 + offset);
 
     m_logger->debug("m_ppD3D11Device = {}", (void*)m_ppD3D11Device);
@@ -825,7 +798,27 @@ TTF2SDK::TTF2SDK() :
 
 FileSystemManager& TTF2SDK::GetFSManager()
 {
-    return m_fsManager;
+    return *m_fsManager;
+}
+
+SquirrelManager& TTF2SDK::GetSQManager()
+{
+    return *m_sqManager;
+}
+
+ConCommandManager& TTF2SDK::GetConCommandManager()
+{
+    return *m_conCommandManager;
+}
+
+SourceInterface<IVEngineServer>& TTF2SDK::GetEngineServer()
+{
+    return m_engineServer;
+}
+
+SourceInterface<IVEngineClient>& TTF2SDK::GetEngineClient()
+{
+    return m_engineClient;
 }
 
 void addTextureIfNeeded(MaterialData& data, const std::string& matName, const char* ext)
@@ -933,10 +926,12 @@ void printRegs()
 
 void TTF2SDK::RunFrameHook(double absTime, float frameTime)
 {
-    if (m_shouldRunServerCode)
+    if (false)
     {
-        auto v = GetServerSQVM();
-        std::string code = GetServerCode();
+        //auto v = GetServerSQVM();
+        auto v = nullptr;
+        //std::string code = GetServerCode();
+        std::string code = "";
         if (code == "load")
         {
             cachedMaterialData.clear();
@@ -999,94 +994,17 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
         {
             unloadPaks();
         }
-        else if (v != nullptr)
-        {
-            m_logger->info("Executing SERVER code: {}", code);
-            CompileBufferState s(code);
-            SQRESULT compileRes = sq_compilebuffer.CallServer(v, &s, "console", -1, 1);
-            m_logger->debug("sq_compilebuffer returned {}", compileRes);
-            if (SQ_SUCCEEDED(compileRes)) {
-                sq_pushroottable.CallServer(v);
-                SQRESULT callRes = sq_call.CallServer(v, 1, SQFalse, SQFalse);
-                m_logger->debug("sq_call returned {}", callRes);
-            }
-        }
-        else
-        {
-            m_logger->error("Cannot execute SERVER code, no handle to squirrel VM");
-            m_shouldRunServerCode = false;
-        }
-    }
-
-    if (m_shouldRunClientCode)
-    {
-        auto v = GetClientSQVM();
-        if (v != nullptr)
-        {
-            std::string code = GetClientCode();
-            m_logger->info("Executing CLIENT code: {}", code);
-            CompileBufferState s(code);
-            SQRESULT compileRes = sq_compilebuffer.CallClient(v, &s, "console", -1, 1);
-            m_logger->debug("sq_compilebuffer returned {}", compileRes);
-            if (SQ_SUCCEEDED(compileRes)) {
-                sq_pushroottable.CallClient(v);
-                SQRESULT callRes = sq_call.CallClient(v, 1, SQFalse, SQFalse);
-                m_logger->debug("sq_call returned {}", callRes);
-            }
-        }
-        else
-        {
-            m_logger->error("Cannot execute CLIENT code, no handle to squirrel VM");
-            m_shouldRunClientCode = false;
-        }
     }
 
     return _Host_RunFrame(absTime, frameTime);
 }
 
-template<ExecutionContext context>
-SQInteger TTF2SDK::BasePrintHook(HSQUIRRELVM v)
-{
-    static auto printFuncLambda = [](HSQUIRRELVM v, const SQChar* s, ...) {
-        va_list vl;
-        va_start(vl, s);
-        g_SDK->PrintFunc(v, Util::GetContextName(context), s, vl);
-        va_end(vl);
-    };
-
-    SQPRINTFUNCTION oldPrintFunc = _ss(v)->_printfunc;
-    _ss(v)->_printfunc = printFuncLambda;
-    SQInteger res = base_print.Call<context>(v);
-    _ss(v)->_printfunc = oldPrintFunc;
-
-    return res;
-}
-
-void TTF2SDK::PrintFunc(HSQUIRRELVM v, const SQChar* source, const SQChar* s, va_list args)
-{
-    SQChar buf[1024];
-
-    int charactersWritten = _vsnprintf_s(buf, _TRUNCATE, s, args);
-    if (charactersWritten > 0)
-    {
-        if (buf[charactersWritten - 1] == '\n')
-        {
-            buf[charactersWritten - 1] = 0;
-        }
-
-        m_logger->info("{}: {}", source, buf);
-    }
-}
-
-template<ExecutionContext context>
-void TTF2SDK::CompilerErrorHook(HSQUIRRELVM v, const SQChar* sErr, const SQChar* sSource, SQInteger line, SQInteger column)
-{
-    m_logger->error("{} SCRIPT COMPILE ERROR", Util::GetContextName(context));
-    m_logger->error("{} line = ({}) column = ({}) error = {}", sSource, line, column, sErr);
-}
-
 TTF2SDK::~TTF2SDK()
 {
+    m_sqManager.release();
+    m_conCommandManager.release();
+    m_fsManager.release();
+    
     MH_Uninitialize();
 }
 

@@ -4,10 +4,10 @@ template <typename T, T, typename U, U> struct MemberWrapper;
 template<typename T, T&(*pObjGet)(), typename RT, typename... Args, RT(T::*pF)(Args...)>
 struct MemberWrapper<RT(T::*)(Args...), pF, T&(*)(), pObjGet>
 {
-    static RT Call(Args&&... args)
+    /*static RT Call(Args&&... args)
     {
         return ((pObjGet()).*pF)(std::forward<Args>(args)...);
-    }
+    }*/
 
     static RT Call(Args... args)
     {

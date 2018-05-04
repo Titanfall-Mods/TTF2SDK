@@ -94,14 +94,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ConCommandManager.h" />
     <ClInclude Include="Console.h" />
     <ClInclude Include="FileSystemManager.h" />
+    <ClInclude Include="IVEngineClient.h" />
     <ClInclude Include="IVEngineServer.h" />
     <ClInclude Include="IFileSystem.h" />
     <ClInclude Include="ModuleScan.h" />
     <ClInclude Include="SigScanning.h" />
     <ClInclude Include="SourceInterface.h" />
-    <ClInclude Include="Squirrel.h" />
+    <ClInclude Include="SquirrelManager.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TTF2SDK.h" />
@@ -109,11 +111,13 @@
     <ClInclude Include="VTableHooking.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ConCommandManager.cpp" />
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="FileSystemManager.cpp" />
     <ClCompile Include="ModuleScan.cpp" />
     <ClCompile Include="SigScanning.cpp" />
+    <ClCompile Include="SquirrelManager.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>

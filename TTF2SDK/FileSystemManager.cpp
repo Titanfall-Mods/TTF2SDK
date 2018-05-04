@@ -18,7 +18,7 @@ std::regex FileSystemManager::s_mapFromVPKRegex("client_(.+)\\.bsp");
 
 FileSystemManager::FileSystemManager(const std::string& searchPath) :
     m_engineFileSystem("filesystem_stdio.dll", "VFileSystem017"),
-    m_searchPath(searchPath) 
+    m_searchPath(searchPath)
 {
     m_logger = spdlog::get("logger");
 
@@ -43,10 +43,14 @@ void FileSystemManager::CacheMapVPKs()
         std::string fileName = file.path().filename().generic_string();
         std::smatch m;
         std::regex_search(fileName, m, s_mapFromVPKRegex);
-        if (!m.empty() && std::find(m_mapVPKs.begin(), m_mapVPKs.end(), m[0]) == m_mapVPKs.end())
+        if (!m.empty())
         {
-            m_logger->info("Caching map VPK: {}", m[0]);
-            m_mapVPKs.emplace_back("vpk/" + m[0].str());
+            std::string path = "vpk/" + m[0].str();
+            if (std::find(m_mapVPKs.begin(), m_mapVPKs.end(), path) == m_mapVPKs.end())
+            {
+                m_logger->info("Caching map VPK: {}", path);
+                m_mapVPKs.emplace_back(path);
+            }
         }
     }
 }

@@ -22,6 +22,7 @@
 #include <d3dcompiler.h>
 
 // TODO: clean these up
+#include <algorithm>
 #include <shared_mutex>
 #include <unordered_set>
 #include <filesystem>
@@ -39,9 +40,11 @@
 #include "SigScanning.h"
 #include "SourceInterface.h"
 #include "Util.h"
-#include "Squirrel.h"
 #include "IFileSystem.h"
 #include "IVEngineServer.h"
+#include "IVEngineClient.h"
 #include "VTableHooking.h"
+#include "ConCommandManager.h"
+#include "SquirrelManager.h"
 #include "FileSystemManager.h"
 #include "TTF2SDK.h"
