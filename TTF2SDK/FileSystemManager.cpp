@@ -48,8 +48,9 @@ void FileSystemManager::CacheMapVPKs()
             std::string path = "vpk/" + m[0].str();
             if (std::find(m_mapVPKs.begin(), m_mapVPKs.end(), path) == m_mapVPKs.end())
             {
-                m_logger->info("Caching map VPK: {}", path);
+                m_logger->info("Found map VPK: {}", path);
                 m_mapVPKs.emplace_back(path);
+                m_mapNames.emplace_back(m[1].str());
             }
         }
     }
@@ -59,7 +60,7 @@ void FileSystemManager::CacheMapVPKs()
 // TODO: If the search path has been added and this class is destroyed, should remove the search path
 void FileSystemManager::AddSearchPathHook(IFileSystem* fileSystem, const char* pPath, const char* pathID, SearchPathAdd_t addType)
 {
-    m_logger->debug("IFileSystem::AddSearchPath: path = {}, pathID = {}, addType = {}", pPath, pathID != nullptr ? pathID : "", addType);
+    m_logger->trace("IFileSystem::AddSearchPath: path = {}, pathID = {}, addType = {}", pPath, pathID != nullptr ? pathID : "", addType);
 
     // Add the path as intended
     IFileSystem_AddSearchPath(fileSystem, pPath, pathID, addType);
@@ -73,12 +74,12 @@ bool FileSystemManager::ReadFromCacheHook(IFileSystem* fileSystem, const char* p
     // If the path is one of our replacements, we will not allow the cache to respond
     if (ShouldReplaceFile(path))
     {
-        m_logger->info("IFileSystem::ReadFromCache: blocking cache response for {}", path);
+        m_logger->debug("IFileSystem::ReadFromCache: blocking cache response for {}", path);
         return false;
     }
 
     bool res = IFileSystem_ReadFromCache(fileSystem, path, result);
-    m_logger->debug("IFileSystem::ReadFromCache: path = {}, res = {}", path, res);
+    m_logger->trace("IFileSystem::ReadFromCache: path = {}, res = {}", path, res);
  
     return res;
 }
@@ -88,13 +89,13 @@ __int32* FileSystemManager::ReadFileFromVPKHook(VPKInfo* vpkInfo, __int32* b, ch
     // If the path is one of our replacements, we will not allow the read from the VPK to happen
     if (ShouldReplaceFile(filename))
     {
-        m_logger->info("ReadFileFromVPK: blocking response for {} from {}", filename, vpkInfo->path);
+        m_logger->debug("ReadFileFromVPK: blocking response for {} from {}", filename, vpkInfo->path);
         *b = -1;
         return b;
     }
 
     __int32* result = ReadFileFromVPK(vpkInfo, b, filename);
-    m_logger->debug("ReadFileFromVPK: vpk = {}, file = {}, result = {}", vpkInfo->path, filename, *b);
+    m_logger->trace("ReadFileFromVPK: vpk = {}, file = {}, result = {}", vpkInfo->path, filename, *b);
 
     // TODO: This is where I used to record the currently loading map
 
@@ -124,6 +125,11 @@ unsigned int* FileSystemManager::MountVPKHook(IFileSystem* fileSystem, const cha
     }
 
     return res;
+}
+
+const std::vector<std::string>& FileSystemManager::GetMapNames()
+{
+    return m_mapNames;
 }
 
 bool FileSystemManager::ShouldReplaceFile(const std::string& path)

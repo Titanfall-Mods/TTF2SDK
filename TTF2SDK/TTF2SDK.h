@@ -8,9 +8,12 @@ private:
     std::unique_ptr<FileSystemManager> m_fsManager;
     std::unique_ptr<ConCommandManager> m_conCommandManager;
     std::unique_ptr<SquirrelManager> m_sqManager;
-    
+    std::unique_ptr<PakManager> m_pakManager;
+
     SourceInterface<IVEngineServer> m_engineServer;
     SourceInterface<IVEngineClient> m_engineClient;
+
+    IMemAlloc** m_ppMemAlloc;
 
 public:
     ID3D11Device** m_ppD3D11Device = nullptr;
@@ -19,8 +22,9 @@ public:
     ~TTF2SDK();
 
     FileSystemManager& GetFSManager();
-    SquirrelManager& GetSQManager();
     ConCommandManager& GetConCommandManager();
+    SquirrelManager& GetSQManager();
+    PakManager& GetPakManager();
 
     SourceInterface<IVEngineServer>& GetEngineServer();
     SourceInterface<IVEngineClient>& GetEngineClient();

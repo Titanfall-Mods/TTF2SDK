@@ -54,6 +54,7 @@ public:
         {
             TempReadWrite rw(m_vtable);
             (m_vtable->*mf) = m_origFunc;
+            m_hooked = false;
         }
     }
 

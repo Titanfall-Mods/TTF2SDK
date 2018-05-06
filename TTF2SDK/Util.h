@@ -46,6 +46,7 @@ namespace Util
     }
 
     void FindAndReplaceAll(std::string& data, const std::string& search, const std::string& replace);
-    void* ResolveLibraryFunction(const std::string& module, const std::string& funcName);
+    void* ResolveLibraryExport(const std::string& module, const std::string& exportName);
     void FixSlashes(char* pname, char separator);
+    std::string ConcatStrings(const std::vector<std::string>& strings, const char* delim);
 }

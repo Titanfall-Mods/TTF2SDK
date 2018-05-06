@@ -15,6 +15,7 @@ private:
     SourceInterface<IFileSystem> m_engineFileSystem;
     std::string m_searchPath;
     std::vector<std::string> m_mapVPKs;
+    std::vector<std::string> m_mapNames;
 
     void CacheMapVPKs();
     bool ShouldReplaceFile(const std::string& path);
@@ -26,4 +27,5 @@ public:
     bool ReadFromCacheHook(IFileSystem* fileSystem, const char* path, void* result);
     __int32* ReadFileFromVPKHook(VPKInfo* vpkInfo, __int32* b, char* filename);
     unsigned int* MountVPKHook(IFileSystem* fileSystem, const char* vpkPath);
+    const std::vector<std::string>& GetMapNames();
 };

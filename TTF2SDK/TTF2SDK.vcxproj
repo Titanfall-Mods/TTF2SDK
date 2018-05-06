@@ -67,8 +67,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\thirdparty\MinHook</AdditionalLibraryDirectories>
-      <AdditionalDependencies>D3DCompiler.lib;DbgHelp.lib;libMinHook-x64-v141-md.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\thirdparty\MinHook;..\thirdparty\tier0</AdditionalLibraryDirectories>
+      <AdditionalDependencies>tier0.lib;D3DCompiler.lib;DbgHelp.lib;libMinHook-x64-v141-md.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -89,8 +89,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\thirdparty\MinHook</AdditionalLibraryDirectories>
-      <AdditionalDependencies>D3DCompiler.lib;DbgHelp.lib;libMinHook-x64-v141-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\thirdparty\MinHook;..\thirdparty\tier0</AdditionalLibraryDirectories>
+      <AdditionalDependencies>tier0.lib;D3DCompiler.lib;DbgHelp.lib;libMinHook-x64-v141-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -101,7 +101,9 @@
     <ClInclude Include="IVEngineClient.h" />
     <ClInclude Include="IVEngineServer.h" />
     <ClInclude Include="IFileSystem.h" />
+    <ClInclude Include="Memory.h" />
     <ClInclude Include="ModuleScan.h" />
+    <ClInclude Include="PakManager.h" />
     <ClInclude Include="SigScanning.h" />
     <ClInclude Include="SourceInterface.h" />
     <ClInclude Include="SquirrelManager.h" />
@@ -116,7 +118,9 @@
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="FileSystemManager.cpp" />
+    <ClCompile Include="Memory.cpp" />
     <ClCompile Include="ModuleScan.cpp" />
+    <ClCompile Include="PakManager.cpp" />
     <ClCompile Include="SigScanning.cpp" />
     <ClCompile Include="SquirrelManager.cpp" />
     <ClCompile Include="stdafx.cpp">

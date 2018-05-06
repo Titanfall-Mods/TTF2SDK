@@ -112,7 +112,7 @@ namespace Util
         }
     }
 
-    void* ResolveLibraryFunction(const std::string& module, const std::string& funcName)
+    void* ResolveLibraryExport(const std::string& module, const std::string& exportName)
     {
         HMODULE hModule = GetModuleHandle(Util::Widen(module).c_str());
         if (!hModule)
@@ -120,13 +120,13 @@ namespace Util
             throw std::runtime_error(fmt::sprintf("GetModuleHandle failed for %s (Error = 0x%X)", module, GetLastError()));
         }
 
-        FARPROC funcAddr = GetProcAddress(hModule, funcName.c_str());
-        if (!funcAddr)
+        void* exportPtr = GetProcAddress(hModule, exportName.c_str());
+        if (!exportPtr)
         {
-            throw std::runtime_error(fmt::sprintf("GetProcAddress failed for %s (Error = 0x%X)", funcName, GetLastError()));
+            throw std::runtime_error(fmt::sprintf("GetProcAddress failed for %s (Error = 0x%X)", exportName, GetLastError()));
         }
 
-        return funcAddr;
+        return exportPtr;
     }
 
     void FixSlashes(char* pname, char separator)
@@ -139,5 +139,12 @@ namespace Util
             }
             pname++;
         }
+    }
+
+    std::string ConcatStrings(const std::vector<std::string>& strings, const char* delim)
+    {
+        std::ostringstream imploded;
+        std::copy(strings.begin(), strings.end(), std::ostream_iterator<std::string>(imploded, delim));
+        return imploded.str();
     }
 }

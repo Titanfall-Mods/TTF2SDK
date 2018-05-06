@@ -34,6 +34,8 @@ SquirrelManager::SquirrelManager(ConCommandManager& conCommandManager)
 {
     m_logger = spdlog::get("logger");
 
+    // TODO: maybe implement some kind of checking to make sure these pointers seem legit
+
     // Resolve pointer to VM structure in client.dll
     char* funcBase = (char*)clientVMFinder.GetFuncPtr();
     int offset = *(int*)(funcBase + 9);

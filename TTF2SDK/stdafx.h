@@ -22,12 +22,14 @@
 #include <d3dcompiler.h>
 
 // TODO: clean these up
+#include "Memory.h"
 #include <algorithm>
 #include <shared_mutex>
 #include <unordered_set>
 #include <filesystem>
 #include <locale>
 #include <codecvt>
+#include <numeric>
 #include <string>
 #include <fstream>
 #include <regex>
@@ -48,4 +50,5 @@
 #include "ConCommandManager.h"
 #include "SquirrelManager.h"
 #include "FileSystemManager.h"
+#include "PakManager.h"
 #include "TTF2SDK.h"

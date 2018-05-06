@@ -55,7 +55,6 @@ HookedFunc<__int64, __int64, void*, void*> pakFunc9("rtech_game.dll", "\x48\x89\
 
 HookedFunc<__int64, const char*> pakFunc13("rtech_game.dll", "\x48\x83\xEC\x00\x48\x8D\x15\x00\x00\x00\x00", "xxx?xxx????");
 HookedFunc<__int64, unsigned int, void*> pakFunc6("rtech_game.dll", "\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x00\x48\x8B\xDA\x8B\xF9", "xxxx?xxxx?xxxxx");
-SigScanFunc<void> pakFunc1("rtech_game.dll", "\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x41\x56\x41\x57\x48\x83\xEC\x00\x8B\x01", "xxxx?xxxx?xxxx?xxxxxxxx?xx");
 
 SigScanFunc<void> d3d11DeviceFinder("materialsystem_dx11.dll", "\x48\x83\xEC\x00\x33\xC0\x89\x54\x24\x00\x4C\x8B\xC9\x48\x8B\x0D\x00\x00\x00\x00\xC7\x44\x24\x00\x00\x00\x00\x00", "xxx?xxxxx?xxxxxx????xxx?????");
 
@@ -68,22 +67,7 @@ HookedFunc<bool, char*> LoadPakForLevel("engine.dll", "\x48\x81\xEC\x00\x00\x00\
 
 SigScanFunc<__int64, void*, void*> CModelLoader_UnloadModel("engine.dll", "\x48\x89\x5C\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x48\x8B\xDA\x8B\x92\x00\x00\x00\x00", "xxxx?xxxx????xxxxx????");
 
-struct CShaderGlue
-{
-    void** vtable;
-    const char* name;
-};
-
-struct CMaterialGlue
-{
-    void** vtable;
-    unsigned char unk[16];
-    const char* name;
-    unsigned char unk2[112];
-    CShaderGlue* shaderGlue;
-};
-
-struct MaterialData
+struct MaterialData2
 {
     std::string pakFile;
     std::string shaderName;
@@ -398,63 +382,7 @@ __int64 Studio_LoadModelHook(void* modelLoader, void* model)
 
 AllocFuncs* savedAllocFuncs = 0;
 
-std::unordered_map<__int64, std::string> pakMap;
-
-__int64 pakFunc3Hook(const char* src, AllocFuncs* allocFuncs, int val)
-{
-    __int64 retVal = pakFunc3(src, allocFuncs, val);
-    spdlog::get("logger")->warn("pakFunc3: src = {}, allocFuncs = {}, val = {}, ret = {}", src, (void*)allocFuncs, val, retVal);
-    savedAllocFuncs = allocFuncs;
-    pakMap.emplace(retVal, src);
-    return retVal;
-}
-
-__int64 pakFunc9Hook(__int64 pakInstance, void* iNeedThis, void* cb)
-{
-    __int64 retVal = pakFunc9(pakInstance, iNeedThis, cb);
-    spdlog::get("logger")->warn("pakFunc9: pak = {}, iNeedThis = {}, cb = {}, ret = {}", pakInstance, iNeedThis, cb, retVal);
-    return retVal;
-}
-
-__int64 pakFunc13Hook(const char* arg1)
-{
-    __int64 retVal = pakFunc13(arg1);
-    spdlog::get("logger")->warn("pakFunc13: arg1 = {}, retval = {}", arg1, retVal);
-    return retVal;
-}
-
 void unloadPaks();
-
-__int64 pakFunc6Hook(unsigned int arg1, void* arg2)
-{
-    spdlog::get("logger")->warn("pakFunc6 START: arg1 = {}, arg2 = {}", arg1, arg2);
-    if (pakMap[arg1] == "sp_training.rpak")
-    {
-        spdlog::get("logger")->warn("found training, unloading ours first");
-        unloadPaks();
-    }
-    __int64 retVal = pakFunc6(arg1, arg2);
-    spdlog::get("logger")->warn("pakFunc6 END: arg1 = {}, arg2 = {}, retval = {}", arg1, arg2, retVal);
-    return retVal;
-}
-
-struct TypeRegistration {
-    char type[4];
-    unsigned int unk;
-    const char* niceName;
-    void* func1;
-    void* func2;
-    void* func3;
-    unsigned char unk2[56];
-
-    bool IsValid()
-    {
-        return type[0] != 0;
-    }
-};
-
-TypeRegistration* registrations;
-void**** g_pMemAllocSingleton;
 
 std::unordered_set<std::string> textureNames;
 std::mutex tn;
@@ -495,7 +423,7 @@ void logTextureFunc1(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
 
 std::atomic_bool isUnloadingCustomPaks = false;
 
-void doNothing()
+void doNothingAgain()
 {
     return;
 }
@@ -506,7 +434,7 @@ void unloadPaks()
     for (__int64 pakId : loadedPaks)
     {
         spdlog::get("logger")->warn("unloading custom pak {}", pakId);
-        __int64 ret3 = pakFunc6(pakId, &doNothing);
+        __int64 ret3 = pakFunc6(pakId, &doNothingAgain);
         spdlog::get("logger")->warn("unloaded custom pak {}, ret = {}", pakId, ret3);
     }
     loadedPaks.clear();
@@ -628,7 +556,7 @@ void shader_func1(__int64 a1, __int64 a2)
     }
 }
 
-std::unordered_map<std::string, MaterialData> cachedMaterialData;
+std::unordered_map<std::string, MaterialData2> cachedMaterialData;
 
 unsigned __int64 LoadMaterialsHook(__int64 a1, signed int* phdr, __int64 a3, __int64 a4, unsigned int a5)
 {
@@ -692,7 +620,7 @@ unsigned __int64 LoadMaterialsHook(__int64 a1, signed int* phdr, __int64 a3, __i
             if (ret != -1)
             {
                 loadedPaks.insert(ret);
-                __int64 ret2 = pakFunc9(ret, &doNothing, &doNothing);
+                __int64 ret2 = pakFunc9(ret, &doNothingAgain, &doNothingAgain);
                 spdlog::get("logger")->warn("my pakFunc9 for {} ret = {}", pakName.c_str(), ret2);
             }
             else
@@ -717,19 +645,6 @@ struct MatFunc1
 std::mutex mat;
 std::vector<CMaterialGlue*> g_materials;
 
-__int64(*Material_func1Orig)(__int64, MatFunc1*);
-
-__int64 Material_func1hook(__int64 a1, MatFunc1* a2)
-{
-    CMaterialGlue* glue = (CMaterialGlue*)a1;
-    spdlog::get("logger")->warn("Material_func1 data = {}, size = {}, name = {}, glue = {}", a2->data, a2->size, glue->name, (void*)glue);
-    {
-        std::lock_guard<std::mutex> l(mat);
-        g_materials.emplace_back(glue);
-    }
-    return Material_func1Orig(a1, a2);
-}
-
 TTF2SDK::TTF2SDK() :
     m_engineServer("engine.dll", "VEngineServer022"),
     m_engineClient("engine.dll", "VEngineClient013")
@@ -743,37 +658,24 @@ TTF2SDK::TTF2SDK() :
         throw std::exception("Failed to initialise MinHook");
     }
 
+    m_ppMemAlloc = (IMemAlloc**)Util::ResolveLibraryExport("tier0.dll", "g_pMemAllocSingleton");
+
     m_conCommandManager.reset(new ConCommandManager());
     m_fsManager.reset(new FileSystemManager("D:\\dev\\ttf2\\searchpath\\"));
     m_sqManager.reset(new SquirrelManager(*m_conCommandManager));
+    m_pakManager.reset(new PakManager(*m_conCommandManager));
 
     IVEngineServer_SpewFunc.Hook(m_engineServer->m_vtable, SpewFuncHook);
 
     Studio_LoadModel.Hook(Studio_LoadModelHook);
-    pakFunc3.Hook(pakFunc3Hook);
-    pakFunc9.Hook(pakFunc9Hook);
-    pakFunc13.Hook(pakFunc13Hook);
-    pakFunc6.Hook(pakFunc6Hook);
     CStudioRenderContext_LoadMaterials.Hook(LoadMaterialsHook);
 
-    __int64 base = (__int64)pakFunc1.GetFuncPtr() + 33;
-    __int32 offsetAgain = *((__int32*)(base - 4));
-    registrations = (TypeRegistration*)(base + offsetAgain);
-    m_logger->warn("registrations = {}", (void*)registrations);
-    origShaderFunc1 = (decltype(origShaderFunc1))registrations[13].func1;
-    registrations[13].func1 = shader_func1;
-
-    Material_func1Orig = (decltype(Material_func1Orig))registrations[4].func1;
-    registrations[4].func1 = Material_func1hook;
-
-    origTextureFunc1 = (decltype(origTextureFunc1))registrations[12].func1;
-    registrations[12].func1 = logTextureFunc1;
-
+    /*
     origTextureFunc2 = (decltype(origTextureFunc2))registrations[12].func2;
     registrations[12].func2 = textureFunc2Hook;
 
     origTextureFunc3 = (decltype(origTextureFunc3))registrations[12].func3;
-    registrations[12].func3 = textureFunc3Hook;
+    registrations[12].func3 = textureFunc3Hook;*/
 
 
     _Host_RunFrame.Hook(WRAPPED_MEMBER(RunFrameHook));
@@ -806,6 +708,11 @@ SquirrelManager& TTF2SDK::GetSQManager()
     return *m_sqManager;
 }
 
+PakManager& TTF2SDK::GetPakManager()
+{
+    return *m_pakManager;
+}
+
 ConCommandManager& TTF2SDK::GetConCommandManager()
 {
     return *m_conCommandManager;
@@ -821,109 +728,6 @@ SourceInterface<IVEngineClient>& TTF2SDK::GetEngineClient()
     return m_engineClient;
 }
 
-void addTextureIfNeeded(MaterialData& data, const std::string& matName, const char* ext)
-{
-    std::string texName = matName + ext;
-
-    if (textureNames.find(texName) != textureNames.end())
-    {
-        data.textures.emplace_back(texName);
-    }
-}
-
-void resolveMaterials(const std::string& pakName)
-{
-    for (auto mat : g_materials)
-    {
-        MaterialData data;
-        data.pakFile = pakName;
-        data.shaderName = mat->shaderGlue->name;
-        
-        std::string texName = mat->name;
-        std::smatch m;
-        std::regex_search(texName, m, textureFileRegex);
-        if (!m.empty())
-        {
-            texName = m[1];
-        }
-
-        addTextureIfNeeded(data, texName, "_col");
-        addTextureIfNeeded(data, texName, "_nml");
-        addTextureIfNeeded(data, texName, "_spc");
-        addTextureIfNeeded(data, texName, "_exp");
-        addTextureIfNeeded(data, texName, "_ilm");
-        addTextureIfNeeded(data, texName, "_glw");
-        addTextureIfNeeded(data, texName, "_lim");
-        addTextureIfNeeded(data, texName, "_gls");
-        addTextureIfNeeded(data, texName, "_bm");
-        addTextureIfNeeded(data, texName, "_opa");
-        addTextureIfNeeded(data, texName, "_cav");
-        addTextureIfNeeded(data, texName, "_ao");
-
-        cachedMaterialData[mat->name] = data;
-    }
-}
-
-void printCachedMatData()
-{
-    std::string pakFile;
-    std::string shaderName;
-    std::vector<std::string> textures;
-
-    auto logger = spdlog::get("logger");
-    for (auto it : cachedMaterialData)
-    {
-        std::string textures;
-        for (auto name : it.second.textures)
-        {
-            textures += name + " ";
-        }
-        logger->info("{}", it.first);
-        logger->info("\tpak = {}", it.second.pakFile);
-        logger->info("\tshader = {}", it.second.shaderName);
-        logger->info("\ttextures = {}", textures);
-    }
-}
-
-void preload(const char* name)
-{
-    textureNames.clear();
-    g_materials.clear();
-    //inLoad = true;
-
-    spdlog::get("logger")->warn("loading {}", name);
-    __int64 ret = pakFunc3(name, savedAllocFuncs, 3);
-    spdlog::get("logger")->warn("my pakFunc3 for {} ret = {}", name, ret);
-    if (ret != -1)
-    {
-        __int64 ret2 = pakFunc9(ret, &doNothing, &doNothing);
-        spdlog::get("logger")->warn("my pakFunc9 for {} ret = {}", name, ret2);
-        if (ret2 == 1)
-        {
-            resolveMaterials(name);
-            __int64 ret3 = pakFunc6(ret, &doNothing);
-            spdlog::get("logger")->warn("my pakFunc6 for {} ret = {}", name, ret3);
-        }
-    }
-
-    //inLoad = false;
-}
-
-void printRegs()
-{
-    for (int i = 0; i < 16; i++) {
-        TypeRegistration* reg = &registrations[i];
-        if (reg->IsValid())
-        {
-            spdlog::get("logger")->warn("reg {}: {}{}{}{} - {}", i, reg->type[0], reg->type[1], reg->type[2], reg->type[3], reg->niceName);
-        }
-        else
-        {
-            spdlog::get("logger")->warn("reg {}: EMPTY", i);
-        }
-    }
-}
-
 void TTF2SDK::RunFrameHook(double absTime, float frameTime)
 {
     if (false)
@@ -932,24 +736,7 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
         auto v = nullptr;
         //std::string code = GetServerCode();
         std::string code = "";
-        if (code == "load")
-        {
-            cachedMaterialData.clear();
-            preload("sp_boomtown_start.rpak");
-            preload("sp_boomtown_end.rpak");
-            preload("sp_crashsite.rpak");
-            preload("sp_sewers1.rpak");
-            preload("sp_skyway_v1.rpak");
-            preload("sp_timeshift_spoke02.rpak");
-            preload("sp_tday.rpak");
-            preload("sp_s2s.rpak");
-            preload("sp_beacon_spoke0.rpak");
-        }
-        else if (code == "printregs")
-        {
-            printRegs();
-        }
-        else if (code == "spawnmodelmode")
+        if (code == "spawnmodelmode")
         {
             isSpawningExternalMapModel = !isSpawningExternalMapModel;
             m_logger->warn("isSpawningExternalMapModel = {}", isSpawningExternalMapModel);
@@ -961,10 +748,6 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
                 m_logger->warn("{}", it);
             }
             m_logger->warn("num shaders = {}", shaders.size());
-        }
-        else if (code == "printmats")
-        {
-            printCachedMatData();
         }
         else if (code == "compileshaders")
         {
@@ -1031,7 +814,7 @@ void SetupLogger(const char* filename)
     auto logger = std::make_shared<spdlog::logger>("logger", begin(sinks), end(sinks));
     logger->set_pattern("[%T] [%l] [thread %t] %v");
 #ifdef _DEBUG
-    logger->set_level(spdlog::level::debug);
+    logger->set_level(spdlog::level::trace);
 #else
     logger->set_level(spdlog::level::info);
 #endif

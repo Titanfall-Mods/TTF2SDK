@@ -10,7 +10,7 @@ class SourceInterface
 public:
     SourceInterface(const std::string& moduleName, const std::string& interfaceName)
     {
-        CreateInterfaceFn createInterface = (CreateInterfaceFn)Util::ResolveLibraryFunction(moduleName, "CreateInterface");
+        CreateInterfaceFn createInterface = (CreateInterfaceFn)Util::ResolveLibraryExport(moduleName, "CreateInterface");
         m_interface = (T*)createInterface(interfaceName.c_str(), NULL);
         if (m_interface == nullptr)
         {
