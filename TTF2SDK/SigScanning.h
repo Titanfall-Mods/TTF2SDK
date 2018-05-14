@@ -70,7 +70,7 @@ private:
     T(*m_hookedFunc)(Args...) = nullptr;
 
 public:
-    HookedFunc(const char* moduleName, const char* signature, const char* mask) : SigScanFunc(moduleName, signature, mask)
+    HookedFunc(const char* moduleName, const char* signature, const char* mask) : SigScanFunc<T, Args...>(moduleName, signature, mask)
     {
 
     }
@@ -161,7 +161,7 @@ template<typename T, typename... Args>
 class SharedSigFunc : public SharedFunc<SigScanFunc<T, Args...>>
 {
 public:
-    SharedSigFunc(const char* signature, const char* mask) : SharedFunc(signature, mask)
+    SharedSigFunc(const char* signature, const char* mask) : SharedFunc<SigScanFunc<T, Args...>>(signature, mask)
     {
 
     }
@@ -187,7 +187,7 @@ template<typename T, typename... Args>
 class SharedHookedFunc : public SharedFunc<HookedFunc<T, Args...>>
 {
 public:
-    SharedHookedFunc(const char* signature, const char* mask) : SharedFunc(signature, mask)
+    SharedHookedFunc(const char* signature, const char* mask) : SharedFunc<HookedFunc<T, Args...>>(signature, mask)
     {
 
     }

@@ -318,3 +318,5 @@ ASALocalRun/
 
 # MSBuild Binary and Structured Log
 *.binlog
+
+thirdparty/protobuf_build

@@ -63,6 +63,9 @@ enum PakState
 {
     PAK_STATE_NONE,
     PAK_STATE_PRELOAD,
+    PAK_STATE_SPAWN_EXTERNAL,
+    PAK_STATE_IN_LOAD_MAP_PAK,
+    PAK_STATE_UNLOAD_EXTERNAL,
 };
 
 struct CachedMaterialData
@@ -118,21 +121,61 @@ struct PakAllocFuncs
     void(*Free)(int64_t a1, void* ptr);
 };
 
+struct model_t
+{
+    unsigned char fnHandle[4];
+    char szName[250];
+};
+
+struct CPrecacheItem
+{
+    int64_t unk;
+    model_t* model;
+};
+
+struct CGameServer
+{
+    char unknown[6800840];
+    CPrecacheItem model_precache[1024];
+};
+
+struct CClientState
+{
+    char unknown[79400];
+    CPrecacheItem model_precache[1024];
+};
+
+typedef CClientState* (*tClientStateFunc)();
+
 class PakManager
 {
 public:
-    PakManager(ConCommandManager& conCommandManager);
+    PakManager(ConCommandManager& conCommandManager, SourceInterface<IVEngineServer> engineServer);
+    void TEMP_SetModelsOnEnts(const CCommand& args);
     void PrintRegistrations(const CCommand& args);
     void PrintPakRefs(const CCommand& args);
     void PrintCachedMaterialData(const CCommand& args);
+    void PrintExternalModels(const CCommand& args);
+    void PrintCurrentLevelPak(const CCommand& args);
+
+    void SetExternalSpawnMode(const CCommand& args);
 
     void AddTextureIfExists(CachedMaterialData& data, const std::string& matName, const char* ext);
     void ResolveMaterials(const std::string& pakName);
     void PreloadPak(const char* name);
     void PreloadAllPaks();
+    
+    void ReloadExternalPak(const std::string& pakFile, std::unordered_set<std::string>& newMaterialsToLoad, std::unordered_set<std::string>& newTexturesToLoad, std::unordered_set<std::string>& newShadersToLoad);
+    void LoadExternalPak(const std::string& pakFile);
+    bool IsExternalPakLoaded(const std::string& pakFile);
+    void UnloadAllPaks();
+
+    void WriteCacheToFile(const std::string& filename);
 
     void MaterialFunc1Hook(CMaterialGlue* glue, MaterialData* data);
     void TextureFunc1Hook(TextureInfo* info, int64_t a2, int64_t a3, int64_t a4);
+    int64_t TextureFunc2Hook(TextureInfo* info);
+    void TextureFunc3Hook(TextureInfo* dst, TextureInfo* src, void* a3);
     void ShaderFunc1Hook(ShaderInfo* info, int64_t a2);
 
     int32_t PakFunc3Hook(const char* src, PakAllocFuncs* allocFuncs, int unk);
@@ -140,12 +183,27 @@ public:
     int64_t PakFunc9Hook(int32_t pakRef, void* a2, void* cb);
     int64_t PakFunc13Hook(const char* name);
 
+    int64_t PrecacheModelHook(IVEngineServer* engineServer, const char* modelName);
+    int64_t Studio_LoadModelHook(void* modelLoader, model_t* model);
+    uint64_t LoadMaterialsHook(int64_t a1, int32_t* phdr, int64_t a3, int64_t a4, uint32_t a5);
+    int64_t SetModelHook(void* ent, const char* modelName);
+
+    bool LoadMapPakHook(const char* name);
 
 private:
     std::shared_ptr<spdlog::logger> m_logger;
+
+    SourceInterface<IVModelInfo> m_modelInfo;
+    CGameServer* m_gameServer;
+    CClientState* m_clientState;
     TypeRegistration* m_typeRegistrations;
+    
     int32_t* m_pakRefs;
     PakState m_state;
+    std::string m_currentLevelPak;
+
+    model_t* m_savedModelPtr;
+    int32_t m_savedPakRef2;
 
     std::mutex m_shadersMutex;
     std::unordered_set<std::string> m_tempLoadedShaders;
@@ -158,7 +216,17 @@ private:
 
     std::unordered_map<std::string, CachedMaterialData> m_cachedMaterialData;
 
+    void* m_modelLoader = nullptr;
+    std::unordered_map<std::string, std::unordered_set<model_t*>> m_loadedExternalModels; // pak name => { model ptrs }
+    std::unordered_set<std::string> m_materialsToLoad;
+    std::unordered_set<std::string> m_texturesToLoad;
+    std::unordered_set<std::string> m_shadersToLoad;
+    std::unordered_map<std::string, int32_t> m_loadedExternalPaks;
+    std::unordered_map<std::string, std::unordered_set<void*>> m_externalModelToEntityMap; // model name => { entity }
+
     HookedRegistrationFunc<decltype(&MaterialFunc1Hook)> m_matFunc1;
     HookedRegistrationFunc<decltype(&TextureFunc1Hook)> m_texFunc1;
+    HookedRegistrationFunc<decltype(&TextureFunc2Hook)> m_texFunc2;
+    HookedRegistrationFunc<decltype(&TextureFunc3Hook)> m_texFunc3;
     HookedRegistrationFunc<decltype(&ShaderFunc1Hook)> m_shaderFunc1;
 };

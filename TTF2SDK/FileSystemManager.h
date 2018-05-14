@@ -16,6 +16,7 @@ private:
     std::string m_searchPath;
     std::vector<std::string> m_mapVPKs;
     std::vector<std::string> m_mapNames;
+    std::string m_lastMapReadFrom;
 
     void CacheMapVPKs();
     bool ShouldReplaceFile(const std::string& path);
@@ -28,4 +29,5 @@ public:
     __int32* ReadFileFromVPKHook(VPKInfo* vpkInfo, __int32* b, char* filename);
     unsigned int* MountVPKHook(IFileSystem* fileSystem, const char* vpkPath);
     const std::vector<std::string>& GetMapNames();
+    const std::string& GetLastMapReadFrom();
 };

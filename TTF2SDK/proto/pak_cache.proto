@@ -1,0 +1,14 @@
+syntax = "proto2";
+
+package ttf2sdk;
+
+message MaterialData {
+	required string name = 1;
+	repeated string pakFiles = 2;
+	repeated string shaderNames = 3;
+	repeated string textures = 4;
+}
+
+message PakCache {
+	repeated MaterialData materials = 1;
+}

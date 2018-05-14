@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\proto">
+      <UniqueIdentifier>{c0f8e140-0d1e-448a-a689-a04860959ed2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\proto">
+      <UniqueIdentifier>{0f893335-9714-4a6d-84d0-8ffae48068b8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Util.h">
@@ -69,6 +75,12 @@
     <ClInclude Include="Memory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="proto\pak_cache.pb.h">
+      <Filter>Header Files\proto</Filter>
+    </ClInclude>
+    <ClInclude Include="IVModelInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Util.cpp">
@@ -107,5 +119,13 @@
     <ClCompile Include="Memory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="proto\pak_cache.pb.cc">
+      <Filter>Source Files\proto</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="proto\pak_cache.proto">
+      <Filter>Source Files\proto</Filter>
+    </None>
   </ItemGroup>
 </Project>

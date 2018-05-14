@@ -15,7 +15,7 @@
     <ProjectGuid>{F07D9B2C-F871-495F-95A8-1A266ED9684E}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>TTF2SDK</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -47,11 +47,13 @@
     <LinkIncremental>true</LinkIncremental>
     <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>true</RunCodeAnalysis>
+    <CustomBuildBeforeTargets>PreBuildEvent</CustomBuildBeforeTargets>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>true</RunCodeAnalysis>
+    <CustomBuildBeforeTargets>PreBuildEvent</CustomBuildBeforeTargets>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -61,8 +63,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;TTF2SDK_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\thirdparty\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\thirdparty\;..\thirdparty\protobuf\src</AdditionalIncludeDirectories>
       <EnablePREfast>true</EnablePREfast>
+      <DisableSpecificWarnings>4146</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -70,6 +73,10 @@
       <AdditionalLibraryDirectories>..\thirdparty\MinHook;..\thirdparty\tier0</AdditionalLibraryDirectories>
       <AdditionalDependencies>tier0.lib;D3DCompiler.lib;DbgHelp.lib;libMinHook-x64-v141-md.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <CustomBuildStep>
+      <Command>$(SolutionDir)thirdparty\protobuf_build\$(Configuration)\protoc.exe --proto_path=$(ProjectDir)proto --cpp_out=$(ProjectDir)proto $(ProjectDir)proto\pak_cache.proto</Command>
+      <Outputs>$(ProjectDir)proto\pak_cache.pb.cc;$(ProjectDir)proto\pak_cache.pb.h;%(Outputs)</Outputs>
+    </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -81,8 +88,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;TTF2SDK_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\thirdparty\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\thirdparty\;..\thirdparty\protobuf\src</AdditionalIncludeDirectories>
       <EnablePREfast>true</EnablePREfast>
+      <DisableSpecificWarnings>4146</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -92,6 +100,10 @@
       <AdditionalLibraryDirectories>..\thirdparty\MinHook;..\thirdparty\tier0</AdditionalLibraryDirectories>
       <AdditionalDependencies>tier0.lib;D3DCompiler.lib;DbgHelp.lib;libMinHook-x64-v141-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <CustomBuildStep>
+      <Command>$(SolutionDir)thirdparty\protobuf_build\$(Configuration)\protoc.exe --proto_path=$(ProjectDir)proto --cpp_out=$(ProjectDir)proto $(ProjectDir)proto\pak_cache.proto</Command>
+      <Outputs>$(ProjectDir)proto\pak_cache.pb.cc;$(ProjectDir)proto\pak_cache.pb.h;%(Outputs)</Outputs>
+    </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ConCommandManager.h" />
@@ -101,9 +113,11 @@
     <ClInclude Include="IVEngineClient.h" />
     <ClInclude Include="IVEngineServer.h" />
     <ClInclude Include="IFileSystem.h" />
+    <ClInclude Include="IVModelInfo.h" />
     <ClInclude Include="Memory.h" />
     <ClInclude Include="ModuleScan.h" />
     <ClInclude Include="PakManager.h" />
+    <ClInclude Include="proto\pak_cache.pb.h" />
     <ClInclude Include="SigScanning.h" />
     <ClInclude Include="SourceInterface.h" />
     <ClInclude Include="SquirrelManager.h" />
@@ -121,6 +135,9 @@
     <ClCompile Include="Memory.cpp" />
     <ClCompile Include="ModuleScan.cpp" />
     <ClCompile Include="PakManager.cpp" />
+    <ClCompile Include="proto\pak_cache.pb.cc">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="SigScanning.cpp" />
     <ClCompile Include="SquirrelManager.cpp" />
     <ClCompile Include="stdafx.cpp">
@@ -129,6 +146,16 @@
     </ClCompile>
     <ClCompile Include="TTF2SDK.cpp" />
     <ClCompile Include="Util.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="proto\pak_cache.proto">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\thirdparty\protobuf_build\libprotobuf.vcxproj">
+      <Project>{de263872-a991-3378-95fb-97d626fcaa17}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

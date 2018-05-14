@@ -94,7 +94,7 @@ private:
     SourceInterface<ICvar> m_cvar;
 
 public:
-    ConCommandManager();
+    ConCommandManager() noexcept;
     ~ConCommandManager();
     void RegisterCommand(const char* name, void(*callback)(const CCommand&), const char* helpString, int flags);
     void ExecuteCommand(const std::string& commandStr);

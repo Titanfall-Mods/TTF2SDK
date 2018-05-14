@@ -15,7 +15,9 @@ class IVEngineServer
 public:
     struct VTable
     {
-        void* unknown[175];
+        void* unknown[7];
+        __int64(*PrecacheModel) (IVEngineServer* engineServer, const char* model);
+        void* unknown2[167];
         __int64(*SpewFunc) (IVEngineServer* engineServer, SpewType_t type, const char* format, va_list va);
     };
 

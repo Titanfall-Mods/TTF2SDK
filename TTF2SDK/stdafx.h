@@ -20,10 +20,12 @@
 #undef CINTERFACE
 
 #include <d3dcompiler.h>
+#include "proto/pak_cache.pb.h"
 
 // TODO: clean these up
 #include "Memory.h"
 #include <algorithm>
+#include <functional>
 #include <shared_mutex>
 #include <unordered_set>
 #include <filesystem>
@@ -45,6 +47,7 @@
 #include "IFileSystem.h"
 #include "IVEngineServer.h"
 #include "IVEngineClient.h"
+#include "IVModelInfo.h"
 #include "ICvar.h"
 #include "VTableHooking.h"
 #include "ConCommandManager.h"

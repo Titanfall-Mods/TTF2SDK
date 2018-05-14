@@ -43,12 +43,7 @@ struct AllocFuncs
 
 HookedFunc<void, double, float> _Host_RunFrame("engine.dll", "\x48\x8B\xC4\x48\x89\x58\x00\xF3\x0F\x11\x48\x00\xF2\x0F\x11\x40\x00", "xxxxxx?xxxx?xxxx?");
 
-HookedFunc<__int64, void*, void*> Studio_LoadModel("engine.dll", "\x48\x89\x6C\x24\x00\x41\x56\x48\x83\xEC\x00\x83\x8A\x00\x00\x00\x00\x00", "xxxx?xxxxx?xx?????");
-
-
 HookedVTableFunc<decltype(&IVEngineServer::VTable::SpewFunc), &IVEngineServer::VTable::SpewFunc> IVEngineServer_SpewFunc;
-
-HookedFunc<unsigned __int64, __int64, signed int*, __int64, __int64, unsigned int> CStudioRenderContext_LoadMaterials("studiorender.dll", "\x40\x53\x55\x57", "xxxx");
 
 HookedFunc<__int64, const char*, AllocFuncs*, int> pakFunc3("rtech_game.dll", "\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x00\x48\x8B\xF1\x48\x8D\x0D\x00\x00\x00\x00", "xxxx?xxxx?xxxx?xxxxxx????");
 HookedFunc<__int64, __int64, void*, void*> pakFunc9("rtech_game.dll", "\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x00\x8B\xD9", "xxxx?xxxx?xxxx?xxxx?xx");
@@ -64,8 +59,6 @@ HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateVertexShader), &ID3D11DeviceV
 HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateComputeShader), &ID3D11DeviceVtbl::CreateComputeShader> ID3D11Device_CreateComputeShader;
 
 HookedFunc<bool, char*> LoadPakForLevel("engine.dll", "\x48\x81\xEC\x00\x00\x00\x00\x48\x8D\x54\x24\x00\x41\xB8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8D\x4C\x24\x00", "xxx????xxxx?xx????x????xxxx?");
-
-SigScanFunc<__int64, void*, void*> CModelLoader_UnloadModel("engine.dll", "\x48\x89\x5C\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x48\x8B\xDA\x8B\x92\x00\x00\x00\x00", "xxxx?xxxx????xxxxx????");
 
 struct MaterialData2
 {
@@ -345,12 +338,6 @@ __int64 SpewFuncHook(IVEngineServer* engineServer, SpewType_t type, const char* 
     return IVEngineServer_SpewFunc(engineServer, type, format, args);
 }
 
-struct model_t
-{
-    unsigned char fnHandle[4];
-    char szName[250];
-};
-
 bool isSpawningExternalMapModel = false;
 std::string currentExternalMapName;
 
@@ -364,21 +351,6 @@ std::unordered_set<std::string> shadersToLoad;
 std::unordered_set<void*> loadedModels;
 
 std::regex textureFileRegex("^(.+\\d\\d)");
-
-
-__int64 Studio_LoadModelHook(void* modelLoader, void* model)
-{
-    g_modelLoader = modelLoader;
-    if (isSpawningExternalMapModel)
-    {
-        loadedModels.insert(model);
-    }
-
-    model_t* actualModel = (model_t*)model;
-    spdlog::get("logger")->debug("Studio_LoadModel: {}, {}", model, actualModel->szName);
-    __int64 retval = Studio_LoadModel(modelLoader, model);
-    return retval;
-}
 
 AllocFuncs* savedAllocFuncs = 0;
 
@@ -428,29 +400,6 @@ void doNothingAgain()
     return;
 }
 
-void unloadPaks()
-{
-    isUnloadingCustomPaks = true;
-    for (__int64 pakId : loadedPaks)
-    {
-        spdlog::get("logger")->warn("unloading custom pak {}", pakId);
-        __int64 ret3 = pakFunc6(pakId, &doNothingAgain);
-        spdlog::get("logger")->warn("unloaded custom pak {}, ret = {}", pakId, ret3);
-    }
-    loadedPaks.clear();
-    texturesToLoad.clear();
-    materialsToLoad.clear();
-    shadersToLoad.clear();
-    spdlog::get("logger")->warn("unloading models");
-    for (void* model : loadedModels)
-    {
-        CModelLoader_UnloadModel(g_modelLoader, model);
-    }
-    spdlog::get("logger")->warn("finishedunloading models");
-    loadedModels.clear();
-    isUnloadingCustomPaks = false;
-}
-
 #pragma pack(push,1)
 struct TexData
 {
@@ -463,65 +412,6 @@ struct TexData
     ID3D11ShaderResourceView* SRView;
 };
 #pragma pack(pop)
-
-__int64(*origTextureFunc2)(__int64 texData);
-__int64 textureFunc2Hook(__int64 texData)
-{
-    TexData* data = (TexData*)texData;
-    spdlog::get("logger")->warn("texture func 2: {}", data->name);
-    if (isUnloadingCustomPaks)
-    {
-        if (texturesToLoad.find(data->name) != texturesToLoad.end())
-        {
-            spdlog::get("logger")->warn("texture was custom loaded, so calling origTextureFunc2");
-            if (data->texture2D != NULL && data->SRView != NULL)
-            {
-                spdlog::get("logger")->warn("texture safe to unload");
-                origTextureFunc2(texData);
-            }
-            
-        }
-        return ERROR_SUCCESS;
-    }
-    else
-    {
-        return origTextureFunc2(texData);
-    }
-}
-
-void(*origTextureFunc3)(void *Dst, void *Src, void *a3);
-void textureFunc3Hook(void *Dst, void *Src, void *a3)
-{
-    const char* name = NULL;
-    if (Src != NULL)
-    {
-        name = *(const char**)((char*)Src + 8);
-    }
-    else if (Dst != NULL)
-    {
-        name = *(const char**)((char*)Dst + 8);
-    }
-
-    if (!isSpawningExternalMapModel && !isUnloadingCustomPaks)
-    {
-        spdlog::get("logger")->warn("textureFunc3 for {}", name != NULL ? name : "NULL");
-        return origTextureFunc3(Dst, Src, a3);
-    }
-    else
-    {
-        if (name != NULL)
-        {
-            std::string strName(name);
-            if (texturesToLoad.find(strName) != texturesToLoad.end())
-            {
-                // hey, we need to actually load this!
-                spdlog::get("logger")->warn("textureFunc3 for {}", strName);
-                spdlog::get("logger")->warn("calling original textureFunc3");
-                origTextureFunc3(Dst, Src, a3);
-            }
-        }
-    }
-}
 
 __int64 doNothing2()
 {
@@ -558,84 +448,6 @@ void shader_func1(__int64 a1, __int64 a2)
 
 std::unordered_map<std::string, MaterialData2> cachedMaterialData;
 
-unsigned __int64 LoadMaterialsHook(__int64 a1, signed int* phdr, __int64 a3, __int64 a4, unsigned int a5)
-{
-    if (isSpawningExternalMapModel)
-    {
-        signed int count = phdr[52];
-        spdlog::get("logger")->warn("LoadMaterials: count = {}", count);
-        bool needsPakReload = false;
-        for (int i = 0; i < count; i++)
-        {
-            signed int* v14 = (signed int *)((char *)&phdr[11 * (signed int)i] + phdr[53]);
-            char *v15 = (char *)v14 + *v14;
-            if (*v15 == '\\' || *v15 == '/')
-                ++v15;
-
-            char path[MAX_PATH];
-            strcpy_s(path, v15);
-            Util::FixSlashes(path, '\\');
-            std::string strPath(path);
-
-            // Check if it's in the material map
-            if (cachedMaterialData.find(strPath) == cachedMaterialData.end())
-            {
-                spdlog::get("logger")->error("Failed to find cached material data for: {}", strPath);
-                continue;
-            }
-
-            const auto& matData = cachedMaterialData[strPath];
-
-            // Check if we have loaded this before
-            if (materialsToLoad.find(strPath) == materialsToLoad.end())
-            {
-                // We haven't so add and mark the pak to be reloaded
-                materialsToLoad.insert(strPath);
-
-                // Add the textures
-                for (const auto& tex : matData.textures)
-                {
-                    texturesToLoad.insert(tex);
-                }
-
-                // Add the shader
-                shadersToLoad.insert(matData.shaderName);
-                
-                needsPakReload = true;
-                spdlog::get("logger")->warn("Material {} not already loaded, will reload pak", strPath);
-            }
-
-            spdlog::get("logger")->warn("i = {}, v15 = {}", i, v15);
-        }
-
-        if (needsPakReload)
-        {
-            //origFunc1 = registrations[12].func1;
-            //registrations[12].func1 = &textureLoad;
-
-            spdlog::get("logger")->warn("loading pak for map {}", currentExternalMapName);
-            std::string pakName = currentExternalMapName + ".rpak";
-            __int64 ret = pakFunc3(pakName.c_str(), savedAllocFuncs, 3);
-            spdlog::get("logger")->warn("my pakFunc3 for {} ret = {}", pakName.c_str(), ret);
-            if (ret != -1)
-            {
-                loadedPaks.insert(ret);
-                __int64 ret2 = pakFunc9(ret, &doNothingAgain, &doNothingAgain);
-                spdlog::get("logger")->warn("my pakFunc9 for {} ret = {}", pakName.c_str(), ret2);
-            }
-            else
-            {
-                spdlog::get("logger")->critical("bad things happened");
-            }
-
-            //registrations[12].func1 = origFunc1;
-        }
-        
-    }
-
-    return CStudioRenderContext_LoadMaterials(a1, phdr, a3, a4, a5);
-}
-
 struct MatFunc1
 {
     void* data;
@@ -658,17 +470,12 @@ TTF2SDK::TTF2SDK() :
         throw std::exception("Failed to initialise MinHook");
     }
 
-    m_ppMemAlloc = (IMemAlloc**)Util::ResolveLibraryExport("tier0.dll", "g_pMemAllocSingleton");
-
     m_conCommandManager.reset(new ConCommandManager());
     m_fsManager.reset(new FileSystemManager("D:\\dev\\ttf2\\searchpath\\"));
     m_sqManager.reset(new SquirrelManager(*m_conCommandManager));
-    m_pakManager.reset(new PakManager(*m_conCommandManager));
+    m_pakManager.reset(new PakManager(*m_conCommandManager, m_engineServer));
 
     IVEngineServer_SpewFunc.Hook(m_engineServer->m_vtable, SpewFuncHook);
-
-    Studio_LoadModel.Hook(Studio_LoadModelHook);
-    CStudioRenderContext_LoadMaterials.Hook(LoadMaterialsHook);
 
     /*
     origTextureFunc2 = (decltype(origTextureFunc2))registrations[12].func2;
@@ -728,20 +535,37 @@ SourceInterface<IVEngineClient>& TTF2SDK::GetEngineClient()
     return m_engineClient;
 }
 
+void TTF2SDK::AddDelayedFunc(std::function<void()> func, int frames)
+{
+    m_delayedFuncs.emplace_back(frames, func);
+}
+
 void TTF2SDK::RunFrameHook(double absTime, float frameTime)
 {
+    for (auto& delay : m_delayedFuncs)
+    {
+        delay.FramesTilRun = std::max(delay.FramesTilRun - 1, 0);
+        if (delay.FramesTilRun == 0)
+        {
+            m_logger->info("Executing delayed func");
+            delay.Func();
+        }
+    }
+
+    auto newEnd = std::remove_if(m_delayedFuncs.begin(), m_delayedFuncs.end(), [](const DelayedFunc& delay)
+    { 
+        return delay.FramesTilRun == 0; 
+    });
+
+    m_delayedFuncs.erase(newEnd, m_delayedFuncs.end());
+
     if (false)
     {
         //auto v = GetServerSQVM();
         auto v = nullptr;
         //std::string code = GetServerCode();
         std::string code = "";
-        if (code == "spawnmodelmode")
-        {
-            isSpawningExternalMapModel = !isSpawningExternalMapModel;
-            m_logger->warn("isSpawningExternalMapModel = {}", isSpawningExternalMapModel);
-        }
-        else if (code == "printshaders")
+        if (code == "printshaders")
         {
             for (auto it : shaders)
             {
@@ -773,10 +597,6 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
                 m_logger->info("\t{}", t);
             }
         }
-        else if (code == "unloadpaks")
-        {
-            unloadPaks();
-        }
     }
 
     return _Host_RunFrame(absTime, frameTime);
@@ -787,6 +607,7 @@ TTF2SDK::~TTF2SDK()
     m_sqManager.reset();
     m_conCommandManager.reset();
     m_fsManager.reset();
+    m_pakManager.reset();
     
     MH_Uninitialize();
 }

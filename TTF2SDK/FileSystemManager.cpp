@@ -97,7 +97,16 @@ __int32* FileSystemManager::ReadFileFromVPKHook(VPKInfo* vpkInfo, __int32* b, ch
     __int32* result = ReadFileFromVPK(vpkInfo, b, filename);
     m_logger->trace("ReadFileFromVPK: vpk = {}, file = {}, result = {}", vpkInfo->path, filename, *b);
 
-    // TODO: This is where I used to record the currently loading map
+    if (*b != -1)
+    {
+        std::string strVPK(vpkInfo->path);
+        std::smatch m;
+        std::regex_search(strVPK, m, s_mapFromVPKRegex);
+        if (!m.empty())
+        {
+            m_lastMapReadFrom = m[1];
+        }
+    }
 
     return result;
 }
@@ -130,6 +139,11 @@ unsigned int* FileSystemManager::MountVPKHook(IFileSystem* fileSystem, const cha
 const std::vector<std::string>& FileSystemManager::GetMapNames()
 {
     return m_mapNames;
+}
+
+const std::string& FileSystemManager::GetLastMapReadFrom()
+{
+    return m_lastMapReadFrom;
 }
 
 bool FileSystemManager::ShouldReplaceFile(const std::string& path)
