@@ -31,7 +31,8 @@ HookedFunc<int64_t, int32_t, void*, void*> PakFunc9("rtech_game.dll", "\x48\x89\
 HookedFunc<int64_t, const char*> PakFunc13("rtech_game.dll", "\x48\x83\xEC\x00\x48\x8D\x15\x00\x00\x00\x00", "xxx?xxx????");
 
 HookedFunc<int64_t, void*, model_t*> Studio_LoadModel("engine.dll", "\x48\x89\x6C\x24\x00\x41\x56\x48\x83\xEC\x00\x83\x8A\x00\x00\x00\x00\x00", "xxxx?xxxxx?xx?????");
-HookedFunc<uint64_t, int64_t, int32_t*, int64_t, int64_t, uint32_t> CStudioRenderContext_LoadMaterials("studiorender.dll", "\x40\x53\x55\x57", "xxxx");
+HookedFunc<uint64_t, int64_t, int32_t*, int64_t, studioloddata_t*, uint32_t> CStudioRenderContext_LoadMaterials("studiorender.dll", "\x40\x53\x55\x57", "xxxx");
+HookedFunc<int64_t, int*, int32_t*, int64_t, unsigned int> LoadMaterials_SubFunc("studiorender.dll", "\x48\x8B\xC4\x44\x89\x48\x00\x4C\x89\x40\x00\x48\x89\x48\x00", "xxxxxx?xxx?xxx?");
 SigScanFunc<int64_t, void*, void*> CModelLoader_UnloadModel("engine.dll", "\x48\x89\x5C\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x48\x8B\xDA\x8B\x92\x00\x00\x00\x00", "xxxx?xxxx????xxxxx????");
 HookedFunc<int64_t, void*, const char*> CBaseEntity_SetModel("server.dll", "\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x00\x33\xFF\x48\x8B\xDA", "xxxx?xxxx?xxxx?xxxx?xxxxx");
 
@@ -48,7 +49,11 @@ void TEMP_preload(const CCommand& args)
     PakMan().PreloadAllPaks();
 }
 
-PakManager::PakManager(ConCommandManager& conCommandManager, SourceInterface<IVEngineServer> engineServer) :
+PakManager::PakManager(
+    ConCommandManager& conCommandManager, 
+    SourceInterface<IVEngineServer> engineServer,
+    SquirrelManager& squirrelManager
+) :
     m_modelInfo("engine.dll", "VModelInfoServer002")
 {
     m_logger = spdlog::get("logger");
@@ -57,7 +62,7 @@ PakManager::PakManager(ConCommandManager& conCommandManager, SourceInterface<IVE
     int64_t base = (int64_t)PakFunc1.GetFuncPtr() + 33;
     int32_t offset = *((int32_t*)(base - 4));
     m_typeRegistrations = (TypeRegistration*)(base + offset);
-    m_logger->debug("Type Registrations: {}", (void*)m_typeRegistrations);
+    SPDLOG_DEBUG(m_logger, "Type Registrations: {}", (void*)m_typeRegistrations);
 
     // Check that the registrations we care about are where we expect
     if (!m_typeRegistrations[MAT_REG_INDEX].IsTypeEqual("matl"))
@@ -79,20 +84,20 @@ PakManager::PakManager(ConCommandManager& conCommandManager, SourceInterface<IVE
     base = (int64_t)PakRefFinder.GetFuncPtr() + 58;
     offset = *((int32_t*)(base - 5));
     m_pakRefs = (int32_t*)(base + offset);
-    m_logger->debug("Pak refs: {}", (void*)m_pakRefs);
+    SPDLOG_DEBUG(m_logger, "Pak refs: {}", (void*)m_pakRefs);
 
     // Get the reference to CServer
     base = (int64_t)CServerFinder.GetFuncPtr() + 11;
     offset = *((int32_t*)(base - 4));
     m_gameServer = (CGameServer*)(base + offset);
-    m_logger->debug("Game Server: {}", (void*)m_gameServer);
+    SPDLOG_DEBUG(m_logger, "Game Server: {}", (void*)m_gameServer);
 
     // Get the reference to CClientState
     base = (int64_t)CClientStateFinder.GetFuncPtr() + 19;
     offset = *((int32_t*)(base - 4));
     tClientStateFunc f = (tClientStateFunc)(base + offset);
     m_clientState = f();
-    m_logger->debug("Client State: {}", (void*)m_clientState);
+    SPDLOG_DEBUG(m_logger, "Client State: {}", (void*)m_clientState);
 
     m_matFunc1.Hook(&m_typeRegistrations[MAT_REG_INDEX], 0, WRAPPED_MEMBER(MaterialFunc1Hook));
     m_texFunc1.Hook(&m_typeRegistrations[TEX_REG_INDEX], 0, WRAPPED_MEMBER(TextureFunc1Hook));
@@ -109,6 +114,7 @@ PakManager::PakManager(ConCommandManager& conCommandManager, SourceInterface<IVE
 
     Studio_LoadModel.Hook(WRAPPED_MEMBER(Studio_LoadModelHook));
     CStudioRenderContext_LoadMaterials.Hook(WRAPPED_MEMBER(LoadMaterialsHook));
+    LoadMaterials_SubFunc.Hook(WRAPPED_MEMBER(LoadMaterials_SubFunc_Hook));
     LoadMapPak.Hook(WRAPPED_MEMBER(LoadMapPakHook));
     CBaseEntity_SetModel.Hook(WRAPPED_MEMBER(SetModelHook));
 
@@ -121,24 +127,10 @@ PakManager::PakManager(ConCommandManager& conCommandManager, SourceInterface<IVE
     conCommandManager.RegisterCommand("print_current_level_pak", WRAPPED_MEMBER(PrintCurrentLevelPak), "Prints current level pak file", 0);
     // TODO: Command to print stuff we want to load
 
-    // TODO: Turn this into a squirrel function rather than concommand
-    conCommandManager.RegisterCommand("external_spawn_mode", WRAPPED_MEMBER(SetExternalSpawnMode), "Sets whether next model load will be from an external source", 0);
-
     conCommandManager.RegisterCommand("TEMP_preload", TEMP_preload, "TEMP preload", 0);
-    conCommandManager.RegisterCommand("TEMP_setmodels", WRAPPED_MEMBER(TEMP_SetModelsOnEnts), "TEMP ents", 0);
-}
 
-void PakManager::TEMP_SetModelsOnEnts(const CCommand& args)
-{
-    for (const auto& it : m_externalModelToEntityMap)
-    {
-        const std::string& modelName = it.first;
-        for (void* ent : it.second)
-        {
-            CBaseEntity_SetModel(ent, modelName.c_str());
-            m_logger->trace("Set model on {} to {}", ent, modelName);
-        }
-    }
+    squirrelManager.AddFuncRegistration(CONTEXT_SERVER, "EnableExternalSpawnMode", WRAPPED_MEMBER(EnableExternalSpawnMode));
+    squirrelManager.AddFuncRegistration(CONTEXT_SERVER, "DisableExternalSpawnMode", WRAPPED_MEMBER(DisableExternalSpawnMode));
 }
 
 void PakManager::PrintRegistrations(const CCommand& args)
@@ -193,30 +185,30 @@ void PakManager::PrintCurrentLevelPak(const CCommand& args)
     m_logger->info(m_currentLevelPak);
 }
 
-void PakManager::SetExternalSpawnMode(const CCommand& args)
+SQInteger PakManager::EnableExternalSpawnMode(HSQUIRRELVM v)
 {
-    if (args.ArgC() < 1 || (args[1][0] != '1' && args[1][0] != '0'))
-    {
-        m_logger->error("First argument must be either 1 or 0");
-        return;
-    }
-
     if (m_state != PAK_STATE_NONE && m_state != PAK_STATE_SPAWN_EXTERNAL)
     {
         m_logger->error("Cannot change spawn mode now - must be in state PAK_STATE_NONE or PAK_STATE_SPAWN_EXTERNAL");
-        return;
+        return 0;
     }
 
-    if (args[1][0] == '1')
+    m_logger->info("Pak state set to PAK_STATE_SPAWN_EXTERNAL");
+    m_state = PAK_STATE_SPAWN_EXTERNAL;
+    return 0;
+}
+
+SQInteger PakManager::DisableExternalSpawnMode(HSQUIRRELVM v)
+{
+    if (m_state != PAK_STATE_NONE && m_state != PAK_STATE_SPAWN_EXTERNAL)
     {
-        m_logger->info("Pak state set to PAK_STATE_SPAWN_EXTERNAL");
-        m_state = PAK_STATE_SPAWN_EXTERNAL;
+        m_logger->error("Cannot change spawn mode now - must be in state PAK_STATE_NONE or PAK_STATE_SPAWN_EXTERNAL");
+        return 0;
     }
-    else if (args[1][0] == '0')
-    {
-        m_logger->info("Pak state set to PAK_STATE_NONE");
-        m_state = PAK_STATE_NONE;
-    }
+
+    m_logger->info("Pak state set to PAK_STATE_NONE");
+    m_state = PAK_STATE_NONE;
+    return 0;
 }
 
 void doNothing()
@@ -290,7 +282,7 @@ void PakManager::PreloadPak(const char* name)
     m_tempLoadedTextures.clear();
     m_tempLoadedMaterials.clear();
 
-    m_logger->debug("Preloading pak: {}", name);
+    SPDLOG_DEBUG(m_logger, "Preloading pak: {}", name);
 
     // Initialise
     int32_t pakRef = PakFunc3(name, &g_SDKAllocFuncs, 3);
@@ -379,66 +371,16 @@ void PakManager::PreloadAllPaks()
 // TODO: Fucked
 void PakManager::ReloadExternalPak(const std::string& pakFile, std::unordered_set<std::string>& newMaterialsToLoad, std::unordered_set<std::string>& newTexturesToLoad, std::unordered_set<std::string>& newShadersToLoad)
 {
-    // TODO: BIG PROBLEM. When this is unloaded, also need to call
-    // UnloadModel on any models we loaded out of it.
-
-    // TODO: MUCH BIGGER PROBLEM. Can't just unload models willy nilly because they might actually exist in the world.
-    // So really would need to go to the entities in the world, set their model to be something else (e.g. error model)
-    // then unload all models, then reset the models on all those entities to be the new model_t values.
-    // ALSO this means we have to re-do the call to LoadModel on all of those models too! Fucking hell!
-    // The alternative could be to say don't unload textures/materials/shaders that have already been loaded.
-    // Then when reloading the pak, don't load them again, just load the new ones. Also means no unloading of
-    // existing models too. But not sure whether that would actually place nicely. Only one way to find out!
     std::vector<std::string> modelsToReload;
     if (IsExternalPakLoaded(pakFile))
     {
         m_logger->info("Need to unload pak {} to load additional assets", pakFile);
 
-        PakState origState = m_state;
-        m_state = PAK_STATE_UNLOAD_EXTERNAL;
-
-        // For all the entities which reference models from this pak, set their model to the error model
-        // and unload the model.
-        {
-            const auto& externalModels = m_loadedExternalModels[pakFile];
-            for (model_t* mdl : externalModels)
-            {
-                const auto& entities = m_externalModelToEntityMap[mdl->szName];
-                for (void* ent : entities)
-                {
-                    m_logger->trace("Setting model on {} to error", ent);
-                    CBaseEntity_SetModel(ent, "models/error.mdl");
-                }
-
-                m_logger->trace("Unloading {} at {}", mdl->szName, (void*)mdl);
-                int index = m_modelInfo->m_vtable->GetModelIndex(m_modelInfo, mdl->szName);
-                m_logger->trace("Model index = {}", index);
-                if (m_gameServer->model_precache[index].model != mdl)
-                {
-                    m_logger->error("Model did not match on server!");
-                }
-                else
-                {
-                    m_gameServer->model_precache[index].model = nullptr;
-                }
-                
-                if (m_clientState->model_precache[index].model != mdl)
-                {
-                    m_logger->error("Model did not match on client!");
-                }
-                else
-                {
-                    //m_clientState->model_precache[index].model = nullptr;
-                }
-
-                modelsToReload.push_back(mdl->szName);
-                CModelLoader_UnloadModel(m_modelLoader, mdl);
-            }
-        }
-
-        m_loadedExternalModels.erase(pakFile);
+        // TODO: Perhaps set the materials on all the loaded models to some kind of error material?
 
         // Unload the actual pak
+        PakState origState = m_state;
+        m_state = PAK_STATE_UNLOAD_EXTERNAL;
         int32_t pakRef = m_loadedExternalPaks[pakFile];
         PakFunc6(pakRef, &doNothing);
         m_loadedExternalPaks.erase(pakFile);
@@ -467,43 +409,28 @@ void PakManager::ReloadExternalPak(const std::string& pakFile, std::unordered_se
     // Load the pak
     LoadExternalPak(pakFile);
 
-    // Load all the models that we had originally loaded
-    for (const auto& modelName : modelsToReload)
+    // Reload materials for all the models we had originally loaded
+    for (model_t* mdl : m_loadedExternalModels[pakFile])
     {
-        int64_t ret = IVEngineServer_PrecacheModel(SDK().GetEngineServer(), modelName.c_str());
-        m_logger->trace("Precached {} to {}", modelName, ret);
+        if (m_loadMaterialArgs.find(mdl) == m_loadMaterialArgs.end())
+        {
+            m_logger->error("Failed to get material args for model {}, {}", (void*)mdl, mdl->szName);
+            continue;
+        }
 
-        model_t* newModel = m_modelInfo->m_vtable->GetModel(m_modelInfo, ret);
-        m_logger->trace("New model_t for {}: {}", modelName, (void*)newModel);
-        m_loadedExternalModels[pakFile].insert(newModel);
+        const LoadMaterialArgs& args = m_loadMaterialArgs[mdl];
+        SPDLOG_TRACE(m_logger, "Loading materials for {}", mdl->szName);
+         
+        {
+            std::vector<int> materialFlags(args.lodData->pMaterialFlags, args.lodData->pMaterialFlags + args.lodData->numMaterials);
+            m_savedMaterialFlags.insert_or_assign(args.phdr, std::move(materialFlags));
+        }
 
-        // Update the client precache table
-        //m_clientState->model_precache[ret].model = newModel;
-
-        // Set the correct model back on the relevant entities
-        //const auto& entities = m_externalModelToEntityMap[modelName];
-        //for (void* ent : entities)
-        //{
-            //CBaseEntity_SetModel(ent, modelName.c_str());
-            //m_logger->trace("Set model on {} to {}", ent, modelName);
-        //}
-    }
-
-    if (modelsToReload.size() > 0)
-    {
-        auto lambda = [this]() {
-            for (const auto& it : m_externalModelToEntityMap)
-            {
-                const std::string& modelName = it.first;
-                for (void* ent : it.second)
-                {
-                    CBaseEntity_SetModel(ent, modelName.c_str());
-                    m_logger->trace("Set model on {} to {}", ent, modelName);
-                }
-            }
-        };
-        
-        SDK().AddDelayedFunc(lambda, 2);
+        // TODO: This leaks some memory in lodData(ppMaterials and flags).Will need to manually free these.
+        PakState origState = m_state;
+        m_state = PAK_STATE_RESETTING_MATERIALS;
+        CStudioRenderContext_LoadMaterials((int64_t)m_studioRenderContext, args.phdr, args.a3, args.lodData, args.a5);
+        m_state = origState;
     }
 }
 
@@ -535,7 +462,8 @@ void PakManager::LoadExternalPak(const std::string& pakFile)
         m_logger->error("Failed to load pak, PakFunc9 failed ({})", result);
         return;
     }
-
+    
+    m_logger->info("Finished loading {}", pakFile);
     m_loadedExternalPaks.emplace(pakFile, pakRef);
 }
 
@@ -544,11 +472,10 @@ bool PakManager::IsExternalPakLoaded(const std::string& pakFile)
     return m_loadedExternalPaks.find(pakFile) != m_loadedExternalPaks.end();
 }
 
-// TODO: FUCKED. MUST BE FIXED.
+// TODO: ANOTHER PROBLEM HERE. Some materials/textures live in multiple paks. We need to keep track of all the materials/textures
+// loaded for the current level, and not attempt to reload them if the model we're loading requests them.
 void PakManager::UnloadAllPaks()
 {
-    return;
-
     PakState origState = m_state;
     m_state = PAK_STATE_UNLOAD_EXTERNAL;
     for (const auto& entry : m_loadedExternalPaks)
@@ -556,6 +483,7 @@ void PakManager::UnloadAllPaks()
         PakFunc6(entry.second, &doNothing);
         m_logger->info("Pak {} unloaded", entry.first);
 
+        // TODO: This is almost certainly not the right way to do it
         for (const auto& model : m_loadedExternalModels[entry.first])
         {
             m_logger->info("Unloading model {}", model->szName);
@@ -563,12 +491,13 @@ void PakManager::UnloadAllPaks()
         }
     }
 
-    m_loadedExternalPaks.clear();
-    m_texturesToLoad.clear();
-    m_materialsToLoad.clear();
-    m_shadersToLoad.clear();
-
     m_loadedExternalModels.clear();
+    m_loadMaterialArgs.clear();
+    m_materialsToLoad.clear();
+    m_texturesToLoad.clear();
+    m_shadersToLoad.clear();
+    m_loadedExternalPaks.clear();
+    
     m_logger->info("Finished unloading models");
     m_state = origState;
 }
@@ -610,7 +539,7 @@ void PakManager::WriteCacheToFile(const std::string& filename)
 
 void PakManager::MaterialFunc1Hook(CMaterialGlue* glue, MaterialData* data)
 {
-    m_logger->trace("MaterialFunc1: {}, glue = {}", (glue->name != NULL) ? glue->name : "NULL", (void*)glue);
+    SPDLOG_TRACE(m_logger, "MaterialFunc1: {}, glue = {}", (glue->name != NULL) ? glue->name : "NULL", (void*)glue);
 
     if (m_state == PAK_STATE_PRELOAD)
     {
@@ -625,32 +554,36 @@ void PakManager::MaterialFunc1Hook(CMaterialGlue* glue, MaterialData* data)
 
 void PakManager::TextureFunc1Hook(TextureInfo* info, int64_t a2, int64_t a3, int64_t a4)
 {
-    m_logger->trace("TextureFunc1: {}", (info->name != NULL) ? info->name : "NULL");
+    SPDLOG_TRACE(m_logger, "TextureFunc1: {}", (info->name != NULL) ? info->name : "NULL");
 
     if (m_state == PAK_STATE_PRELOAD)
     {
         std::lock_guard<std::mutex> lock(m_texturesMutex);
         m_tempLoadedTextures.emplace(info->name);
     }
-
-    if (m_state == PAK_STATE_SPAWN_EXTERNAL)
+    else if (m_state == PAK_STATE_SPAWN_EXTERNAL)
     {
         // Only load the texture if it's one we want to load
         if (m_texturesToLoad.find(info->name) != m_texturesToLoad.end())
         {
-            m_logger->trace("Calling original TextureFunc1 for {}", info->name);
+            SPDLOG_TRACE(m_logger, "Calling original TextureFunc1 for {}", info->name);
             m_texFunc1(info, a2, a3, a4);
         }
     }
     else
     {
+        {
+            std::lock_guard<std::mutex> lock(m_mapTexturesMutex);
+            m_mapTextures.emplace(info->name);
+        }
+
         m_texFunc1(info, a2, a3, a4);
     }
 }
 
 int64_t PakManager::TextureFunc2Hook(TextureInfo* info)
 {
-    m_logger->trace("TextureFunc2: {}", (info->name != NULL) ? info->name : "NULL");
+    SPDLOG_TRACE(m_logger, "TextureFunc2: {}", (info->name != NULL) ? info->name : "NULL");
 
     // If we're unloading externals, only unload ones we loaded
     if (m_state == PAK_STATE_SPAWN_EXTERNAL || m_state == PAK_STATE_UNLOAD_EXTERNAL)
@@ -659,7 +592,7 @@ int64_t PakManager::TextureFunc2Hook(TextureInfo* info)
         {
             if (info->texture2D != NULL && info->SRView != NULL)
             {
-                m_logger->trace("Unloading texture: {}", info->name);
+                SPDLOG_TRACE(m_logger, "Unloading texture: {}", info->name);
                 m_texFunc2(info);
             }
         }
@@ -683,7 +616,7 @@ void PakManager::TextureFunc3Hook(TextureInfo* dst, TextureInfo* src, void* a3)
         name = dst->name;
     }
 
-    m_logger->trace("TextureFunc3: {}", (name != NULL) ? name : "NULL");
+    SPDLOG_TRACE(m_logger, "TextureFunc3: {}", (name != NULL) ? name : "NULL");
 
     if (m_state == PAK_STATE_SPAWN_EXTERNAL || m_state == PAK_STATE_UNLOAD_EXTERNAL)
     {
@@ -691,7 +624,7 @@ void PakManager::TextureFunc3Hook(TextureInfo* dst, TextureInfo* src, void* a3)
         {
             if (m_texturesToLoad.find(name) != m_texturesToLoad.end())
             {
-                m_logger->trace("Forwarding call to original TextureFunc3");
+                SPDLOG_TRACE(m_logger, "Forwarding call to original TextureFunc3");
                 m_texFunc3(dst, src, a3);
             }
         }
@@ -704,7 +637,7 @@ void PakManager::TextureFunc3Hook(TextureInfo* dst, TextureInfo* src, void* a3)
 
 void PakManager::ShaderFunc1Hook(ShaderInfo* info, int64_t a2)
 {
-    m_logger->trace("ShaderFunc1: {}, type = {}", (info->name != NULL) ? info->name : "NULL", info->type);
+    SPDLOG_TRACE(m_logger, "ShaderFunc1: {}, type = {}", (info->name != NULL) ? info->name : "NULL", info->type);
 
     if (m_state == PAK_STATE_PRELOAD)
     {
@@ -718,7 +651,7 @@ void PakManager::ShaderFunc1Hook(ShaderInfo* info, int64_t a2)
 int32_t PakManager::PakFunc3Hook(const char* src, PakAllocFuncs* allocFuncs, int unk)
 {
     int32_t retVal = PakFunc3(src, allocFuncs, unk);
-    m_logger->trace("PakFunc3: src = {}, ret = {}", src, retVal);
+    SPDLOG_TRACE(m_logger, "PakFunc3: src = {}, ret = {}", src, retVal);
     return retVal;
 }
 
@@ -730,33 +663,34 @@ int64_t PakManager::PakFunc6Hook(int32_t pakRef, void* a2)
     if (m_state == PAK_STATE_IN_LOAD_MAP_PAK && pakRef == m_savedPakRef2)
     {
         m_logger->info("Engine unloading current map pak, unloading external paks");
+        m_mapTextures.clear();
         UnloadAllPaks();
     }
 
     int64_t retVal = PakFunc6(pakRef, a2);
-    m_logger->trace("PakFunc6: pakRef = {}, a2 = {}, ret = {}", pakRef, a2, retVal);
+    SPDLOG_TRACE(m_logger, "PakFunc6: pakRef = {}, a2 = {}, ret = {}", pakRef, a2, retVal);
     return retVal;
 }
 
 int64_t PakManager::PakFunc9Hook(int32_t pakRef, void* a2, void* cb)
 {
     int64_t retVal = PakFunc9(pakRef, a2, cb);
-    m_logger->trace("PakFunc9: pakRef = {}, a2 = {}, cb = {}, ret = {}", pakRef, a2, cb, retVal);
+    SPDLOG_TRACE(m_logger, "PakFunc9: pakRef = {}, a2 = {}, cb = {}, ret = {}", pakRef, a2, cb, retVal);
     return retVal;
 }
 
 int64_t PakManager::PakFunc13Hook(const char* name)
 {
     int64_t retVal = PakFunc13(name);
-    m_logger->trace("PakFunc13: name = {}, retval = {}", name, retVal);
+    SPDLOG_TRACE(m_logger, "PakFunc13: name = {}, retval = {}", name, (void*)retVal);
     return retVal;
 }
 
 int64_t PakManager::PrecacheModelHook(IVEngineServer* engineServer, const char* modelName)
 {
-    m_logger->trace("IVEngineServer::PrecacheModel: {}", modelName);
+    SPDLOG_TRACE(m_logger, "IVEngineServer::PrecacheModel: {}", modelName);
     int64_t retVal = IVEngineServer_PrecacheModel(engineServer, modelName);
-    m_logger->trace("IVEngineServer::PrecacheModel returned {}", retVal);
+    SPDLOG_TRACE(m_logger, "IVEngineServer::PrecacheModel returned {}", retVal);
     return retVal;
 }
 
@@ -769,7 +703,7 @@ int64_t PakManager::Studio_LoadModelHook(void* modelLoader, model_t* model)
     }
 
     m_savedModelPtr = model;
-    m_logger->trace("Studio_LoadModel: model = {}, name = {}", (void*)model, model->szName);
+    SPDLOG_TRACE(m_logger, "Studio_LoadModel: model = {}, name = {}", (void*)model, model->szName);
     int64_t retVal = Studio_LoadModel(modelLoader, model);
     m_savedModelPtr = nullptr;
     return retVal;
@@ -789,12 +723,23 @@ std::string GetMaterialPath(int32_t* phdr, int32_t index)
     return std::string(path);
 }
 
-uint64_t PakManager::LoadMaterialsHook(int64_t a1, int32_t* phdr, int64_t a3, int64_t a4, uint32_t a5)
+uint64_t PakManager::LoadMaterialsHook(int64_t a1, int32_t* phdr, int64_t a3, studioloddata_t* lodData, uint32_t a5)
 {
+    m_studioRenderContext = (void*)a1;
     if (m_state == PAK_STATE_SPAWN_EXTERNAL)
     {
         int32_t count = phdr[52];
-        m_logger->trace("LoadMaterials: count = {}", count);
+        SPDLOG_TRACE(m_logger, "LoadMaterials: count = {}", count);
+        if (m_loadMaterialArgs.find(m_savedModelPtr) != m_loadMaterialArgs.end())
+        {
+            m_logger->error("Load material args already set for {}", (void*)m_savedModelPtr);
+        }
+
+        LoadMaterialArgs& args = m_loadMaterialArgs[m_savedModelPtr];
+        args.phdr = phdr;
+        args.a3 = a3;
+        args.lodData = lodData;
+        args.a5 = a5;
 
         bool needsPakReload = false;
         std::vector<std::string> pakCandidates;
@@ -805,7 +750,7 @@ uint64_t PakManager::LoadMaterialsHook(int64_t a1, int32_t* phdr, int64_t a3, in
         {
             // Get the material path
             std::string path = GetMaterialPath(phdr, i);
-            m_logger->trace("\ti = {}, path = {}", i, path);
+            SPDLOG_TRACE(m_logger, "\ti = {}, path = {}", i, path);
 
             // Ensure that we have cached data for this material
             if (m_cachedMaterialData.find(path) == m_cachedMaterialData.end())
@@ -818,7 +763,7 @@ uint64_t PakManager::LoadMaterialsHook(int64_t a1, int32_t* phdr, int64_t a3, in
             const auto& matData = m_cachedMaterialData[path];
 
             // If we've loaded this material before, no need for more processing
-            if (m_materialsToLoad.find(path) != m_materialsToLoad.end() || 
+            if (m_materialsToLoad.find(path) != m_materialsToLoad.end() ||
                 newMaterialsToLoad.find(path) != newMaterialsToLoad.end())
             {
                 continue;
@@ -830,7 +775,14 @@ uint64_t PakManager::LoadMaterialsHook(int64_t a1, int32_t* phdr, int64_t a3, in
             // Add textures
             for (const auto& tex : matData.textures)
             {
-                newTexturesToLoad.insert(tex);
+                if (m_mapTextures.find(tex) == m_mapTextures.end())
+                {
+                    newTexturesToLoad.insert(tex);
+                }
+                else
+                {
+                    m_logger->debug("Skipping texture {}, already loaded on map", tex);
+                }
             }
 
             // Add shaders
@@ -902,23 +854,34 @@ uint64_t PakManager::LoadMaterialsHook(int64_t a1, int32_t* phdr, int64_t a3, in
         }
     }
 
-    return CStudioRenderContext_LoadMaterials(a1, phdr, a3, a4, a5);
+    return CStudioRenderContext_LoadMaterials(a1, phdr, a3, lodData, a5);
+}
+
+int64_t PakManager::LoadMaterials_SubFunc_Hook(int* pMaterialFlags, int32_t* phdr, int64_t a3, unsigned int a4)
+{
+    // The sub func inside load materials updates the material flags by reading some data from pVtxHeader.
+    // Since pVtxHeader might be freed by the time this gets called again, we just need to
+    // not call the function and restore the material flags manually.
+    if (m_state == PAK_STATE_RESETTING_MATERIALS)
+    {
+        memcpy(pMaterialFlags, m_savedMaterialFlags[phdr].data(), m_savedMaterialFlags[phdr].size() * sizeof(int));
+        return 0;
+    }
+    else
+    {
+        return LoadMaterials_SubFunc(pMaterialFlags, phdr, a3, a4);
+    }
 }
 
 int64_t PakManager::SetModelHook(void* ent, const char* modelName)
 {
-    m_logger->trace("SetModel: ent = {}, model = {}", ent, modelName);
-    int64_t retVal = CBaseEntity_SetModel(ent, modelName);
-    if (m_state == PAK_STATE_SPAWN_EXTERNAL)
-    {
-        m_externalModelToEntityMap[modelName].insert(ent);
-    }
-    return retVal;
+    SPDLOG_TRACE(m_logger, "SetModel: ent = {}, model = {}", ent, modelName);
+    return CBaseEntity_SetModel(ent, modelName);
 }
 
 bool PakManager::LoadMapPakHook(const char* name)
 {
-    m_logger->trace("LoadMapPak: {}", name);
+    SPDLOG_TRACE(m_logger, "LoadMapPak: {}", name);
     
     // Get the current level from name
     std::string strName(name);

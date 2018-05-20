@@ -48,7 +48,14 @@ void SigScanFuncRegistry::ResolveAll()
 
         ModuleScan& moduleScan = moduleScanners.at(moduleName);
         void* ptr = moduleScan.Scan(reg.signature, reg.mask);
-        logger->debug("Signature {} in {} found at {}", Util::DataToHex(reg.signature, strlen(reg.mask)), moduleName, ptr);
-        reg.func->SetFuncPtr(ptr);
+        // Skip past any leading 0xCC bytes to get the real function pointer
+        unsigned char* funcData = (unsigned char*)ptr;
+        while (*funcData == 0xCC)
+        {
+            funcData++;
+        }
+
+        logger->debug("Signature {} in {} found at {}", Util::DataToHex(reg.signature, strlen(reg.mask)), moduleName, (void*)funcData);
+        reg.func->SetFuncPtr(funcData);
     }
 }

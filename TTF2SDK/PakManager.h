@@ -65,6 +65,7 @@ enum PakState
     PAK_STATE_PRELOAD,
     PAK_STATE_SPAWN_EXTERNAL,
     PAK_STATE_IN_LOAD_MAP_PAK,
+    PAK_STATE_RESETTING_MATERIALS,
     PAK_STATE_UNLOAD_EXTERNAL,
 };
 
@@ -145,20 +146,37 @@ struct CClientState
     CPrecacheItem model_precache[1024];
 };
 
+struct studioloddata_t
+{
+    char unknown[0x24];
+    int numMaterials;
+    void** ppMaterials;
+    int* pMaterialFlags;
+    // ...
+};
+
+struct LoadMaterialArgs
+{
+    int32_t* phdr;
+    int64_t a3;
+    studioloddata_t* lodData;
+    uint32_t a5;
+};
+
 typedef CClientState* (*tClientStateFunc)();
 
 class PakManager
 {
 public:
-    PakManager(ConCommandManager& conCommandManager, SourceInterface<IVEngineServer> engineServer);
-    void TEMP_SetModelsOnEnts(const CCommand& args);
+    PakManager(ConCommandManager& conCommandManager, SourceInterface<IVEngineServer> engineServer, SquirrelManager& squirrelManager);
     void PrintRegistrations(const CCommand& args);
     void PrintPakRefs(const CCommand& args);
     void PrintCachedMaterialData(const CCommand& args);
     void PrintExternalModels(const CCommand& args);
     void PrintCurrentLevelPak(const CCommand& args);
 
-    void SetExternalSpawnMode(const CCommand& args);
+    SQInteger EnableExternalSpawnMode(HSQUIRRELVM v);
+    SQInteger DisableExternalSpawnMode(HSQUIRRELVM v);
 
     void AddTextureIfExists(CachedMaterialData& data, const std::string& matName, const char* ext);
     void ResolveMaterials(const std::string& pakName);
@@ -185,7 +203,8 @@ public:
 
     int64_t PrecacheModelHook(IVEngineServer* engineServer, const char* modelName);
     int64_t Studio_LoadModelHook(void* modelLoader, model_t* model);
-    uint64_t LoadMaterialsHook(int64_t a1, int32_t* phdr, int64_t a3, int64_t a4, uint32_t a5);
+    uint64_t LoadMaterialsHook(int64_t a1, int32_t* phdr, int64_t a3, studioloddata_t* lodData, uint32_t a5);
+    int64_t LoadMaterials_SubFunc_Hook(int* pMaterialFlags, int32_t* phdr, int64_t a3, unsigned int a4);
     int64_t SetModelHook(void* ent, const char* modelName);
 
     bool LoadMapPakHook(const char* name);
@@ -214,15 +233,20 @@ private:
     std::mutex m_materialsMutex;
     std::unordered_set<CMaterialGlue*> m_tempLoadedMaterials;
 
+    std::mutex m_mapTexturesMutex;
+    std::unordered_set<std::string> m_mapTextures;
+
     std::unordered_map<std::string, CachedMaterialData> m_cachedMaterialData;
 
     void* m_modelLoader = nullptr;
+    void* m_studioRenderContext = nullptr; // TODO: Move this to an engine interface
     std::unordered_map<std::string, std::unordered_set<model_t*>> m_loadedExternalModels; // pak name => { model ptrs }
+    std::unordered_map<model_t*, LoadMaterialArgs> m_loadMaterialArgs;
+    std::unordered_map<int32_t*, std::vector<int>> m_savedMaterialFlags;
     std::unordered_set<std::string> m_materialsToLoad;
     std::unordered_set<std::string> m_texturesToLoad;
     std::unordered_set<std::string> m_shadersToLoad;
     std::unordered_map<std::string, int32_t> m_loadedExternalPaks;
-    std::unordered_map<std::string, std::unordered_set<void*>> m_externalModelToEntityMap; // model name => { entity }
 
     HookedRegistrationFunc<decltype(&MaterialFunc1Hook)> m_matFunc1;
     HookedRegistrationFunc<decltype(&TextureFunc1Hook)> m_texFunc1;

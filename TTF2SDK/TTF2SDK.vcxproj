@@ -61,7 +61,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;TTF2SDK_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SPDLOG_DEBUG_ON;SPDLOG_TRACE_ON;_DEBUG;TTF2SDK_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <AdditionalIncludeDirectories>..\thirdparty\;..\thirdparty\protobuf\src</AdditionalIncludeDirectories>
       <EnablePREfast>true</EnablePREfast>
@@ -137,6 +137,7 @@
     <ClCompile Include="PakManager.cpp" />
     <ClCompile Include="proto\pak_cache.pb.cc">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="SigScanning.cpp" />
     <ClCompile Include="SquirrelManager.cpp" />

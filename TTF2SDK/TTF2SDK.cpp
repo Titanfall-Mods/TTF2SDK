@@ -473,7 +473,7 @@ TTF2SDK::TTF2SDK() :
     m_conCommandManager.reset(new ConCommandManager());
     m_fsManager.reset(new FileSystemManager("D:\\dev\\ttf2\\searchpath\\"));
     m_sqManager.reset(new SquirrelManager(*m_conCommandManager));
-    m_pakManager.reset(new PakManager(*m_conCommandManager, m_engineServer));
+    m_pakManager.reset(new PakManager(*m_conCommandManager, m_engineServer, *m_sqManager));
 
     IVEngineServer_SpewFunc.Hook(m_engineServer->m_vtable, SpewFuncHook);
 
@@ -492,10 +492,10 @@ TTF2SDK::TTF2SDK() :
     int offset = *(int*)(funcBase + 16);
     m_ppD3D11Device = (ID3D11Device**)(funcBase + 20 + offset);
 
-    m_logger->debug("m_ppD3D11Device = {}", (void*)m_ppD3D11Device);
-    m_logger->debug("pD3D11Device = {}", (void*)*m_ppD3D11Device);
-    m_logger->debug("queryinterface = {}", offsetof(ID3D11DeviceVtbl, QueryInterface));
-    m_logger->debug("address of the func = {}", (void*)(((char*)(*m_ppD3D11Device)->lpVtbl) + offsetof(ID3D11DeviceVtbl, QueryInterface)));
+    SPDLOG_DEBUG(m_logger, "m_ppD3D11Device = {}", (void*)m_ppD3D11Device);
+    SPDLOG_DEBUG(m_logger, "pD3D11Device = {}", (void*)*m_ppD3D11Device);
+    SPDLOG_DEBUG(m_logger, "queryinterface = {}", offsetof(ID3D11DeviceVtbl, QueryInterface));
+    SPDLOG_DEBUG(m_logger, "address of the func = {}", (void*)(((char*)(*m_ppD3D11Device)->lpVtbl) + offsetof(ID3D11DeviceVtbl, QueryInterface)));
 
     ID3D11Device_CreateGeometryShader.Hook((*m_ppD3D11Device)->lpVtbl, CreateGeometryShader_Hook);
     ID3D11Device_CreatePixelShader.Hook((*m_ppD3D11Device)->lpVtbl, CreatePixelShader_Hook);
@@ -558,46 +558,6 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
     });
 
     m_delayedFuncs.erase(newEnd, m_delayedFuncs.end());
-
-    if (false)
-    {
-        //auto v = GetServerSQVM();
-        auto v = nullptr;
-        //std::string code = GetServerCode();
-        std::string code = "";
-        if (code == "printshaders")
-        {
-            for (auto it : shaders)
-            {
-                m_logger->warn("{}", it);
-            }
-            m_logger->warn("num shaders = {}", shaders.size());
-        }
-        else if (code == "compileshaders")
-        {
-            compileShaders();
-        }
-        else if (code == "printtoload")
-        {
-            m_logger->info("Textures:");
-            for (auto t : texturesToLoad)
-            {
-                m_logger->info("\t{}", t);
-            }
-
-            m_logger->info("Materials:");
-            for (auto t : materialsToLoad)
-            {
-                m_logger->info("\t{}", t);
-            }
-
-            m_logger->info("Shaders:");
-            for (auto t : shadersToLoad)
-            {
-                m_logger->info("\t{}", t);
-            }
-        }
-    }
 
     return _Host_RunFrame(absTime, frameTime);
 }

@@ -14,6 +14,7 @@ typedef SQInteger SQRESULT;
 
 typedef struct SQVM* HSQUIRRELVM;
 typedef void(*SQPRINTFUNCTION)(HSQUIRRELVM, const SQChar*, ...);
+typedef SQInteger(*SQFUNCTION)(HSQUIRRELVM);
 
 #pragma pack(push,1)
 struct SQSharedState
@@ -37,12 +38,26 @@ struct R2SquirrelVM
     HSQUIRRELVM sqvm;
 };
 
+struct SQFuncRegistration
+{
+    ExecutionContext context;
+    std::string name;
+    SQFUNCTION func;
+
+    SQFuncRegistration(ExecutionContext context, const std::string& name, SQFUNCTION func)
+        : context(context),
+          name(name),
+          func(func)
+    { }
+};
+
 class SquirrelManager
 {
 private:
     std::shared_ptr<spdlog::logger> m_logger;
     R2SquirrelVM** m_ppClientVM = nullptr;
     R2SquirrelVM** m_ppServerVM = nullptr;
+    std::vector<SQFuncRegistration> m_funcsToRegister;
 
 public:
     SquirrelManager(ConCommandManager& conCommandManager);
@@ -62,4 +77,15 @@ public:
 
     template<ExecutionContext context>
     void ExecuteCode(const char* code);
+
+    template<ExecutionContext context>
+    void RegisterFunction(HSQUIRRELVM v, const SQChar* name, SQFUNCTION func, int64_t unk1);
+
+    void AddFuncRegistration(ExecutionContext context, const std::string& name, SQFUNCTION func);
+
+    template<ExecutionContext context>
+    R2SquirrelVM* CreateNewVMHook(int64_t a1, int a2, float a3);
+
+    template<ExecutionContext context>
+    int64_t RegisterMathlibHook(HSQUIRRELVM a1, int64_t a2, int64_t a3, int64_t a4);
 };

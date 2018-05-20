@@ -60,7 +60,7 @@ void FileSystemManager::CacheMapVPKs()
 // TODO: If the search path has been added and this class is destroyed, should remove the search path
 void FileSystemManager::AddSearchPathHook(IFileSystem* fileSystem, const char* pPath, const char* pathID, SearchPathAdd_t addType)
 {
-    m_logger->trace("IFileSystem::AddSearchPath: path = {}, pathID = {}, addType = {}", pPath, pathID != nullptr ? pathID : "", addType);
+    SPDLOG_TRACE(m_logger, "IFileSystem::AddSearchPath: path = {}, pathID = {}, addType = {}", pPath, pathID != nullptr ? pathID : "", addType);
 
     // Add the path as intended
     IFileSystem_AddSearchPath(fileSystem, pPath, pathID, addType);
@@ -74,12 +74,12 @@ bool FileSystemManager::ReadFromCacheHook(IFileSystem* fileSystem, const char* p
     // If the path is one of our replacements, we will not allow the cache to respond
     if (ShouldReplaceFile(path))
     {
-        m_logger->debug("IFileSystem::ReadFromCache: blocking cache response for {}", path);
+        SPDLOG_DEBUG(m_logger, "IFileSystem::ReadFromCache: blocking cache response for {}", path);
         return false;
     }
 
     bool res = IFileSystem_ReadFromCache(fileSystem, path, result);
-    m_logger->trace("IFileSystem::ReadFromCache: path = {}, res = {}", path, res);
+    SPDLOG_TRACE(m_logger, "IFileSystem::ReadFromCache: path = {}, res = {}", path, res);
  
     return res;
 }
@@ -89,13 +89,13 @@ __int32* FileSystemManager::ReadFileFromVPKHook(VPKInfo* vpkInfo, __int32* b, ch
     // If the path is one of our replacements, we will not allow the read from the VPK to happen
     if (ShouldReplaceFile(filename))
     {
-        m_logger->debug("ReadFileFromVPK: blocking response for {} from {}", filename, vpkInfo->path);
+        SPDLOG_DEBUG(m_logger, "ReadFileFromVPK: blocking response for {} from {}", filename, vpkInfo->path);
         *b = -1;
         return b;
     }
 
     __int32* result = ReadFileFromVPK(vpkInfo, b, filename);
-    m_logger->trace("ReadFileFromVPK: vpk = {}, file = {}, result = {}", vpkInfo->path, filename, *b);
+    SPDLOG_TRACE(m_logger, "ReadFileFromVPK: vpk = {}, file = {}, result = {}", vpkInfo->path, filename, *b);
 
     if (*b != -1)
     {
@@ -114,7 +114,7 @@ __int32* FileSystemManager::ReadFileFromVPKHook(VPKInfo* vpkInfo, __int32* b, ch
 // TODO: If we have mounted other VPKs and we unload the DLL, should we unmount them?
 unsigned int* FileSystemManager::MountVPKHook(IFileSystem* fileSystem, const char* vpkPath)
 {
-    m_logger->debug("IFileSystem::MountVPK: vpkPath = {}", vpkPath);
+    SPDLOG_DEBUG(m_logger, "IFileSystem::MountVPK: vpkPath = {}", vpkPath);
     unsigned int* res = IFileSystem_MountVPK(fileSystem, vpkPath);
 
     // When a level is loaded, the VPK for the map is mounted, so we'll mount every
@@ -124,7 +124,7 @@ unsigned int* FileSystemManager::MountVPKHook(IFileSystem* fileSystem, const cha
     {
         if (otherMapVPK != vpkPath)
         {
-            m_logger->debug("Mounting VPK: {}", otherMapVPK);
+            SPDLOG_DEBUG(m_logger, "Mounting VPK: {}", otherMapVPK);
             unsigned int* injectedRes = IFileSystem_MountVPK(fileSystem, otherMapVPK.c_str());
             if (injectedRes == nullptr)
             {
