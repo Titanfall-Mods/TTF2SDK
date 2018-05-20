@@ -35,21 +35,9 @@ the two requests btw are "ability to load a VPK manually"
 
 #define WRAPPED_MEMBER(name) MemberWrapper<decltype(&TTF2SDK::##name), &TTF2SDK::##name, decltype(&SDK), &SDK>::Call
 
-struct AllocFuncs
-{
-    void* (*allocFunc)(__int64 a1, size_t a2, size_t a3);
-    void(*freeFunc)(__int64 a1, void* a2);
-};
-
 HookedFunc<void, double, float> _Host_RunFrame("engine.dll", "\x48\x8B\xC4\x48\x89\x58\x00\xF3\x0F\x11\x48\x00\xF2\x0F\x11\x40\x00", "xxxxxx?xxxx?xxxx?");
 
 HookedVTableFunc<decltype(&IVEngineServer::VTable::SpewFunc), &IVEngineServer::VTable::SpewFunc> IVEngineServer_SpewFunc;
-
-HookedFunc<__int64, const char*, AllocFuncs*, int> pakFunc3("rtech_game.dll", "\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x00\x48\x8B\xF1\x48\x8D\x0D\x00\x00\x00\x00", "xxxx?xxxx?xxxx?xxxxxx????");
-HookedFunc<__int64, __int64, void*, void*> pakFunc9("rtech_game.dll", "\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x00\x8B\xD9", "xxxx?xxxx?xxxx?xxxx?xx");
-
-HookedFunc<__int64, const char*> pakFunc13("rtech_game.dll", "\x48\x83\xEC\x00\x48\x8D\x15\x00\x00\x00\x00", "xxx?xxx????");
-HookedFunc<__int64, unsigned int, void*> pakFunc6("rtech_game.dll", "\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x00\x48\x8B\xDA\x8B\xF9", "xxxx?xxxx?xxxxx");
 
 SigScanFunc<void> d3d11DeviceFinder("materialsystem_dx11.dll", "\x48\x83\xEC\x00\x33\xC0\x89\x54\x24\x00\x4C\x8B\xC9\x48\x8B\x0D\x00\x00\x00\x00\xC7\x44\x24\x00\x00\x00\x00\x00", "xxx?xxxxx?xxxxxx????xxx?????");
 
@@ -59,13 +47,6 @@ HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateVertexShader), &ID3D11DeviceV
 HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateComputeShader), &ID3D11DeviceVtbl::CreateComputeShader> ID3D11Device_CreateComputeShader;
 
 HookedFunc<bool, char*> LoadPakForLevel("engine.dll", "\x48\x81\xEC\x00\x00\x00\x00\x48\x8D\x54\x24\x00\x41\xB8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8D\x4C\x24\x00", "xxx????xxxx?xx????x????xxxx?");
-
-struct MaterialData2
-{
-    std::string pakFile;
-    std::string shaderName;
-    std::vector<std::string> textures;
-};
 
 std::atomic_bool inLoad = false;
 std::atomic_bool overrideShaders = false;
@@ -338,125 +319,6 @@ __int64 SpewFuncHook(IVEngineServer* engineServer, SpewType_t type, const char* 
     return IVEngineServer_SpewFunc(engineServer, type, format, args);
 }
 
-bool isSpawningExternalMapModel = false;
-std::string currentExternalMapName;
-
-void* g_modelLoader = NULL;
-
-
-std::unordered_set<__int64> loadedPaks;
-std::unordered_set<std::string> texturesToLoad;
-std::unordered_set<std::string> materialsToLoad;
-std::unordered_set<std::string> shadersToLoad;
-std::unordered_set<void*> loadedModels;
-
-std::regex textureFileRegex("^(.+\\d\\d)");
-
-AllocFuncs* savedAllocFuncs = 0;
-
-void unloadPaks();
-
-std::unordered_set<std::string> textureNames;
-std::mutex tn;
-
-void(*origTextureFunc1)(__int64 a1, __int64 a2, __int64 a3, __int64 a4);
-void logTextureFunc1(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
-{
-    const char* name = *(const char**)(a1 + 8);
-    spdlog::get("logger")->warn("texture func 1: {}", name);
-    if (!isSpawningExternalMapModel)
-    {
-        {
-            std::lock_guard<std::mutex> l(tn);
-            textureNames.emplace(name);
-        }
-        origTextureFunc1(a1, a2, a3, a4);
-    }
-    else
-    {
-        const char* name = *(const char**)(a1 + 8);
-        std::string strName(name);
-        // Find the last underscore, and cut everything off after that
-        /*std::size_t found = strName.find_last_of('_');
-        if (found != std::string::npos)
-        {
-        strName = strName.substr(0, found);
-        }*/
-
-        if (texturesToLoad.find(strName) != texturesToLoad.end())
-        {
-            // hey, we need to actually load this!
-            spdlog::get("logger")->warn("textureLoad for {} (converted to {})", name, strName);
-            spdlog::get("logger")->warn("calling original textureload");
-            origTextureFunc1(a1, a2, a3, a4);
-        }
-    }
-}
-
-std::atomic_bool isUnloadingCustomPaks = false;
-
-void doNothingAgain()
-{
-    return;
-}
-
-#pragma pack(push,1)
-struct TexData
-{
-    char unknown[8];
-    const char* name;
-    char unknown2[18];
-    bool someBool;
-    char unknown3[245];
-    ID3D11Texture2D* texture2D;
-    ID3D11ShaderResourceView* SRView;
-};
-#pragma pack(pop)
-
-__int64 doNothing2()
-{
-    return 0;
-}
-
-std::unordered_set<std::string> shaders;
-std::mutex a;
-
-void(*origShaderFunc1)(__int64 a1, __int64 a2);
-void shader_func1(__int64 a1, __int64 a2)
-{
-    const char* name = *(const char**)(a1);
-    int type = *((int*)(a1 + 8));
-
-    {
-        std::lock_guard<std::mutex> l(a);
-        spdlog::get("logger")->warn("shader func 1: {}, type = {}", (name != NULL) ? name : "NULL", type);
-        if (shaders.find(name) == shaders.end()) {
-            spdlog::get("logger")->warn("^^^ NEW SHADER ^^^");
-            shaders.emplace(name);
-            overrideShaders = true;
-        }
-        else
-        {
-            overrideShaders = false;
-        }
-
-        overrideShaders = false;
-        origShaderFunc1(a1, a2);
-        overrideShaders = false;
-    }
-}
-
-std::unordered_map<std::string, MaterialData2> cachedMaterialData;
-
-struct MatFunc1
-{
-    void* data;
-    int size;
-};
-
-std::mutex mat;
-std::vector<CMaterialGlue*> g_materials;
-
 TTF2SDK::TTF2SDK() :
     m_engineServer("engine.dll", "VEngineServer022"),
     m_engineClient("engine.dll", "VEngineClient013")
@@ -476,14 +338,6 @@ TTF2SDK::TTF2SDK() :
     m_pakManager.reset(new PakManager(*m_conCommandManager, m_engineServer, *m_sqManager));
 
     IVEngineServer_SpewFunc.Hook(m_engineServer->m_vtable, SpewFuncHook);
-
-    /*
-    origTextureFunc2 = (decltype(origTextureFunc2))registrations[12].func2;
-    registrations[12].func2 = textureFunc2Hook;
-
-    origTextureFunc3 = (decltype(origTextureFunc3))registrations[12].func3;
-    registrations[12].func3 = textureFunc3Hook;*/
-
 
     _Host_RunFrame.Hook(WRAPPED_MEMBER(RunFrameHook));
 
@@ -559,6 +413,14 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
 
     m_delayedFuncs.erase(newEnd, m_delayedFuncs.end());
 
+    static bool called = false;
+    if (!called)
+    {
+        m_logger->warn("RunFrame called for the first time");
+        m_pakManager->PreloadAllPaks();
+        called = true;
+    }
+   
     return _Host_RunFrame(absTime, frameTime);
 }
 

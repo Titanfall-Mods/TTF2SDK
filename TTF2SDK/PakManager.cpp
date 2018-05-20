@@ -282,7 +282,7 @@ void PakManager::PreloadPak(const char* name)
     m_tempLoadedTextures.clear();
     m_tempLoadedMaterials.clear();
 
-    SPDLOG_DEBUG(m_logger, "Preloading pak: {}", name);
+    m_logger->info("Preloading pak: {}", name);
 
     // Initialise
     int32_t pakRef = PakFunc3(name, &g_SDKAllocFuncs, 3);
@@ -291,6 +291,8 @@ void PakManager::PreloadPak(const char* name)
         m_logger->error("Failed to preload pak {}, PakFunc3 failed", name);
         return;
     }
+
+    SPDLOG_DEBUG(m_logger, "PakFunc3 completed (ref = {})", pakRef);
 
     // Set state to preload
     m_state = PAK_STATE_PRELOAD;
@@ -304,11 +306,15 @@ void PakManager::PreloadPak(const char* name)
         return;
     }
 
+    SPDLOG_DEBUG(m_logger, "PakFunc9 completed (result = {})", result);
+
     // Build data structure with all loaded assets
     ResolveMaterials(name);
 
     // Free pak
+    m_state = PAK_STATE_PRELOAD;
     PakFunc6(pakRef, &doNothing);
+    m_state = PAK_STATE_NONE;
 
     m_logger->info("Finished preloading pak: {}", name);
 }
@@ -368,15 +374,12 @@ void PakManager::PreloadAllPaks()
     WriteCacheToFile("pakcache.dat");
 }
 
-// TODO: Fucked
 void PakManager::ReloadExternalPak(const std::string& pakFile, std::unordered_set<std::string>& newMaterialsToLoad, std::unordered_set<std::string>& newTexturesToLoad, std::unordered_set<std::string>& newShadersToLoad)
 {
     std::vector<std::string> modelsToReload;
     if (IsExternalPakLoaded(pakFile))
     {
         m_logger->info("Need to unload pak {} to load additional assets", pakFile);
-
-        // TODO: Perhaps set the materials on all the loaded models to some kind of error material?
 
         // Unload the actual pak
         PakState origState = m_state;
@@ -472,8 +475,6 @@ bool PakManager::IsExternalPakLoaded(const std::string& pakFile)
     return m_loadedExternalPaks.find(pakFile) != m_loadedExternalPaks.end();
 }
 
-// TODO: ANOTHER PROBLEM HERE. Some materials/textures live in multiple paks. We need to keep track of all the materials/textures
-// loaded for the current level, and not attempt to reload them if the model we're loading requests them.
 void PakManager::UnloadAllPaks()
 {
     PakState origState = m_state;
@@ -483,7 +484,6 @@ void PakManager::UnloadAllPaks()
         PakFunc6(entry.second, &doNothing);
         m_logger->info("Pak {} unloaded", entry.first);
 
-        // TODO: This is almost certainly not the right way to do it
         for (const auto& model : m_loadedExternalModels[entry.first])
         {
             m_logger->info("Unloading model {}", model->szName);
@@ -598,7 +598,7 @@ int64_t PakManager::TextureFunc2Hook(TextureInfo* info)
         }
         return ERROR_SUCCESS;
     }
-    else
+    else if (m_state != PAK_STATE_PRELOAD)
     {
         return m_texFunc2(info);
     }
@@ -629,7 +629,7 @@ void PakManager::TextureFunc3Hook(TextureInfo* dst, TextureInfo* src, void* a3)
             }
         }
     }
-    else
+    else if (m_state != PAK_STATE_PRELOAD)
     {
         m_texFunc3(dst, src, a3);
     }
