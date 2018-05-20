@@ -665,6 +665,12 @@ int64_t PakManager::PakFunc6Hook(int32_t pakRef, void* a2)
         m_logger->info("Engine unloading current map pak, unloading external paks");
         m_mapTextures.clear();
         UnloadAllPaks();
+        for (model_t* model : m_levelModels)
+        {
+            m_logger->info("Unloading level model {}", model->szName);
+            CModelLoader_UnloadModel(m_modelLoader, model);
+        }
+        m_levelModels.clear();
     }
 
     int64_t retVal = PakFunc6(pakRef, a2);
@@ -706,6 +712,12 @@ int64_t PakManager::Studio_LoadModelHook(void* modelLoader, model_t* model)
     SPDLOG_TRACE(m_logger, "Studio_LoadModel: model = {}, name = {}", (void*)model, model->szName);
     int64_t retVal = Studio_LoadModel(modelLoader, model);
     m_savedModelPtr = nullptr;
+
+    if (m_state == PAK_STATE_NONE)
+    {
+        m_levelModels.insert(model);
+    }
+
     return retVal;
 }
 

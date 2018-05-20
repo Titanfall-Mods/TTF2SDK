@@ -238,6 +238,8 @@ private:
 
     std::unordered_map<std::string, CachedMaterialData> m_cachedMaterialData;
 
+    std::unordered_set<model_t*> m_levelModels;
+
     void* m_modelLoader = nullptr;
     void* m_studioRenderContext = nullptr; // TODO: Move this to an engine interface
     std::unordered_map<std::string, std::unordered_set<model_t*>> m_loadedExternalModels; // pak name => { model ptrs }
