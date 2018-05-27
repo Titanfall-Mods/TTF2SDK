@@ -1,5 +1,29 @@
 #pragma once
 
+typedef void* FileHandle_t;
+
+#pragma pack(push,1)
+struct VPKFileEntry
+{
+    char* directory;
+    char* filename;
+    char* extension;
+    unsigned char unknown[0x38];
+};
+#pragma pack(pop)
+
+#pragma pack(push,1)
+struct VPKData
+{
+    unsigned char unknown[5];
+    char path[255];
+    unsigned char unknown2[0x134];
+    int32_t numEntries;
+    unsigned char unknown3[12];
+    VPKFileEntry* entries;
+};
+#pragma pack(pop)
+
 enum SearchPathAdd_t
 {
     PATH_ADD_TO_HEAD,		// First path searched
@@ -23,13 +47,15 @@ public:
         void* unknown2[84];
         bool(*ReadFromCache) (IFileSystem* fileSystem, const char* path, void* result);
         void* unknown3[15];
-        unsigned int*(*MountVPK) (IFileSystem* fileSystem, const char* vpkPath);
+        VPKData* (*MountVPK) (IFileSystem* fileSystem, const char* vpkPath);
     };
 
     struct VTable2
     {
-        void* unknown[14];
-        bool(*ReadFile) (IFileSystem* fileSystem, const char* pFileName, const char* pPath, void* buf, int64_t nMaxBytes, int64_t nStartingByte, void* pfnAlloc);
+        int(*Read) (IFileSystem::VTable2** fileSystem, void* pOutput, int size, FileHandle_t file);
+        void* unknown[1];
+        FileHandle_t(*Open) (IFileSystem::VTable2** fileSystem, const char *pFileName, const char *pOptions, const char *pathID, int64_t unknown);
+        void(*Close) (IFileSystem* fileSystem, FileHandle_t file);
     };
 
     VTable* m_vtable;

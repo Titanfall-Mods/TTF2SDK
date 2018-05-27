@@ -189,16 +189,6 @@ R2SquirrelVM* SquirrelManager::CreateNewVMHook(int64_t a1, int a2, float a3)
 {
     R2SquirrelVM* vm = CreateNewVM.Call<context>(a2, a2, a3);
     SPDLOG_TRACE(m_logger, "CreateNewVM ({}): {}", Util::GetContextName(context), (void*)vm);
-
-    for (const auto& reg : m_funcsToRegister)
-    {
-        if (reg.context == context)
-        {
-            //RegisterFunction<context>(vm->sqvm, reg.name.c_str(), reg.func);
-            //SPDLOG_DEBUG(m_logger, "Registered {} in {} context", reg.name, Util::GetContextName(context));
-        }
-    }
-
     return vm;
 }
 

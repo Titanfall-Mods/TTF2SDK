@@ -118,6 +118,7 @@
     <ClInclude Include="ModuleScan.h" />
     <ClInclude Include="PakManager.h" />
     <ClInclude Include="proto\pak_cache.pb.h" />
+    <ClInclude Include="SDKSettings.h" />
     <ClInclude Include="SigScanning.h" />
     <ClInclude Include="SourceInterface.h" />
     <ClInclude Include="SquirrelManager.h" />

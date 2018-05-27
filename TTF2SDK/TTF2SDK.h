@@ -29,7 +29,7 @@ private:
 public:
     ID3D11Device** m_ppD3D11Device = nullptr;
 
-    TTF2SDK();
+    TTF2SDK(const SDKSettings& settings);
     ~TTF2SDK();
 
     FileSystemManager& GetFSManager();
@@ -48,5 +48,5 @@ public:
 };
 
 TTF2SDK& SDK();
-bool SetupSDK();
+bool SetupSDK(const SDKSettings& settings);
 void FreeSDK();

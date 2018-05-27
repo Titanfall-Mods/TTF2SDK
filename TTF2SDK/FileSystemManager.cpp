@@ -12,13 +12,25 @@ FileSystemManager& FSManager()
 HookedVTableFunc<decltype(&IFileSystem::VTable::AddSearchPath), &IFileSystem::VTable::AddSearchPath> IFileSystem_AddSearchPath;
 HookedVTableFunc<decltype(&IFileSystem::VTable::ReadFromCache), &IFileSystem::VTable::ReadFromCache> IFileSystem_ReadFromCache;
 HookedVTableFunc<decltype(&IFileSystem::VTable::MountVPK), &IFileSystem::VTable::MountVPK> IFileSystem_MountVPK;
-HookedFunc<__int32*, VPKInfo*, __int32*, char*> ReadFileFromVPK("filesystem_stdio.dll", "\x48\x89\x5C\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x49\x8B\xC0\x48\x8B\xDA", "xxxx?xxxx????xxxxxx");
+HookedFunc<FileHandle_t, VPKData*, __int32*, const char*> ReadFileFromVPK("filesystem_stdio.dll", "\x48\x89\x5C\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x49\x8B\xC0\x48\x8B\xDA", "xxxx?xxxx????xxxxxx");
 
 std::regex FileSystemManager::s_mapFromVPKRegex("client_(.+)\\.bsp");
 
-FileSystemManager::FileSystemManager(const std::string& searchPath) :
+void FileSystemManager::TEMP_DumpAll(const CCommand& args)
+{
+    for (const auto& vpk : m_mapVPKs)
+    {
+        FSManager().DumpVPKScripts(vpk);
+    }
+}
+
+FileSystemManager::FileSystemManager(const std::string& basePath, ConCommandManager& conCommandManager) :
     m_engineFileSystem("filesystem_stdio.dll", "VFileSystem017"),
-    m_searchPath(searchPath)
+    m_basePath(basePath),
+    m_compiledPath(basePath + "compiled_assets\\"),
+    m_dumpPath(basePath + "assets_dump\\"),
+    m_modsPath(basePath + "mods\\"),
+    m_devPath(basePath + "development\\")
 {
     m_logger = spdlog::get("logger");
 
@@ -29,6 +41,7 @@ FileSystemManager::FileSystemManager(const std::string& searchPath) :
     IFileSystem_ReadFromCache.Hook(m_engineFileSystem->m_vtable, WRAPPED_MEMBER(ReadFromCacheHook));
     IFileSystem_MountVPK.Hook(m_engineFileSystem->m_vtable, WRAPPED_MEMBER(MountVPKHook));
     ReadFileFromVPK.Hook(WRAPPED_MEMBER(ReadFileFromVPKHook));
+    conCommandManager.RegisterCommand("TEMP_DumpAll", WRAPPED_MEMBER(TEMP_DumpAll), "dump everything", 0);
 }
 
 void FileSystemManager::CacheMapVPKs()
@@ -66,7 +79,7 @@ void FileSystemManager::AddSearchPathHook(IFileSystem* fileSystem, const char* p
     IFileSystem_AddSearchPath(fileSystem, pPath, pathID, addType);
 
     // Add our search path to the head again to make sure we're first
-    IFileSystem_AddSearchPath(fileSystem, m_searchPath.c_str(), "GAME", PATH_ADD_TO_HEAD);
+    IFileSystem_AddSearchPath(fileSystem, m_compiledPath.c_str(), "GAME", PATH_ADD_TO_HEAD);
 }
 
 bool FileSystemManager::ReadFromCacheHook(IFileSystem* fileSystem, const char* path, void* result)
@@ -80,11 +93,11 @@ bool FileSystemManager::ReadFromCacheHook(IFileSystem* fileSystem, const char* p
 
     bool res = IFileSystem_ReadFromCache(fileSystem, path, result);
     SPDLOG_TRACE(m_logger, "IFileSystem::ReadFromCache: path = {}, res = {}", path, res);
- 
+
     return res;
 }
 
-__int32* FileSystemManager::ReadFileFromVPKHook(VPKInfo* vpkInfo, __int32* b, char* filename)
+FileHandle_t FileSystemManager::ReadFileFromVPKHook(VPKData* vpkInfo, __int32* b, const char* filename)
 {
     // If the path is one of our replacements, we will not allow the read from the VPK to happen
     if (ShouldReplaceFile(filename))
@@ -94,7 +107,7 @@ __int32* FileSystemManager::ReadFileFromVPKHook(VPKInfo* vpkInfo, __int32* b, ch
         return b;
     }
 
-    __int32* result = ReadFileFromVPK(vpkInfo, b, filename);
+    FileHandle_t result = ReadFileFromVPK(vpkInfo, b, filename);
     SPDLOG_TRACE(m_logger, "ReadFileFromVPK: vpk = {}, file = {}, result = {}", vpkInfo->path, filename, *b);
 
     if (*b != -1)
@@ -112,10 +125,10 @@ __int32* FileSystemManager::ReadFileFromVPKHook(VPKInfo* vpkInfo, __int32* b, ch
 }
 
 // TODO: If we have mounted other VPKs and we unload the DLL, should we unmount them?
-unsigned int* FileSystemManager::MountVPKHook(IFileSystem* fileSystem, const char* vpkPath)
+VPKData* FileSystemManager::MountVPKHook(IFileSystem* fileSystem, const char* vpkPath)
 {
     SPDLOG_DEBUG(m_logger, "IFileSystem::MountVPK: vpkPath = {}", vpkPath);
-    unsigned int* res = IFileSystem_MountVPK(fileSystem, vpkPath);
+    VPKData* res = IFileSystem_MountVPK(fileSystem, vpkPath);
 
     // When a level is loaded, the VPK for the map is mounted, so we'll mount every
     // other map's VPK at the same time.
@@ -125,7 +138,7 @@ unsigned int* FileSystemManager::MountVPKHook(IFileSystem* fileSystem, const cha
         if (otherMapVPK != vpkPath)
         {
             SPDLOG_DEBUG(m_logger, "Mounting VPK: {}", otherMapVPK);
-            unsigned int* injectedRes = IFileSystem_MountVPK(fileSystem, otherMapVPK.c_str());
+            VPKData* injectedRes = IFileSystem_MountVPK(fileSystem, otherMapVPK.c_str());
             if (injectedRes == nullptr)
             {
                 m_logger->error("Failed to mount VPK: {} (was mounting: {})", otherMapVPK, vpkPath);
@@ -149,6 +162,59 @@ const std::string& FileSystemManager::GetLastMapReadFrom()
 bool FileSystemManager::ShouldReplaceFile(const std::string& path)
 {
     // TODO: See if this is worth optimising by keeping a map in memory of the available files
-    std::ifstream f(m_searchPath + path);
+    std::ifstream f(m_compiledPath + path);
     return f.good();
+}
+
+void FileSystemManager::DumpFile(FileHandle_t handle, const std::string& dir, const std::string& path)
+{
+    if (handle == nullptr)
+    {
+        return;
+    }
+    
+    std::experimental::filesystem::create_directories(m_dumpPath + dir);
+    std::ofstream f(m_dumpPath + path, std::ios::binary);
+    char data[4096];
+
+    int totalBytes = 0;
+    int readBytes = 0;
+    do
+    {
+        readBytes = m_engineFileSystem->m_vtable2->Read(&m_engineFileSystem->m_vtable2, data, std::size(data), handle);
+        f.write(data, readBytes);
+        totalBytes += readBytes;
+    }
+    while (readBytes == std::size(data));
+
+    SPDLOG_TRACE(m_logger, "Wrote {} bytes to {}", totalBytes, path);
+}
+
+void FileSystemManager::DumpVPKScripts(const std::string& vpkPath)
+{
+    SPDLOG_TRACE(m_logger, "Dumping from {}", vpkPath);
+    VPKData* result = IFileSystem_MountVPK(m_engineFileSystem, vpkPath.c_str());
+    if (result == nullptr)
+    {
+        m_logger->error("Failed to dump scripts from {}", vpkPath);
+        return;
+    }
+
+    for (int i = 0; i < result->numEntries; i++)
+    {
+        // Only process files in scripts
+        if (strncmp(result->entries[i].directory, "scripts", 7) != 0)
+        {
+            continue;
+        }
+
+        // TODO: Better error handling here
+        std::string path = fmt::format("{}/{}.{}", result->entries[i].directory, result->entries[i].filename, result->entries[i].extension);
+        Util::FindAndReplaceAll(path, "\\", "/");
+        SPDLOG_TRACE(m_logger, "Dumping {}", path);
+        FileHandle_t handle = m_engineFileSystem->m_vtable2->Open(&m_engineFileSystem->m_vtable2, path.c_str(), "rb", "GAME", 0);
+        SPDLOG_TRACE(m_logger, "Handle = {}", handle);
+        DumpFile(handle, result->entries[i].directory, path);
+        m_engineFileSystem->m_vtable2->Close(m_engineFileSystem, handle);
+    }
 }

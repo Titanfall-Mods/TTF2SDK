@@ -319,7 +319,7 @@ __int64 SpewFuncHook(IVEngineServer* engineServer, SpewType_t type, const char* 
     return IVEngineServer_SpewFunc(engineServer, type, format, args);
 }
 
-TTF2SDK::TTF2SDK() :
+TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     m_engineServer("engine.dll", "VEngineServer022"),
     m_engineClient("engine.dll", "VEngineClient013")
 {
@@ -327,13 +327,16 @@ TTF2SDK::TTF2SDK() :
 
     SigScanFuncRegistry::GetInstance().ResolveAll();
 
+    Util::ThreadSuspender suspender;
+
     if (MH_Initialize() != MH_OK)
     {
         throw std::exception("Failed to initialise MinHook");
     }
 
     m_conCommandManager.reset(new ConCommandManager());
-    m_fsManager.reset(new FileSystemManager("D:\\dev\\ttf2\\searchpath\\"));
+
+    m_fsManager.reset(new FileSystemManager(settings.BasePath, *m_conCommandManager));
     m_sqManager.reset(new SquirrelManager(*m_conCommandManager));
     m_pakManager.reset(new PakManager(*m_conCommandManager, m_engineServer, *m_sqManager));
 
@@ -434,7 +437,7 @@ TTF2SDK::~TTF2SDK()
     MH_Uninitialize();
 }
 
-void SetupLogger(const char* filename)
+void SetupLogger(const std::string& filename)
 {
     // Create sinks to file and console
     std::vector<spdlog::sink_ptr> sinks;
@@ -470,13 +473,14 @@ void SetupLogger(const char* filename)
     spdlog::register_logger(logger);
 }
 
-bool SetupSDK()
+bool SetupSDK(const SDKSettings& settings)
 {
     // Separate try catch because these are required for logging to work
     try
     {
         g_console = std::make_unique<Console>();
-        SetupLogger("TTF2SDK.log");
+        std::string basePath(settings.BasePath);
+        SetupLogger(basePath + "TTF2SDK.log");
     }
     catch (std::exception)
     {
@@ -485,8 +489,7 @@ bool SetupSDK()
 
     try
     {
-        Util::ThreadSuspender suspender;
-        g_SDK = std::make_unique<TTF2SDK>();
+        g_SDK = std::make_unique<TTF2SDK>(settings);
         return true;
     }
     catch (std::exception& ex)

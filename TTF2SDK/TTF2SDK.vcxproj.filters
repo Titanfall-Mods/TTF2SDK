@@ -81,6 +81,9 @@
     <ClInclude Include="IVModelInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SDKSettings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Util.cpp">

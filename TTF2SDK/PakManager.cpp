@@ -602,6 +602,10 @@ int64_t PakManager::TextureFunc2Hook(TextureInfo* info)
     {
         return m_texFunc2(info);
     }
+    else
+    {
+        return ERROR_SUCCESS;
+    }
 }
 
 void PakManager::TextureFunc3Hook(TextureInfo* dst, TextureInfo* src, void* a3)

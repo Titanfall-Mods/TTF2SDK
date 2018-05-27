@@ -39,6 +39,7 @@
 #include <MinHook/MinHook.h>
 #include <sstream>
 #include <DbgHelp.h>
+#include "SDKSettings.h"
 #include "Console.h"
 #include "ModuleScan.h"
 #include "SigScanning.h"
