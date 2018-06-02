@@ -62,15 +62,8 @@ void FileSystemManager::CacheMapVPKs()
 
 void FileSystemManager::EnsurePathsCreated()
 {
-    if (!std::experimental::filesystem::create_directories(m_basePath))
-    {
-        m_logger->error("Failed to create {}, this may cause instability", m_basePath);
-    }
-
-    if (!std::experimental::filesystem::create_directories(m_dumpPath))
-    {
-        m_logger->error("Failed to create {}, this may cause instability", m_dumpPath);
-    }
+    std::experimental::filesystem::create_directories(m_basePath);
+    std::experimental::filesystem::create_directories(m_dumpPath);
 }
 
 // TODO: Do we maybe need to add the search path in a frame hook or will this do?

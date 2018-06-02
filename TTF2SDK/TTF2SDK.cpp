@@ -434,6 +434,7 @@ TTF2SDK::~TTF2SDK()
     m_conCommandManager.reset();
     m_fsManager.reset();
     m_pakManager.reset();
+    m_modManager.reset();
     // TODO: make sure i've done all the managers here
     
     MH_Uninitialize();
