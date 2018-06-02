@@ -4,9 +4,6 @@
 [submodule "thirdparty/imgui"]
 	path = thirdparty/imgui
 	url = https://github.com/ocornut/imgui.git
-[submodule "thirdparty/dtl"]
-	path = thirdparty/dtl
-	url = https://github.com/cubicdaiya/dtl.git
 [submodule "thirdparty/rapidjson"]
 	path = thirdparty/rapidjson
 	url = https://github.com/Tencent/rapidjson.git
