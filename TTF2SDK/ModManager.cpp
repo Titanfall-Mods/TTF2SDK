@@ -2,7 +2,11 @@
 #include <rapidjson/document.h>
 #include <rapidjson/schema.h>
 #include <rapidjson/filereadstream.h>
-#include <dtl/dtl.hpp>
+
+#pragma warning( push )  
+#pragma warning( disable : 4267 )   
+#include "diff_match_patch.h"
+#pragma warning( pop )   
 
 ModManager& ModMan()
 {
@@ -275,6 +279,8 @@ void ModManager::ReloadModsCommand(const CCommand& args)
 
 void ModManager::CompileMods()
 {
+    m_logger->info("Compiling mods...");
+
     FileSystemManager& filesystem = SDK().GetFSManager();
 
     // Clear out current mods
@@ -391,15 +397,24 @@ std::string MergeFile(const std::string& currentData, const std::string& baseDat
     f.seekg(0, std::ios::beg);
 
     fileData.assign((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+    Util::FindAndReplaceAll(fileData, "\r\n", "\n");
 
-    dtl::Diff3<char, std::string> diff3(currentData, baseData, fileData);
-    diff3.compose();
-    if (!diff3.merge())
+    diff_match_patch<std::string> dmp;
+    dmp.Diff_Timeout = 0.0;
+    
+    auto diffs = dmp.diff_main(baseData, fileData, false);
+    auto patches = dmp.patch_make(diffs);
+    auto patchResult = dmp.patch_apply(patches, currentData);
+
+    for (bool success : patchResult.second)
     {
-        throw std::runtime_error("Failed to merge files together");
+        if (!success)
+        {
+            throw std::runtime_error("Failed to apply patch");
+        }
     }
 
-    return std::move(diff3.getMergedSequence());
+    return std::move(patchResult.first);
 }
 
 void ModManager::PatchFile(const std::string& gamePath, const std::vector<fs::path>& patchFiles)
@@ -409,6 +424,7 @@ void ModManager::PatchFile(const std::string& gamePath, const std::vector<fs::pa
 
     // Read the orignial file data
     std::string baseData = SDK().GetFSManager().ReadOriginalFile(gamePath.c_str(), "GAME");
+    Util::FindAndReplaceAll(baseData, "\r\n", "\n");
     std::string currentData(baseData);
 
     // Apply all the patches

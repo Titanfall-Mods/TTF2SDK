@@ -128,6 +128,7 @@
     <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\writer.h" />
     <ClInclude Include="ConCommandManager.h" />
     <ClInclude Include="Console.h" />
+    <ClInclude Include="diff_match_patch.h" />
     <ClInclude Include="FileSystemManager.h" />
     <ClInclude Include="ICvar.h" />
     <ClInclude Include="IVEngineClient.h" />
