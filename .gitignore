@@ -320,3 +320,5 @@ ASALocalRun/
 *.binlog
 
 thirdparty/protobuf_build
+TTF2SDK/proto/*.pb.h
+TTF2SDK/proto/*.pb.cc
