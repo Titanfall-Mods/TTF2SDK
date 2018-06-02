@@ -422,6 +422,14 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
     {
         m_logger->warn("RunFrame called for the first time");
         m_pakManager->PreloadAllPaks();
+        try
+        {
+            m_modManager->CompileMods();
+        }
+        catch (std::exception& e)
+        {
+            m_logger->error("Failed to load mods: {}", e.what());
+        }
         called = true;
     }
    
