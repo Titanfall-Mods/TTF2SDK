@@ -16,32 +16,23 @@ HookedFunc<FileHandle_t, VPKData*, __int32*, const char*> ReadFileFromVPK("files
 
 std::regex FileSystemManager::s_mapFromVPKRegex("client_(.+)\\.bsp");
 
-void FileSystemManager::TEMP_DumpAll(const CCommand& args)
-{
-    for (const auto& vpk : m_mapVPKs)
-    {
-        FSManager().DumpVPKScripts(vpk);
-    }
-}
-
 FileSystemManager::FileSystemManager(const std::string& basePath, ConCommandManager& conCommandManager) :
     m_engineFileSystem("filesystem_stdio.dll", "VFileSystem017"),
     m_basePath(basePath),
     m_compiledPath(basePath + "compiled_assets\\"),
-    m_dumpPath(basePath + "assets_dump\\"),
-    m_modsPath(basePath + "mods\\"),
-    m_devPath(basePath + "development\\")
+    m_dumpPath(basePath + "assets_dump\\")
 {
     m_logger = spdlog::get("logger");
-
+    m_requestingOriginalFile = false;
     CacheMapVPKs();
+    EnsurePathsCreated();
 
     // Hook functions
     IFileSystem_AddSearchPath.Hook(m_engineFileSystem->m_vtable, WRAPPED_MEMBER(AddSearchPathHook));
     IFileSystem_ReadFromCache.Hook(m_engineFileSystem->m_vtable, WRAPPED_MEMBER(ReadFromCacheHook));
     IFileSystem_MountVPK.Hook(m_engineFileSystem->m_vtable, WRAPPED_MEMBER(MountVPKHook));
     ReadFileFromVPK.Hook(WRAPPED_MEMBER(ReadFileFromVPKHook));
-    conCommandManager.RegisterCommand("TEMP_DumpAll", WRAPPED_MEMBER(TEMP_DumpAll), "dump everything", 0);
+    conCommandManager.RegisterCommand("dump_scripts", WRAPPED_MEMBER(DumpAllScripts), "Dump all scripts to development folder", 0);
 }
 
 void FileSystemManager::CacheMapVPKs()
@@ -66,6 +57,19 @@ void FileSystemManager::CacheMapVPKs()
                 m_mapNames.emplace_back(m[1].str());
             }
         }
+    }
+}
+
+void FileSystemManager::EnsurePathsCreated()
+{
+    if (!std::experimental::filesystem::create_directories(m_basePath))
+    {
+        m_logger->error("Failed to create {}, this may cause instability", m_basePath);
+    }
+
+    if (!std::experimental::filesystem::create_directories(m_dumpPath))
+    {
+        m_logger->error("Failed to create {}, this may cause instability", m_dumpPath);
     }
 }
 
@@ -128,24 +132,12 @@ FileHandle_t FileSystemManager::ReadFileFromVPKHook(VPKData* vpkInfo, __int32* b
 VPKData* FileSystemManager::MountVPKHook(IFileSystem* fileSystem, const char* vpkPath)
 {
     SPDLOG_DEBUG(m_logger, "IFileSystem::MountVPK: vpkPath = {}", vpkPath);
-    VPKData* res = IFileSystem_MountVPK(fileSystem, vpkPath);
-
     // When a level is loaded, the VPK for the map is mounted, so we'll mount every
     // other map's VPK at the same time.
     // TODO: This might be better moved to a hook on the function that actually loads up the map?
-    for (const auto& otherMapVPK : m_mapVPKs)
-    {
-        if (otherMapVPK != vpkPath)
-        {
-            SPDLOG_DEBUG(m_logger, "Mounting VPK: {}", otherMapVPK);
-            VPKData* injectedRes = IFileSystem_MountVPK(fileSystem, otherMapVPK.c_str());
-            if (injectedRes == nullptr)
-            {
-                m_logger->error("Failed to mount VPK: {} (was mounting: {})", otherMapVPK, vpkPath);
-            }
-        }
-    }
+    MountAllVPKs();
 
+    VPKData* res = IFileSystem_MountVPK(fileSystem, vpkPath);
     return res;
 }
 
@@ -159,8 +151,61 @@ const std::string& FileSystemManager::GetLastMapReadFrom()
     return m_lastMapReadFrom;
 }
 
+void FileSystemManager::MountAllVPKs()
+{
+    for (const auto& otherMapVPK : m_mapVPKs)
+    {
+        SPDLOG_DEBUG(m_logger, "Mounting VPK: {}", otherMapVPK);
+        VPKData* injectedRes = IFileSystem_MountVPK(m_engineFileSystem, otherMapVPK.c_str());
+        if (injectedRes == nullptr)
+        {
+            m_logger->error("Failed to mount VPK: {}", otherMapVPK);
+        }
+    }
+}
+
+bool FileSystemManager::FileExists(const char * fileName, const char * pathID)
+{
+    m_requestingOriginalFile = true;
+    bool result = m_engineFileSystem->m_vtable2->FileExists(&m_engineFileSystem->m_vtable2, fileName, pathID);
+    m_requestingOriginalFile = false;
+    return result;
+}
+
+std::string FileSystemManager::ReadOriginalFile(const char* path, const char* pathID)
+{
+    std::string normalisedPath(path);
+    Util::FindAndReplaceAll(normalisedPath, "\\", "/");
+
+    m_requestingOriginalFile = true;
+    FileHandle_t handle = m_engineFileSystem->m_vtable2->Open(&m_engineFileSystem->m_vtable2, normalisedPath.c_str(), "rb", "GAME", 0);
+    m_requestingOriginalFile = false;
+
+    if (handle == nullptr)
+    {
+        throw std::runtime_error(fmt::format("Failed to open original file {}", normalisedPath));
+    }
+
+    std::stringstream ss;
+    int readBytes = 0;
+    char data[4096];
+    do
+    {
+        readBytes = m_engineFileSystem->m_vtable2->Read(&m_engineFileSystem->m_vtable2, data, std::size(data), handle);
+        ss.write(data, readBytes);
+    } while (readBytes == std::size(data));
+
+    m_engineFileSystem->m_vtable2->Close(m_engineFileSystem, handle);
+    return ss.str();
+}
+
 bool FileSystemManager::ShouldReplaceFile(const std::string& path)
 {
+    if (m_requestingOriginalFile)
+    {
+        return false;
+    }
+
     // TODO: See if this is worth optimising by keeping a map in memory of the available files
     std::ifstream f(m_compiledPath + path);
     return f.good();
@@ -214,7 +259,15 @@ void FileSystemManager::DumpVPKScripts(const std::string& vpkPath)
         SPDLOG_TRACE(m_logger, "Dumping {}", path);
         FileHandle_t handle = m_engineFileSystem->m_vtable2->Open(&m_engineFileSystem->m_vtable2, path.c_str(), "rb", "GAME", 0);
         SPDLOG_TRACE(m_logger, "Handle = {}", handle);
-        DumpFile(handle, result->entries[i].directory, path);
+        DumpFile(handle, result->entries[i].directory, path); // TODO: Refactor this
         m_engineFileSystem->m_vtable2->Close(m_engineFileSystem, handle);
+    }
+}
+
+void FileSystemManager::DumpAllScripts(const CCommand& args)
+{
+    for (const auto& vpk : m_mapVPKs)
+    {
+        DumpVPKScripts(vpk);
     }
 }

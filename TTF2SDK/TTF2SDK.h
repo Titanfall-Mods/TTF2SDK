@@ -21,6 +21,7 @@ private:
     std::unique_ptr<ConCommandManager> m_conCommandManager;
     std::unique_ptr<SquirrelManager> m_sqManager;
     std::unique_ptr<PakManager> m_pakManager;
+    std::unique_ptr<ModManager> m_modManager;
     std::list<DelayedFunc> m_delayedFuncs; // TODO: Probably not the right data structure
 
     SourceInterface<IVEngineServer> m_engineServer;
@@ -36,6 +37,7 @@ public:
     ConCommandManager& GetConCommandManager();
     SquirrelManager& GetSQManager();
     PakManager& GetPakManager();
+    ModManager& GetModManager();
 
     SourceInterface<IVEngineServer>& GetEngineServer();
     SourceInterface<IVEngineClient>& GetEngineClient();

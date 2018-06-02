@@ -327,8 +327,6 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
 
     SigScanFuncRegistry::GetInstance().ResolveAll();
 
-    Util::ThreadSuspender suspender;
-
     if (MH_Initialize() != MH_OK)
     {
         throw std::exception("Failed to initialise MinHook");
@@ -339,6 +337,7 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     m_fsManager.reset(new FileSystemManager(settings.BasePath, *m_conCommandManager));
     m_sqManager.reset(new SquirrelManager(*m_conCommandManager));
     m_pakManager.reset(new PakManager(*m_conCommandManager, m_engineServer, *m_sqManager));
+    m_modManager.reset(new ModManager(*m_conCommandManager, settings.BasePath)); // TODO: Make settings.BasePath an actual fs path
 
     IVEngineServer_SpewFunc.Hook(m_engineServer->m_vtable, SpewFuncHook);
 
@@ -351,15 +350,11 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
 
     SPDLOG_DEBUG(m_logger, "m_ppD3D11Device = {}", (void*)m_ppD3D11Device);
     SPDLOG_DEBUG(m_logger, "pD3D11Device = {}", (void*)*m_ppD3D11Device);
-    SPDLOG_DEBUG(m_logger, "queryinterface = {}", offsetof(ID3D11DeviceVtbl, QueryInterface));
-    SPDLOG_DEBUG(m_logger, "address of the func = {}", (void*)(((char*)(*m_ppD3D11Device)->lpVtbl) + offsetof(ID3D11DeviceVtbl, QueryInterface)));
 
     ID3D11Device_CreateGeometryShader.Hook((*m_ppD3D11Device)->lpVtbl, CreateGeometryShader_Hook);
     ID3D11Device_CreatePixelShader.Hook((*m_ppD3D11Device)->lpVtbl, CreatePixelShader_Hook);
     ID3D11Device_CreateComputeShader.Hook((*m_ppD3D11Device)->lpVtbl, CreateComputeShader_Hook);
     ID3D11Device_CreateVertexShader.Hook((*m_ppD3D11Device)->lpVtbl, CreateVertexShader_Hook);
-
-    compileShaders();
 }
 
 FileSystemManager& TTF2SDK::GetFSManager()
@@ -375,6 +370,11 @@ SquirrelManager& TTF2SDK::GetSQManager()
 PakManager& TTF2SDK::GetPakManager()
 {
     return *m_pakManager;
+}
+
+ModManager& TTF2SDK::GetModManager()
+{
+    return *m_modManager;
 }
 
 ConCommandManager& TTF2SDK::GetConCommandManager()
@@ -399,6 +399,7 @@ void TTF2SDK::AddDelayedFunc(std::function<void()> func, int frames)
 
 void TTF2SDK::RunFrameHook(double absTime, float frameTime)
 {
+    // TODO: Probably remove the delayed call stuff
     for (auto& delay : m_delayedFuncs)
     {
         delay.FramesTilRun = std::max(delay.FramesTilRun - 1, 0);
@@ -433,6 +434,7 @@ TTF2SDK::~TTF2SDK()
     m_conCommandManager.reset();
     m_fsManager.reset();
     m_pakManager.reset();
+    // TODO: make sure i've done all the managers here
     
     MH_Uninitialize();
 }
@@ -462,7 +464,7 @@ void SetupLogger(const std::string& filename)
 #ifdef _DEBUG
     logger->set_level(spdlog::level::trace);
 #else
-    logger->set_level(spdlog::level::info);
+    logger->set_level(spdlog::level::debug);
 #endif
 
     if (fileError)
@@ -489,6 +491,17 @@ bool SetupSDK(const SDKSettings& settings)
 
     try
     {
+        // TODO: Make this smarter (automatically pull DLL we need to load from somewhere)
+        Util::WaitForModuleHandle("engine.dll");
+        Util::WaitForModuleHandle("client.dll");
+        Util::WaitForModuleHandle("server.dll");
+        Util::WaitForModuleHandle("vstdlib.dll");
+        Util::WaitForModuleHandle("filesystem_stdio.dll");
+        Util::WaitForModuleHandle("rtech_game.dll");
+        Util::WaitForModuleHandle("studiorender.dll");
+        Util::WaitForModuleHandle("materialsystem_dx11.dll");
+
+        Util::ThreadSuspender suspender;
         g_SDK = std::make_unique<TTF2SDK>(settings);
         return true;
     }

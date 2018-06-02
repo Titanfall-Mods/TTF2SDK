@@ -34,14 +34,11 @@ void SigScanFuncRegistry::ResolveAll()
             logger->debug("No ModuleScan found for {}", moduleName);
 
             // Create modulescan
-            // TODO: Make this more efficient, use LdrRegisterDllNotification
-            HMODULE module = NULL;
-            do
+            HMODULE module = GetModuleHandle(Util::Widen(moduleName).c_str());
+            if (module == nullptr)
             {
-                module = GetModuleHandle(Util::Widen(moduleName).c_str());
+                throw std::runtime_error(fmt::format("Failed to get handle for {}", moduleName));
             }
-            while (module == NULL);
-
             logger->debug("Module {} already loaded, creating ModuleScan", moduleName);
             moduleScanners.emplace(moduleName, module);
         }

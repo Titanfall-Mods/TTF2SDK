@@ -49,4 +49,6 @@ namespace Util
     void* ResolveLibraryExport(const std::string& module, const std::string& exportName);
     void FixSlashes(char* pname, char separator);
     std::string ConcatStrings(const std::vector<std::string>& strings, const char* delim);
+    HMODULE WaitForModuleHandle(const std::string& moduleName);
+    std::string ReadFileToString(std::ifstream& f);
 }

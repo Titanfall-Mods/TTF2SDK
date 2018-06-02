@@ -46,7 +46,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <RunCodeAnalysis>true</RunCodeAnalysis>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
     <CustomBuildBeforeTargets>PreBuildEvent</CustomBuildBeforeTargets>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -63,8 +63,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>SPDLOG_DEBUG_ON;SPDLOG_TRACE_ON;_DEBUG;TTF2SDK_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\thirdparty\;..\thirdparty\protobuf\src</AdditionalIncludeDirectories>
-      <EnablePREfast>true</EnablePREfast>
+      <AdditionalIncludeDirectories>..\thirdparty\;..\thirdparty\protobuf\src;..\thirdparty\imgui;..\thirdparty\dtl;..\thirdparty\rapidjson\include</AdditionalIncludeDirectories>
+      <EnablePREfast>false</EnablePREfast>
       <DisableSpecificWarnings>4146</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -86,9 +86,9 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;TTF2SDK_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SPDLOG_DEBUG_ON;NDEBUG;TTF2SDK_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\thirdparty\;..\thirdparty\protobuf\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\thirdparty\;..\thirdparty\protobuf\src;..\thirdparty\imgui;..\thirdparty\dtl;..\thirdparty\rapidjson\include</AdditionalIncludeDirectories>
       <EnablePREfast>true</EnablePREfast>
       <DisableSpecificWarnings>4146</DisableSpecificWarnings>
     </ClCompile>
@@ -106,6 +106,26 @@
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\allocators.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\cursorstreamwrapper.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\document.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\encodedstream.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\encodings.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\filereadstream.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\filewritestream.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\fwd.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\istreamwrapper.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\memorybuffer.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\memorystream.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\ostreamwrapper.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\pointer.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\prettywriter.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\rapidjson.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\reader.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\schema.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\stream.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\stringbuffer.h" />
+    <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\writer.h" />
     <ClInclude Include="ConCommandManager.h" />
     <ClInclude Include="Console.h" />
     <ClInclude Include="FileSystemManager.h" />
@@ -115,6 +135,7 @@
     <ClInclude Include="IFileSystem.h" />
     <ClInclude Include="IVModelInfo.h" />
     <ClInclude Include="Memory.h" />
+    <ClInclude Include="ModManager.h" />
     <ClInclude Include="ModuleScan.h" />
     <ClInclude Include="PakManager.h" />
     <ClInclude Include="proto\pak_cache.pb.h" />
@@ -134,6 +155,7 @@
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="FileSystemManager.cpp" />
     <ClCompile Include="Memory.cpp" />
+    <ClCompile Include="ModManager.cpp" />
     <ClCompile Include="ModuleScan.cpp" />
     <ClCompile Include="PakManager.cpp" />
     <ClCompile Include="proto\pak_cache.pb.cc">

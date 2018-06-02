@@ -29,6 +29,7 @@
 #include <shared_mutex>
 #include <unordered_set>
 #include <filesystem>
+namespace fs = std::experimental::filesystem;
 #include <locale>
 #include <codecvt>
 #include <numeric>
@@ -38,7 +39,6 @@
 #include <mutex>
 #include <MinHook/MinHook.h>
 #include <sstream>
-#include <DbgHelp.h>
 #include "SDKSettings.h"
 #include "Console.h"
 #include "ModuleScan.h"
@@ -54,5 +54,7 @@
 #include "ConCommandManager.h"
 #include "SquirrelManager.h"
 #include "FileSystemManager.h"
+#include "ModManager.h"
 #include "PakManager.h"
 #include "TTF2SDK.h"
+

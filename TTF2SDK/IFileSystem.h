@@ -56,6 +56,8 @@ public:
         void* unknown[1];
         FileHandle_t(*Open) (IFileSystem::VTable2** fileSystem, const char *pFileName, const char *pOptions, const char *pathID, int64_t unknown);
         void(*Close) (IFileSystem* fileSystem, FileHandle_t file);
+        void* unknown2[6];
+        bool(*FileExists)(IFileSystem::VTable2** fileSystem, const char *pFileName, const char *pPathID);
     };
 
     VTable* m_vtable;

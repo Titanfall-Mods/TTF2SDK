@@ -108,7 +108,7 @@ namespace Util
         while (pos != std::string::npos)
         {
             data.replace(pos, search.size(), replace);
-            pos = data.find(search, pos + search.size());
+            pos = data.find(search, pos + replace.size());
         }
     }
 
@@ -146,5 +146,28 @@ namespace Util
         std::ostringstream imploded;
         std::copy(strings.begin(), strings.end(), std::ostream_iterator<std::string>(imploded, delim));
         return imploded.str();
+    }
+
+    HMODULE WaitForModuleHandle(const std::string& moduleName)
+    {
+        HMODULE module = nullptr;
+        do
+        {
+            module = GetModuleHandle(Util::Widen(moduleName).c_str());;
+        }
+        while (module == nullptr);
+        return module;
+    }
+
+    std::string ReadFileToString(std::ifstream& f)
+    {
+        std::string fileData;
+        f.seekg(0, std::ios::end);
+        fileData.reserve(f.tellg());
+        f.seekg(0, std::ios::beg);
+
+        fileData.assign((std::istreambuf_iterator<char>(f)),
+            std::istreambuf_iterator<char>());
+        return fileData;
     }
 }
