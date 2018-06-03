@@ -337,7 +337,7 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     m_fsManager.reset(new FileSystemManager(settings.BasePath, *m_conCommandManager));
     m_sqManager.reset(new SquirrelManager(*m_conCommandManager));
     m_pakManager.reset(new PakManager(*m_conCommandManager, m_engineServer, *m_sqManager));
-    m_modManager.reset(new ModManager(*m_conCommandManager, settings.BasePath)); // TODO: Make settings.BasePath an actual fs path
+    m_modManager.reset(new ModManager(*m_conCommandManager)); // TODO: Make settings.BasePath an actual fs path
 
     IVEngineServer_SpewFunc.Hook(m_engineServer->m_vtable, SpewFuncHook);
 
@@ -422,15 +422,6 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
     {
         m_logger->warn("RunFrame called for the first time");
         m_pakManager->PreloadAllPaks();
-        // TODO: Compiling mods has to happen earlier. Perhaps detect when scripts.rson is getting loaded for the first time and do it then?
-        try
-        {
-            m_modManager->CompileMods();
-        }
-        catch (std::exception& e)
-        {
-            m_logger->error("Failed to load mods: {}", e.what());
-        }
         called = true;
     }
    
@@ -444,7 +435,6 @@ TTF2SDK::~TTF2SDK()
     m_fsManager.reset();
     m_pakManager.reset();
     m_modManager.reset();
-    // TODO: make sure i've done all the managers here
     
     MH_Uninitialize();
 }
@@ -491,8 +481,8 @@ bool SetupSDK(const SDKSettings& settings)
     try
     {
         g_console = std::make_unique<Console>();
-        std::string basePath(settings.BasePath);
-        SetupLogger(basePath + "TTF2SDK.log");
+        fs::path basePath(settings.BasePath);
+        SetupLogger((basePath / "TTF2SDK.log").string());
     }
     catch (std::exception)
     {

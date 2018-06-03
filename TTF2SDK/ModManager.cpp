@@ -271,13 +271,9 @@ Mod::Mod(const fs::path& modFolder)
     }
 }
 
-ModManager::ModManager(ConCommandManager& conCommandManager, const fs::path& basePath)
+ModManager::ModManager(ConCommandManager& conCommandManager)
 {
     m_logger = spdlog::get("logger");
-    m_modsPath = basePath / "mods";
-    m_compilePath = basePath / "compiled_assets";
-
-    fs::create_directories(m_modsPath);
     conCommandManager.RegisterCommand("reload_mods", WRAPPED_MEMBER(ReloadModsCommand), "Reload all mods", 0);
 }
 
@@ -299,6 +295,7 @@ void ModManager::CompileMods()
 
     FileSystemManager& filesystem = SDK().GetFSManager();
     SquirrelManager& sq = SDK().GetSQManager();
+    const fs::path& compilePath = filesystem.GetCompilePath();
 
     // Clear out current mods
     m_mods.clear();
@@ -307,8 +304,8 @@ void ModManager::CompileMods()
     sq.ClearCallbacks();
 
     // Clear out the compiled assets folder
-    fs::remove_all(m_compilePath);
-    fs::create_directories(m_compilePath);
+    fs::remove_all(compilePath);
+    fs::create_directories(compilePath);
 
     // Mount all the VPKs
     filesystem.MountAllVPKs();
@@ -317,7 +314,7 @@ void ModManager::CompileMods()
     std::string scriptsRson = filesystem.ReadOriginalFile("scripts/vscripts/scripts.rson", "GAME");
     std::unordered_map<std::string, std::vector<fs::path>> filesToPatch; // relative path => [ absolute path on disk ]
 
-    for (auto& p : fs::directory_iterator(m_modsPath))
+    for (auto& p : fs::directory_iterator(filesystem.GetModsPath()))
     {
         if (p.status().type() != fs::file_type::directory)
         {
@@ -333,7 +330,7 @@ void ModManager::CompileMods()
             for (auto& customPath : mod.m_customAssets)
             {
                 SPDLOG_TRACE(m_logger, "Copying custom asset {} from {}", customPath, mod.m_folder);
-                fs::path destFolder = (m_compilePath / customPath).remove_filename();
+                fs::path destFolder = (compilePath / customPath).remove_filename();
                 fs::create_directories(destFolder);
                 fs::copy(mod.m_folder / customPath, destFolder);
             }
@@ -345,7 +342,7 @@ void ModManager::CompileMods()
             {
                 std::string customPath = "scripts/vscripts/" + customScript.Path;
                 SPDLOG_TRACE(m_logger, "Copying custom script {} from {}", customPath, mod.m_folder);
-                fs::path destFolder = (m_compilePath / customPath).remove_filename();
+                fs::path destFolder = (compilePath / customPath).remove_filename();
                 fs::create_directories(destFolder);
                 fs::copy(mod.m_folder / customPath, destFolder);
 
@@ -390,7 +387,7 @@ void ModManager::CompileMods()
     }
 
     // Write patched scripts.rson to compiled dir
-    fs::path destFolder = m_compilePath / "scripts/vscripts";
+    fs::path destFolder = compilePath / "scripts/vscripts";
     fs::create_directories(destFolder);
     {
         std::ofstream f(destFolder / "scripts.rson", std::ios::binary);
@@ -449,8 +446,10 @@ std::string MergeFile(const std::string& currentData, const std::string& baseDat
 
 void ModManager::PatchFile(const std::string& gamePath, const std::vector<fs::path>& patchFiles)
 {
+    const fs::path& compilePath = SDK().GetFSManager().GetCompilePath();
+
     // Create directories for file in output
-    fs::create_directories((m_compilePath / gamePath).remove_filename());
+    fs::create_directories((compilePath / gamePath).remove_filename());
 
     // Read the orignial file data
     std::string baseData = SDK().GetFSManager().ReadOriginalFile(gamePath.c_str(), "GAME");
@@ -472,6 +471,6 @@ void ModManager::PatchFile(const std::string& gamePath, const std::vector<fs::pa
     }
 
     // Write the data out
-    std::ofstream f(m_compilePath / gamePath, std::ios::binary);
+    std::ofstream f(compilePath / gamePath, std::ios::binary);
     f << currentData;
 }

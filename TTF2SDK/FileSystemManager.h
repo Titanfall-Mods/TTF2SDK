@@ -7,9 +7,10 @@ private:
 
     std::shared_ptr<spdlog::logger> m_logger;
     SourceInterface<IFileSystem> m_engineFileSystem;
-    std::string m_basePath;
-    std::string m_compiledPath;
-    std::string m_dumpPath;
+    fs::path m_basePath;
+    fs::path m_compiledPath;
+    fs::path m_dumpPath;
+    fs::path m_modsPath;
     std::vector<std::string> m_mapVPKs;
     std::vector<std::string> m_mapNames;
     std::string m_lastMapReadFrom;
@@ -36,4 +37,8 @@ public:
     void DumpVPKScripts(const std::string& vpkPath);
     void DumpFile(FileHandle_t handle, const std::string& dir, const std::string& path);
     void DumpAllScripts(const CCommand& args);
+
+    const fs::path& GetBasePath();
+    const fs::path& GetModsPath();
+    const fs::path& GetCompilePath();
 };

@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "FileSystemManager.h"
 
 namespace fs = std::experimental::filesystem;
 
@@ -17,12 +18,15 @@ HookedFunc<FileHandle_t, VPKData*, __int32*, const char*> ReadFileFromVPK("files
 std::regex FileSystemManager::s_mapFromVPKRegex("client_(.+)\\.bsp");
 
 FileSystemManager::FileSystemManager(const std::string& basePath, ConCommandManager& conCommandManager) :
-    m_engineFileSystem("filesystem_stdio.dll", "VFileSystem017"),
-    m_basePath(basePath),
-    m_compiledPath(basePath + "compiled_assets\\"),
-    m_dumpPath(basePath + "assets_dump\\")
+    m_engineFileSystem("filesystem_stdio.dll", "VFileSystem017")
 {
     m_logger = spdlog::get("logger");
+
+    m_basePath = basePath;
+    m_compiledPath = m_basePath / "compiled_assets";
+    m_dumpPath = m_basePath / "assets_dump";
+    m_modsPath = m_basePath / "mods";
+
     m_requestingOriginalFile = false;
     CacheMapVPKs();
     EnsurePathsCreated();
@@ -62,8 +66,10 @@ void FileSystemManager::CacheMapVPKs()
 
 void FileSystemManager::EnsurePathsCreated()
 {
-    std::experimental::filesystem::create_directories(m_basePath);
-    std::experimental::filesystem::create_directories(m_dumpPath);
+    fs::create_directories(m_basePath);
+    fs::create_directories(m_dumpPath);
+    fs::create_directories(m_compiledPath);
+    fs::create_directories(m_modsPath);
 }
 
 // TODO: Do we maybe need to add the search path in a frame hook or will this do?
@@ -76,7 +82,7 @@ void FileSystemManager::AddSearchPathHook(IFileSystem* fileSystem, const char* p
     IFileSystem_AddSearchPath(fileSystem, pPath, pathID, addType);
 
     // Add our search path to the head again to make sure we're first
-    IFileSystem_AddSearchPath(fileSystem, m_compiledPath.c_str(), "GAME", PATH_ADD_TO_HEAD);
+    IFileSystem_AddSearchPath(fileSystem, m_compiledPath.string().c_str(), "GAME", PATH_ADD_TO_HEAD);
 }
 
 bool FileSystemManager::ReadFromCacheHook(IFileSystem* fileSystem, const char* path, void* result)
@@ -96,6 +102,23 @@ bool FileSystemManager::ReadFromCacheHook(IFileSystem* fileSystem, const char* p
 
 FileHandle_t FileSystemManager::ReadFileFromVPKHook(VPKData* vpkInfo, __int32* b, const char* filename)
 {
+    // We hook the code here to build the mods before scripts.rson is loaded for the first time.
+    // It can't be done in a frame hook because scripts.rson has already been loaded by the time
+    // the first tick happens.
+    static bool scriptsLoadedOnce = false;
+    if (!scriptsLoadedOnce && strcmp(filename, "scripts\\vscripts\\scripts.rson") == 0)
+    {
+        scriptsLoadedOnce = true;
+        try
+        {
+            SDK().GetModManager().CompileMods();
+        }
+        catch (std::exception& e)
+        {
+            m_logger->error("Failed to compile mods: {}", e.what());
+        }
+    }
+
     // If the path is one of our replacements, we will not allow the read from the VPK to happen
     if (ShouldReplaceFile(filename))
     {
@@ -200,7 +223,7 @@ bool FileSystemManager::ShouldReplaceFile(const std::string& path)
     }
 
     // TODO: See if this is worth optimising by keeping a map in memory of the available files
-    std::ifstream f(m_compiledPath + path);
+    std::ifstream f(m_compiledPath / path);
     return f.good();
 }
 
@@ -211,8 +234,8 @@ void FileSystemManager::DumpFile(FileHandle_t handle, const std::string& dir, co
         return;
     }
     
-    std::experimental::filesystem::create_directories(m_dumpPath + dir);
-    std::ofstream f(m_dumpPath + path, std::ios::binary);
+    fs::create_directories(m_dumpPath / dir);
+    std::ofstream f(m_dumpPath / path, std::ios::binary);
     char data[4096];
 
     int totalBytes = 0;
@@ -265,4 +288,19 @@ void FileSystemManager::DumpAllScripts(const CCommand& args)
         DumpVPKScripts(vpk);
     }
     m_logger->info("Script dump complete!");
+}
+
+const fs::path& FileSystemManager::GetBasePath()
+{
+    return m_basePath;
+}
+
+const fs::path& FileSystemManager::GetModsPath()
+{
+    return m_modsPath;
+}
+
+const fs::path& FileSystemManager::GetCompilePath()
+{
+    return m_compiledPath;
 }

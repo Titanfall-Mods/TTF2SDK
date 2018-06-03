@@ -39,7 +39,7 @@ private:
 class ModManager
 {
 public:
-    ModManager(ConCommandManager& conCommandManager, const fs::path& basePath);
+    ModManager(ConCommandManager& conCommandManager);
     void ReloadModsCommand(const CCommand& args);
     void CompileMods();
 
@@ -47,7 +47,5 @@ private:
     void PatchFile(const std::string& gamePath, const std::vector<fs::path>& patchFiles);
 
     std::shared_ptr<spdlog::logger> m_logger;
-    fs::path m_modsPath;
-    fs::path m_compilePath;
     std::list<Mod> m_mods;
 };
