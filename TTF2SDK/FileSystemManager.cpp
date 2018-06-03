@@ -230,7 +230,7 @@ void FileSystemManager::DumpFile(FileHandle_t handle, const std::string& dir, co
 
 void FileSystemManager::DumpVPKScripts(const std::string& vpkPath)
 {
-    SPDLOG_TRACE(m_logger, "Dumping from {}", vpkPath);
+    m_logger->info("Dumping scripts from {}...", vpkPath);
     VPKData* result = IFileSystem_MountVPK(m_engineFileSystem, vpkPath.c_str());
     if (result == nullptr)
     {
@@ -259,8 +259,10 @@ void FileSystemManager::DumpVPKScripts(const std::string& vpkPath)
 
 void FileSystemManager::DumpAllScripts(const CCommand& args)
 {
+    fs::remove_all(m_dumpPath);
     for (const auto& vpk : m_mapVPKs)
     {
         DumpVPKScripts(vpk);
     }
+    m_logger->info("Script dump complete!");
 }
