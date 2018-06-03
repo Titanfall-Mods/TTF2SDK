@@ -58,6 +58,8 @@ private:
     R2SquirrelVM** m_ppClientVM = nullptr;
     R2SquirrelVM** m_ppServerVM = nullptr;
     std::vector<SQFuncRegistration> m_funcsToRegister;
+    std::vector<std::string> m_clientCallbacks;
+    std::vector<std::string> m_serverCallbacks;
 
 public:
     SquirrelManager(ConCommandManager& conCommandManager);
@@ -88,4 +90,11 @@ public:
 
     template<ExecutionContext context>
     int64_t RegisterMathlibHook(HSQUIRRELVM a1, int64_t a2, int64_t a3, int64_t a4);
+
+    int64_t RunClientInitCallbacksHook();
+    int64_t RunServerInitCallbacksHook();
+
+    void AddServerCallback(const std::string& cb);
+    void AddClientCallback(const std::string& cb);
+    void ClearCallbacks();
 };

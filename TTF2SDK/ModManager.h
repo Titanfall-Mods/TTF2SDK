@@ -12,6 +12,8 @@ struct CustomScriptInfo
     std::string Path; // Relative path from scripts/vscripts
     ScriptRunTrigger TriggerType;
     std::string RunTrigger;
+    std::string ServerCallback;
+    std::string ClientCallback;
 };
 
 class Mod

@@ -38,7 +38,9 @@ SharedHookedFunc<int64_t, HSQUIRRELVM, int64_t, int64_t, int64_t> sqstd_register
 SharedHookedFunc<R2SquirrelVM*, int64_t, int, float> CreateNewVM("\x40\x53\x56\x57\x48\x83\xEC\x00\xB9\x00\x00\x00\x00", "xxxxxxx?x????");
 SigScanFunc<void> clientVMFinder("client.dll", "\x44\x8B\xC2\x48\x8B\xD1\x48\x8B\x0D\x00\x00\x00\x00", "xxxxxxxxx????");
 SigScanFunc<void> serverVMFinder("server.dll", "\x48\x89\x5C\x24\x00\x55\x48\x83\xEC\x00\x48\x8B\x05\x00\x00\x00\x00\x48\x8B\xEA", "xxxx?xxxx?xxx????xxx");
-
+HookedFunc<int64_t> RunClientInitCallbacks("client.dll", "\x40\x53\x48\x83\xEC\x00\x48\x8B\x05\x00\x00\x00\x00\x83\x78\x00\x00\x7C\x00", "xxxxx?xxx????xx??x?");
+HookedFunc<int64_t> RunServerInitCallbacks("server.dll", "\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x00\x48\x8B\x0D\x00\x00\x00\x00\xB2\x00", "xxxx?xxxx?xxx????x?");
+SharedSigFunc<bool, R2SquirrelVM*, const char*> RunCallback("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x48\x83\xEC\x60\x48\x8B\x59\x08\x48\x8B\xE9", "xxxxxxxxxxxxxxxxxxxxxxxxxxx");
 
 SquirrelManager::SquirrelManager(ConCommandManager& conCommandManager)
 {
@@ -60,7 +62,8 @@ SquirrelManager::SquirrelManager(ConCommandManager& conCommandManager)
     sqstd_compiler_error.Hook(WRAPPED_MEMBER(CompilerErrorHook<CONTEXT_CLIENT>), WRAPPED_MEMBER(CompilerErrorHook<CONTEXT_SERVER>));
     CreateNewVM.Hook(WRAPPED_MEMBER(CreateNewVMHook<CONTEXT_CLIENT>), WRAPPED_MEMBER(CreateNewVMHook<CONTEXT_SERVER>));
     sqstd_register_mathlib.Hook(WRAPPED_MEMBER(RegisterMathlibHook<CONTEXT_CLIENT>), WRAPPED_MEMBER(RegisterMathlibHook<CONTEXT_SERVER>));
-
+    RunClientInitCallbacks.Hook(WRAPPED_MEMBER(RunClientInitCallbacksHook));
+    RunServerInitCallbacks.Hook(WRAPPED_MEMBER(RunServerInitCallbacksHook));
 
     // Add concommands to run client and server code
     conCommandManager.RegisterCommand("run_server", WRAPPED_MEMBER(RunServerCommand), "Execute Squirrel code in server context", 0);
@@ -141,6 +144,46 @@ void SquirrelManager::RunClientCommand(const CCommand& args)
 void SquirrelManager::AddFuncRegistration(ExecutionContext context, const std::string& name, SQFUNCTION func)
 {
     m_funcsToRegister.emplace_back(context, name, func);
+}
+
+int64_t SquirrelManager::RunClientInitCallbacksHook()
+{
+    int64_t result = RunClientInitCallbacks();
+    SPDLOG_DEBUG(m_logger, "RunClientInitCallbacks called ({})", result);
+    for (const auto& cb : m_clientCallbacks)
+    {
+        SPDLOG_DEBUG(m_logger, "Executing client callback {}", cb);
+        RunCallback.CallClient(*m_ppClientVM, cb.c_str());
+    }
+    return result;
+}
+
+int64_t SquirrelManager::RunServerInitCallbacksHook()
+{
+    int64_t result = RunServerInitCallbacks();
+    SPDLOG_DEBUG(m_logger, "RunServerInitCallbacks called ({})", result);
+    for (const auto& cb : m_serverCallbacks)
+    {
+        SPDLOG_DEBUG(m_logger, "Executing server callback {}", cb);
+        RunCallback.CallServer(*m_ppServerVM, cb.c_str());
+    }
+    return result;
+}
+
+void SquirrelManager::AddServerCallback(const std::string& cb)
+{
+    m_serverCallbacks.push_back(cb);
+}
+
+void SquirrelManager::AddClientCallback(const std::string& cb)
+{
+    m_clientCallbacks.push_back(cb);
+}
+
+void SquirrelManager::ClearCallbacks()
+{
+    m_clientCallbacks.clear();
+    m_serverCallbacks.clear();
 }
 
 template<ExecutionContext context>

@@ -58,6 +58,12 @@ const char* MOD_INFO_SCHEMA = R"END(
                     },
                     "RunAfter": {
                         "type": "string"
+                    },
+                    "ServerCallback": {
+                        "type": "string"
+                    },
+                    "ClientCallback": {
+                        "type": "string"
                     }
                 },
                 "oneOf": [{
@@ -92,8 +98,7 @@ rapidjson::SchemaDocument GetModV1Schema()
 rapidjson::Document GetModDocument(std::ifstream& f)
 {
     static rapidjson::SchemaDocument sd = GetModV1Schema();
-    static rapidjson::SchemaValidator validator(sd);
-
+    rapidjson::SchemaValidator validator(sd);
     std::string jsonData = Util::ReadFileToString(f);
     rapidjson::Document d;
     if (d.Parse(jsonData.c_str(), jsonData.length()).HasParseError())
@@ -160,6 +165,16 @@ void CreateCustomScriptInfo(CustomScriptInfo& script, const fs::path& modFolder,
     {
         throw std::runtime_error(fmt::format("No valid trigger was specified for custom script with path {}", script.Path));
     }
+
+    if (info.HasMember("ServerCallback"))
+    {
+        script.ServerCallback = info["ServerCallback"].GetString();
+    }
+
+    if (info.HasMember("ClientCallback"))
+    {
+        script.ClientCallback = info["ClientCallback"].GetString();
+    }
 }
 
 Mod::Mod(const fs::path& modFolder) 
@@ -201,6 +216,7 @@ Mod::Mod(const fs::path& modFolder)
     m_version = d.HasMember("Version") ? d["Version"].GetString() : "";
 
     // Fill in all of the specified custom scripts
+    // TODO: Check that the user hasn't specified a custom script twice
     std::unordered_set<std::string> customPaths;
     if (d.HasMember("CustomScripts"))
     {
@@ -282,9 +298,13 @@ void ModManager::CompileMods()
     m_logger->info("Compiling mods...");
 
     FileSystemManager& filesystem = SDK().GetFSManager();
+    SquirrelManager& sq = SDK().GetSQManager();
 
     // Clear out current mods
     m_mods.clear();
+
+    // Clear all the callbacks
+    sq.ClearCallbacks();
 
     // Clear out the compiled assets folder
     fs::remove_all(m_compilePath);
@@ -340,6 +360,16 @@ void ModManager::CompileMods()
                 else if (customScript.TriggerType == RUN_WHEN)
                 {
                     newScriptsRson += "\r\nWhen: \"" + customScript.RunTrigger + "\"\r\nScripts:\r\n[\r\n\t" + customScript.Path + "\r\n]\r\n";
+                }
+
+                if (!customScript.ClientCallback.empty())
+                {
+                    sq.AddClientCallback(customScript.ClientCallback);
+                }
+                
+                if (!customScript.ServerCallback.empty())
+                {
+                    sq.AddServerCallback(customScript.ServerCallback);
                 }
             }
 

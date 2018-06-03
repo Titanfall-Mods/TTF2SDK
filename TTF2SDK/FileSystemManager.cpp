@@ -84,7 +84,7 @@ bool FileSystemManager::ReadFromCacheHook(IFileSystem* fileSystem, const char* p
     // If the path is one of our replacements, we will not allow the cache to respond
     if (ShouldReplaceFile(path))
     {
-        SPDLOG_DEBUG(m_logger, "IFileSystem::ReadFromCache: blocking cache response for {}", path);
+        SPDLOG_TRACE(m_logger, "IFileSystem::ReadFromCache: blocking cache response for {}", path);
         return false;
     }
 
@@ -99,7 +99,7 @@ FileHandle_t FileSystemManager::ReadFileFromVPKHook(VPKData* vpkInfo, __int32* b
     // If the path is one of our replacements, we will not allow the read from the VPK to happen
     if (ShouldReplaceFile(filename))
     {
-        SPDLOG_DEBUG(m_logger, "ReadFileFromVPK: blocking response for {} from {}", filename, vpkInfo->path);
+        SPDLOG_TRACE(m_logger, "ReadFileFromVPK: blocking response for {} from {}", filename, vpkInfo->path);
         *b = -1;
         return b;
     }

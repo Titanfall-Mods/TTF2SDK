@@ -422,6 +422,7 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
     {
         m_logger->warn("RunFrame called for the first time");
         m_pakManager->PreloadAllPaks();
+        // TODO: Compiling mods has to happen earlier. Perhaps detect when scripts.rson is getting loaded for the first time and do it then?
         try
         {
             m_modManager->CompileMods();
