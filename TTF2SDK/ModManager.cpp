@@ -101,7 +101,7 @@ rapidjson::Document GetModDocument(std::ifstream& f)
     rapidjson::SchemaValidator validator(sd);
     std::string jsonData = Util::ReadFileToString(f);
     rapidjson::Document d;
-    if (d.Parse(jsonData.c_str(), jsonData.length()).HasParseError())
+    if (d.Parse<rapidjson::kParseCommentsFlag | rapidjson::kParseTrailingCommasFlag>(jsonData.c_str(), jsonData.length()).HasParseError())
     {
         throw std::exception("Failed to parse mod.json - ensure it is a valid JSON file");
     }
