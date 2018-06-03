@@ -178,9 +178,12 @@ public:
     SQInteger EnableExternalSpawnMode(HSQUIRRELVM v);
     SQInteger DisableExternalSpawnMode(HSQUIRRELVM v);
 
+    std::string GetGameBuild();
+
     void AddTextureIfExists(CachedMaterialData& data, const std::string& matName, const char* ext);
     void ResolveMaterials(const std::string& pakName);
     void PreloadPak(const char* name);
+    bool LoadCacheFile();
     void PreloadAllPaks();
     
     void ReloadExternalPak(const std::string& pakFile, std::unordered_set<std::string>& newMaterialsToLoad, std::unordered_set<std::string>& newTexturesToLoad, std::unordered_set<std::string>& newShadersToLoad);

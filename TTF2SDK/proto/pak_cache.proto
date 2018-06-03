@@ -10,5 +10,7 @@ message MaterialData {
 }
 
 message PakCache {
-	repeated MaterialData materials = 1;
+	required int32 cacheVersion = 1;
+	required string gameBuild = 2;
+	repeated MaterialData materials = 3;
 }

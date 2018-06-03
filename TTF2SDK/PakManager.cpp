@@ -1,5 +1,7 @@
 #include "stdafx.h"
 
+const int PAK_CACHE_FILE_VERSION = 1;
+
 PakManager& PakMan()
 {
     return SDK().GetPakManager();
@@ -211,6 +213,18 @@ SQInteger PakManager::DisableExternalSpawnMode(HSQUIRRELVM v)
     return 0;
 }
 
+std::string PakManager::GetGameBuild()
+{
+    std::ifstream buildTxt("build.txt");
+    if (!buildTxt.good())
+    {
+        m_logger->error("Failed to read build.txt from game folder, cannot load pak cache");
+        return false;
+    }
+
+    return Util::ReadFileToString(buildTxt);
+}
+
 void doNothing()
 {
     return;
@@ -319,6 +333,63 @@ void PakManager::PreloadPak(const char* name)
     m_logger->info("Finished preloading pak: {}", name);
 }
 
+bool PakManager::LoadCacheFile()
+{
+    // Check if pak cache exists
+    std::ifstream cacheFile(SDK().GetFSManager().GetBasePath() / "pakcache.dat", std::ios::binary);
+    if (!cacheFile.good())
+    {
+        return false;
+    }
+
+    m_logger->info("Loading pak cache from file...");
+
+    ttf2sdk::PakCache pbCache;
+    if (!pbCache.ParseFromIstream(&cacheFile))
+    {
+        m_logger->error("Failed to load pak cache from file");
+        return false;
+    }
+
+    // Check that the cache is the same as our expected file version
+    if (pbCache.cacheversion() != PAK_CACHE_FILE_VERSION)
+    {
+        m_logger->warn("Pak cache version mismatch (file = {}, current = {})", pbCache.cacheversion(), PAK_CACHE_FILE_VERSION);
+        return false;
+    }
+
+    // Check if the cache's build is the same as the current build
+    // Read the contents of build.txt in the game folder
+    std::string build = GetGameBuild();
+    if (pbCache.gamebuild() != build)
+    {
+        m_logger->warn("Pak cache game build mismatch (file = {}, current = {})", pbCache.gamebuild(), build);
+        return false;
+    }
+
+    for (const auto& mat : pbCache.materials())
+    {
+        CachedMaterialData& data = m_cachedMaterialData[mat.name()];
+        for (const auto& pakFile : mat.pakfiles())
+        {
+            data.pakFiles.emplace_back(pakFile);
+        }
+
+        for (const auto& shaderName : mat.shadernames())
+        {
+            data.shaderNames.emplace_back(shaderName);
+        }
+
+        for (const auto& texture : mat.textures())
+        {
+            data.textures.emplace_back(texture);
+        }
+    }
+
+    m_logger->info("Successfully loaded pak cache from file");
+    return true;
+}
+
 void PakManager::PreloadAllPaks()
 {
     // TODO: This function causes a large amount of memory usage.
@@ -326,52 +397,21 @@ void PakManager::PreloadAllPaks()
     // to allow for the memory to get freed before moving on.
     m_cachedMaterialData.clear();
 
-    // Check if pakcache exists
-    // TODO: Write more data into pakcache so we can invalidate it if the game has changed.
-    // Perhaps the sha sum of each pak file that gets loaded
-    // TODO: Split this into a separate function
-    std::ifstream cacheFile("pakcache.dat", std::ios::in | std::ios::binary);
-    if (cacheFile.good())
+    // Check if pakcache exists and load if so
+    if (LoadCacheFile())
     {
-        m_logger->info("Loading pak cache from file");
-        ttf2sdk::PakCache pbCache;
-        if (!pbCache.ParseFromIstream(&cacheFile))
-        {
-            m_logger->error("Failed to load pak cache from file");
-        }
-        else
-        {
-            for (const auto& mat : pbCache.materials())
-            {
-                CachedMaterialData& data = m_cachedMaterialData[mat.name()];
-                for (const auto& pakFile : mat.pakfiles())
-                {
-                    data.pakFiles.emplace_back(pakFile);
-                }
-
-                for (const auto& shaderName : mat.shadernames())
-                {
-                    data.shaderNames.emplace_back(shaderName);
-                }
-
-                for (const auto& texture : mat.textures())
-                {
-                    data.textures.emplace_back(texture);
-                }
-            }
-            m_logger->info("Successfully loaded pak cache from file");
-            return;
-        }
+        return;
     }
 
-    const auto& mapNames = SDK().GetFSManager().GetMapNames();
+    FileSystemManager& fsManager = SDK().GetFSManager();
+    const auto& mapNames = fsManager.GetMapNames();
     for (const auto& map : mapNames)
     {
         std::string pakName = map + ".rpak";
         PreloadPak(pakName.c_str());
     }
 
-    WriteCacheToFile("pakcache.dat");
+    WriteCacheToFile((fsManager.GetBasePath() / "pakcache.dat").string());
 }
 
 void PakManager::ReloadExternalPak(const std::string& pakFile, std::unordered_set<std::string>& newMaterialsToLoad, std::unordered_set<std::string>& newTexturesToLoad, std::unordered_set<std::string>& newShadersToLoad)
@@ -505,6 +545,9 @@ void PakManager::UnloadAllPaks()
 void PakManager::WriteCacheToFile(const std::string& filename)
 {
     ttf2sdk::PakCache pbCache;
+    pbCache.set_cacheversion(PAK_CACHE_FILE_VERSION);
+    pbCache.set_gamebuild(GetGameBuild());
+
     for (const auto& it : m_cachedMaterialData)
     {
         ttf2sdk::MaterialData* data = pbCache.add_materials();
@@ -526,7 +569,7 @@ void PakManager::WriteCacheToFile(const std::string& filename)
         }
     }
 
-    std::ofstream outFile(filename, std::ios::out | std::ios::binary);
+    std::ofstream outFile(filename, std::ios::binary);
     if (!pbCache.SerializeToOstream(&outFile))
     {
         m_logger->error("Failed to write pak cache to disk");
