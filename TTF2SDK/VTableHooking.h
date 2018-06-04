@@ -11,7 +11,7 @@ public:
         m_ptr = ptr;
         MEMORY_BASIC_INFORMATION mbi;
         VirtualQuery(m_ptr, &mbi, sizeof(mbi));
-        VirtualProtect(mbi.BaseAddress, mbi.RegionSize, PAGE_READWRITE, &mbi.Protect);
+        VirtualProtect(mbi.BaseAddress, mbi.RegionSize, PAGE_EXECUTE_READWRITE, &mbi.Protect);
         m_origProtection = mbi.Protect;
     }
 

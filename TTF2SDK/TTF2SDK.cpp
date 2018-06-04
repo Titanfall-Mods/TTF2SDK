@@ -48,6 +48,9 @@ HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateComputeShader), &ID3D11Device
 
 HookedFunc<bool, char*> LoadPakForLevel("engine.dll", "\x48\x81\xEC\x00\x00\x00\x00\x48\x8D\x54\x24\x00\x41\xB8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8D\x4C\x24\x00", "xxx????xxxx?xx????x????xxxx?");
 
+SigScanFunc<void> mpJumpPatchFinder("engine.dll", "\x75\x00\x44\x8D\x40\x00\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00", "x?xxx?xxx????xxx????x????");
+HookedFunc<int64_t, const char*, const char*, int64_t> engineCompareFunc("engine.dll", "\x4D\x8B\xD0\x4D\x85\xC0", "xxxxxx");
+
 std::atomic_bool inLoad = false;
 std::atomic_bool overrideShaders = false;
 ID3D11GeometryShader* geometryShader = NULL;
@@ -319,6 +322,19 @@ __int64 SpewFuncHook(IVEngineServer* engineServer, SpewType_t type, const char* 
     return IVEngineServer_SpewFunc(engineServer, type, format, args);
 }
 
+int64_t compareFuncHook(const char* first, const char* second, int64_t count)
+{
+    if (strcmp(second, "mp_") == 0 && strncmp(first, "mp_", 3) == 0)
+    {
+        spdlog::get("logger")->warn("Overwriting result of compareFunc for {}", first);
+        return 1;
+    }
+    else
+    {
+        return engineCompareFunc(first, second, count);
+    }
+}
+
 TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     m_engineServer("engine.dll", "VEngineServer022"),
     m_engineClient("engine.dll", "VEngineClient013")
@@ -355,6 +371,16 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     ID3D11Device_CreatePixelShader.Hook((*m_ppD3D11Device)->lpVtbl, CreatePixelShader_Hook);
     ID3D11Device_CreateComputeShader.Hook((*m_ppD3D11Device)->lpVtbl, CreateComputeShader_Hook);
     ID3D11Device_CreateVertexShader.Hook((*m_ppD3D11Device)->lpVtbl, CreateVertexShader_Hook);
+
+    engineCompareFunc.Hook(compareFuncHook);
+
+    // Patch jump for loading mp stuff
+    {
+        void* ptr = mpJumpPatchFinder.GetFuncPtr();
+        m_logger->warn("mpJumpPatchFinder = {}", ptr);
+        TempReadWrite rw(ptr);
+        *(unsigned char*)ptr = 0xEB;
+    }
 }
 
 FileSystemManager& TTF2SDK::GetFSManager()
