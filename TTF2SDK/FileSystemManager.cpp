@@ -270,6 +270,7 @@ void FileSystemManager::DumpVPKScripts(const std::string& vpkPath)
         }
 
         // TODO: Better error handling here
+        m_requestingOriginalFile = true;
         std::string path = fmt::format("{}/{}.{}", result->entries[i].directory, result->entries[i].filename, result->entries[i].extension);
         Util::FindAndReplaceAll(path, "\\", "/");
         SPDLOG_TRACE(m_logger, "Dumping {}", path);
@@ -277,6 +278,7 @@ void FileSystemManager::DumpVPKScripts(const std::string& vpkPath)
         SPDLOG_TRACE(m_logger, "Handle = {}", handle);
         DumpFile(handle, result->entries[i].directory, path); // TODO: Refactor this
         m_engineFileSystem->m_vtable2->Close(m_engineFileSystem, handle);
+        m_requestingOriginalFile = false;
     }
 }
 
