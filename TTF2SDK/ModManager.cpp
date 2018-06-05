@@ -233,6 +233,7 @@ Mod::Mod(const fs::path& modFolder)
 
     // Iterate over all the files in the mod, putting relevant files into patches and customs
     std::string scriptsFolder = (m_folder / "scripts").string();
+    std::string mpLevelsFolder = (m_folder / "scripts/vscripts/mp/levels").string();
     for (auto& dirIter : fs::recursive_directory_iterator(m_folder))
     {
         if (dirIter.status().type() == std::experimental::filesystem::file_type::directory)
@@ -245,7 +246,8 @@ Mod::Mod(const fs::path& modFolder)
         // If the path is inside the scripts folder, need to do some special processing
         std::string pathString = path.string();
         std::string relative = pathString.substr(m_folder.string().size() + 1);
-        if (!pathString.compare(0, scriptsFolder.size(), scriptsFolder))
+        if (!pathString.compare(0, scriptsFolder.size(), scriptsFolder) && 
+            pathString.compare(0, mpLevelsFolder.size(), mpLevelsFolder))
         {
             // If it's already marked as a custom file, move on
             if (customPaths.find(pathString) != customPaths.end())
