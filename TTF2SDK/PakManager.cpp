@@ -46,11 +46,6 @@ const int MAT_REG_INDEX = 4;
 const int TEX_REG_INDEX = 12;
 const int SHADER_REG_INDEX = 13;
 
-void TEMP_preload(const CCommand& args)
-{
-    PakMan().PreloadAllPaks();
-}
-
 PakManager::PakManager(
     ConCommandManager& conCommandManager, 
     SourceInterface<IVEngineServer> engineServer,
@@ -128,8 +123,6 @@ PakManager::PakManager(
     conCommandManager.RegisterCommand("print_external_models", WRAPPED_MEMBER(PrintExternalModels), "Prints all the models loaded from external VPKs", 0);
     conCommandManager.RegisterCommand("print_current_level_pak", WRAPPED_MEMBER(PrintCurrentLevelPak), "Prints current level pak file", 0);
     // TODO: Command to print stuff we want to load
-
-    conCommandManager.RegisterCommand("TEMP_preload", TEMP_preload, "TEMP preload", 0);
 
     squirrelManager.AddFuncRegistration(CONTEXT_SERVER, "EnableExternalSpawnMode", WRAPPED_MEMBER(EnableExternalSpawnMode));
     squirrelManager.AddFuncRegistration(CONTEXT_SERVER, "DisableExternalSpawnMode", WRAPPED_MEMBER(DisableExternalSpawnMode));
