@@ -951,15 +951,5 @@ bool PakManager::LoadMapPakHook(const char* name)
     m_state = PAK_STATE_NONE;
     m_savedPakRef2 = -1;
 
-    // TODO: FIX THIS HACK
-    if (strcmp(name, "mp_black_water_canal") == 0)
-    {
-        m_logger->warn("Loading an SP pak for MP");
-        m_state = PAK_STATE_SPAWN_EXTERNAL;
-        LoadExternalPak("common_sp.rpak");
-        m_state = PAK_STATE_NONE;
-        m_logger->warn("Done loading an SP pak for MP");
-    }
-
     return ret;
 }

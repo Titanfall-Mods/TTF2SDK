@@ -8,30 +8,12 @@ TTF2SDK& SDK()
     return *g_SDK;
 }
 
-/*
-[12:13 AM] Wilko: so for things that are currently in my existing mod
-[12:14 AM] Wilko: i need to be able to load/compile new scripts the same way the game does it (atm I'm automatically adding all my shit to the end of an existing file)
-[12:15 AM] Wilko: overwrite an existing game script as it's loaded in, so I can completely change the way a weapon works
-[12:16 AM] Wilko: and maybe call an initialization function from c++, but I don't know how difficult it would be finding where they're called from
-[12:17 AM] Wilko: and it's less necessary if I can overwrite files since I can overwrite a file to put the init in the script, just adds some limitations
-the two requests btw are "ability to load a VPK manually"
-[12:18 AM] Wilko: so I can load props from other levels, and "override weapon file (not the squirrel one)"
-*/
-
 // TODO: Add a hook for the script error function (not just compile error)
 // TODO: Hook CoreMsgV
 // g_pakLoadApi[9] <--- gets called with the pointer to the pak struct, the qword thing, and a function. i'm guessing the function is a callback for when it's done or progress or something?
 // g_pakLoadApi[6] <--- i reckon it's probably a thing to release it or something
 // g_pakLoadApi[3] <--- return pointer to initialised pak data structure (const char* name, void* allocatorFunctionTable, int someInt)
 // g_pakLoadApi[4] <-- do 3 and 9 in the same step.
-// result = (char *)g_pakLoadApi[4](
-//    Dest,
-//    off_7FFD14F55E20,
-//    7i64,
-//    (__int64)qword_7FFD271A1F00,
-//    (__int64(__fastcall *)())nullsub_41);
-
-// so i need: qword_7FFD271A1F00 and off_7FFD14F55E20
 
 #define WRAPPED_MEMBER(name) MemberWrapper<decltype(&TTF2SDK::##name), &TTF2SDK::##name, decltype(&SDK), &SDK>::Call
 
@@ -50,6 +32,7 @@ HookedFunc<bool, char*> LoadPakForLevel("engine.dll", "\x48\x81\xEC\x00\x00\x00\
 
 SigScanFunc<void> mpJumpPatchFinder("engine.dll", "\x75\x00\x44\x8D\x40\x00\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00", "x?xxx?xxx????xxx????x????");
 HookedFunc<int64_t, const char*, const char*, int64_t> engineCompareFunc("engine.dll", "\x4D\x8B\xD0\x4D\x85\xC0", "xxxxxx");
+SigScanFunc<void> secondMpJumpPatchFinder("engine.dll", "\x0F\x84\x00\x00\x00\x00\x84\xDB\x74\x00\x48\x8B\x0D\x00\x00\x00\x00", "xx????xxx?xxx????");
 
 std::atomic_bool inLoad = false;
 std::atomic_bool overrideShaders = false;
@@ -326,7 +309,7 @@ int64_t compareFuncHook(const char* first, const char* second, int64_t count)
 {
     if (strcmp(second, "mp_") == 0 && strncmp(first, "mp_", 3) == 0)
     {
-        spdlog::get("logger")->warn("Overwriting result of compareFunc for {}", first);
+        SPDLOG_TRACE(spdlog::get("logger"), "Overwriting result of compareFunc for {}", first);
         return 1;
     }
     else
@@ -374,12 +357,20 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
 
     engineCompareFunc.Hook(compareFuncHook);
 
-    // Patch jump for loading mp stuff
+    // Patch jump for loading MP maps in single player
     {
         void* ptr = mpJumpPatchFinder.GetFuncPtr();
-        m_logger->warn("mpJumpPatchFinder = {}", ptr);
+        SPDLOG_DEBUG(m_logger, "mpJumpPatchFinder = {}", ptr);
         TempReadWrite rw(ptr);
         *(unsigned char*)ptr = 0xEB;
+    }
+
+    // Second patch, changing jz to jnz
+    {
+        void* ptr = secondMpJumpPatchFinder.GetFuncPtr();
+        SPDLOG_DEBUG(m_logger, "secondMpJumpPatchFinder = {}", ptr);
+        TempReadWrite rw(ptr);
+        *((unsigned char*)ptr + 1) = 0x85;
     }
 }
 
