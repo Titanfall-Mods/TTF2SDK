@@ -21,6 +21,42 @@ enum CursorCode
     dc_last,
 };
 
+enum SpawnlistTab
+{
+	Props,
+	Entities,
+	Weapons
+};
+
+struct SpawnEntity
+{
+public:
+	SpawnEntity( char * inName, char * inId )
+	{
+		FriendlyName = inName;
+		EntityId = inId;
+	}
+
+	std::string FriendlyName;
+	std::string EntityId;
+};
+
+struct EntityCategory
+{
+public:
+	EntityCategory( char * inTitle, SpawnlistTab inTab, char * inSpawnCode )
+	{
+		Title = inTitle;
+		Tab = inTab;
+		SpawnCode = inSpawnCode;
+	}
+
+	std::string Title;
+	SpawnlistTab Tab;
+	std::string SpawnCode;
+	std::vector<SpawnEntity> Ents;
+};
+
 class UIManager
 {
 public:
@@ -40,6 +76,9 @@ public:
 
     bool IsACursorVisible();
 
+	void DrawToolsGui();
+	void DrawCategoryTab( SpawnlistTab displayTab );
+
     int WindowProcHook(void* game, HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     void SetCursorHook(ISurface* surface, unsigned int cursor);
     void LockCursorHook(ISurface* surface);
@@ -56,4 +95,10 @@ private:
     std::map<std::string, std::function<void()>> m_drawCallbacks;
     SourceInterface<ISurface> m_surface;
     std::atomic_bool m_enableCursor;
+
+	std::vector<std::string> m_Tools;
+	std::vector<EntityCategory> m_EntCategories;
+	SpawnlistTab m_DisplayingTab = SpawnlistTab::Props;
+	bool m_IcepickMenuOpen = false;
+
 };

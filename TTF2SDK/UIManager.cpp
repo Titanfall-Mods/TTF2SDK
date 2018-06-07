@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <regex>
 
 UIManager& UIMan()
 {
@@ -59,6 +60,68 @@ UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqMa
 
     sqManager.AddFuncRegistration(CONTEXT_CLIENT, "ShowCursor", WRAPPED_MEMBER(SQShowCursor));
     sqManager.AddFuncRegistration(CONTEXT_CLIENT, "HideCursor", WRAPPED_MEMBER(SQHideCursor));
+
+	// Add Tools
+	m_Tools.push_back( "Spawner" );
+	m_Tools.push_back( "Remover" );
+	m_Tools.push_back( "Stacker" );
+	m_Tools.push_back( "Nudger" );
+	m_Tools.push_back( "Prop Info" );
+	m_Tools.push_back( "Timeshift Prop" );
+	m_Tools.push_back( "Camera" );
+	m_Tools.push_back( "Zipline" );
+
+	// Add Entities
+	EntityCategory entsHumans = EntityCategory( "Humans", SpawnlistTab::Entities, "Spawnmenu_SpawnGrunt(\"{0}\")" );
+	entsHumans.Ents.push_back( SpawnEntity( "Militia Grunt", "militia" ) );
+	entsHumans.Ents.push_back( SpawnEntity( "IMC Grunt", "imc" ) );
+	entsHumans.Ents.push_back( SpawnEntity( "IMC Spectre", "todo" ) );
+	entsHumans.Ents.push_back( SpawnEntity( "IMC Stalker", "todo" ) );
+	m_EntCategories.push_back( entsHumans );
+
+	EntityCategory entsTitans = EntityCategory( "Titans", SpawnlistTab::Entities, "" );
+	entsTitans.Ents.push_back( SpawnEntity( "BT-7274", "todo" ) );
+	m_EntCategories.push_back( entsTitans );
+
+	// Add Weapons
+	EntityCategory pilotPrimaries = EntityCategory( "Primaries - Pilot", SpawnlistTab::Weapons, "Spawnmenu_GiveWeapon(\"{0}\")" );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "G2A5", "mp_weapon_g2" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "Hemlok BF-R", "mp_weapon_hemlok" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "R-201 Carbine", "mp_weapon_rspn101" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "V-47 Flatline", "mp_weapon_vinson" ) );
+	m_EntCategories.push_back( pilotPrimaries );
+
+	EntityCategory pilotSecondaries = EntityCategory( "Secondaries - Pilot", SpawnlistTab::Weapons, "Spawnmenu_GiveWeapon(\"{0}\")" );
+	pilotSecondaries.Ents.push_back( SpawnEntity( "Hammond P2016", "mp_weapon_semipistol" ) );
+	pilotSecondaries.Ents.push_back( SpawnEntity( "RE-45 Auto", "mp_weapon_autopistol" ) );
+	m_EntCategories.push_back( pilotSecondaries );
+
+	EntityCategory pilotAbilities = EntityCategory( "Pilot Abilities", SpawnlistTab::Weapons, "Spawnmenu_GiveAbility(\"{0}\")" );
+	pilotAbilities.Ents.push_back( SpawnEntity( "Cloak", "mp_ability_cloak" ) );
+	pilotAbilities.Ents.push_back( SpawnEntity( "Grapple", "mp_ability_grapple" ) );
+	pilotAbilities.Ents.push_back( SpawnEntity( "Stim", "mp_ability_heal" ) );
+	pilotAbilities.Ents.push_back( SpawnEntity( "Holopilot", "mp_ability_holopilot" ) );
+	pilotAbilities.Ents.push_back( SpawnEntity( "Phase Shift", "mp_ability_shifter" ) );
+	pilotAbilities.Ents.push_back( SpawnEntity( "Pulse Blade", "mp_weapon_grenade_sonar" ) );
+	pilotAbilities.Ents.push_back( SpawnEntity( "A-Wall", "mp_weapon_deployable_cover" ) );
+	pilotAbilities.Ents.push_back( SpawnEntity( "Timeshift [Effect and Cause]", "mp_ability_timeshift" ) );
+	pilotAbilities.Ents.push_back( SpawnEntity( "Arcblast [Dev]", "mp_ability_arc_blast" ) );
+	pilotAbilities.Ents.push_back( SpawnEntity( "Super Phase Shift [Dev]", "mp_ability_shifter_super" ) );
+	m_EntCategories.push_back( pilotAbilities );
+
+	EntityCategory pilotGrenades = EntityCategory( "Pilot Ordnance", SpawnlistTab::Weapons, "Spawnmenu_GiveGrenade(\"{0}\")" );
+	pilotGrenades.Ents.push_back( SpawnEntity( "Frag Grenade", "mp_weapon_frag_grenade" ) );
+	pilotGrenades.Ents.push_back( SpawnEntity( "Firestar", "mp_weapon_thermite_grenade" ) );
+	pilotGrenades.Ents.push_back( SpawnEntity( "Electric Smoke Grenade", "mp_weapon_grenade_electric_smoke" ) );
+	pilotGrenades.Ents.push_back( SpawnEntity( "Arc Grenade", "mp_weapon_grenade_emp" ) );
+	pilotGrenades.Ents.push_back( SpawnEntity( "Gravity Star", "mp_weapon_grenade_gravity" ) );
+	pilotGrenades.Ents.push_back( SpawnEntity( "Satchel", "mp_weapon_satchel" ) );
+	m_EntCategories.push_back( pilotGrenades );
+
+	EntityCategory pilotMelee = EntityCategory( "Pilot Melee", SpawnlistTab::Weapons, "Spawnmenu_GiveMelee(\"{0}\")" );
+	pilotMelee.Ents.push_back( SpawnEntity( "Standard Melee", "melee_pilot_emptyhanded" ) );
+	pilotMelee.Ents.push_back( SpawnEntity( "Sword Melee", "melee_pilot_sword" ) );
+	m_EntCategories.push_back( pilotMelee );
 }
 
 UIManager::~UIManager()
@@ -161,6 +224,45 @@ bool UIManager::IsACursorVisible()
     return m_enableCursor || m_surface->m_vtable->IsCursorVisible(m_surface);
 }
 
+void UIManager::DrawToolsGui()
+{
+	for( std::string & toolName : m_Tools )
+	{
+		if( ImGui::Button( toolName.c_str() ) )
+		{
+			SDK().GetSQManager().ExecuteServerCode( "print(\"called from server\")" );
+		}
+	}	
+}
+
+void UIManager::DrawCategoryTab( SpawnlistTab displayTab )
+{
+	for( EntityCategory & entCategory : m_EntCategories )
+	{
+		if( entCategory.Tab == displayTab )
+		{
+			if( ImGui::CollapsingHeader( entCategory.Title.c_str() ) )
+			{
+				for ( SpawnEntity & ent : entCategory.Ents )
+				{
+					if( ImGui::Button( ent.FriendlyName.c_str() ) )
+					{
+						std::string ExecuteString = std::string( entCategory.SpawnCode );
+						std::string Replace = "{0}";
+						size_t start_pos = ExecuteString.find( Replace );
+						if( start_pos != std::string::npos )
+						{
+							ExecuteString.replace( start_pos, Replace.length(), ent.EntityId );
+							SDK().GetSQManager().ExecuteServerCode( ExecuteString.c_str() );
+						}
+						
+					}
+				}
+			}
+		}
+	}
+}
+
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 int UIManager::WindowProcHook(void* game, HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -251,13 +353,60 @@ HRESULT UIManager::PresentHook(IDXGISwapChain* SwapChain, UINT SyncInterval, UIN
 {
     ImGui_ImplDX11_NewFrame();
     //DrawGUI();
-
     for (const auto& entry : m_drawCallbacks)
     {
         entry.second();
     }
 
+	if( m_enableCursor )
+	{
+		ImGui::Begin( "Icepick", nullptr, ImGuiWindowFlags_MenuBar );
+		if( ImGui::BeginMenuBar() )
+		{
+			if( ImGui::MenuItem( "Props" ) )
+			{
+				m_DisplayingTab = SpawnlistTab::Props;
+			}
+			if( ImGui::MenuItem( "Entities" ) )
+			{
+				m_DisplayingTab = SpawnlistTab::Entities;
+			}
+			if( ImGui::MenuItem( "Weapons" ) )
+			{
+				m_DisplayingTab = SpawnlistTab::Weapons;
+			}
+			ImGui::EndMenuBar();
+		}
+
+		// left
+		ImGui::BeginChild( "ToolsPane", ImVec2( 150, 0 ), true );
+		DrawToolsGui();
+		ImGui::EndChild();
+		ImGui::SameLine();
+
+		// right
+		ImGui::BeginGroup();
+		ImGui::BeginChild( "SpawnlistPane", ImVec2( 0, 0 ) );
+		switch( m_DisplayingTab )
+		{
+			case SpawnlistTab::Props:
+				ImGui::Text( "to do" );
+			case SpawnlistTab::Entities:
+			case SpawnlistTab::Weapons:
+				DrawCategoryTab( m_DisplayingTab );
+				break;
+			default:
+				DrawGUI();
+				break;
+		}
+		ImGui::EndChild();
+		ImGui::EndGroup();
+
+		ImGui::End();
+	}
+	
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
     return IDXGISwapChain_Present(SwapChain, SyncInterval, Flags);
 }
