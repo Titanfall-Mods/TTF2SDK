@@ -79,6 +79,8 @@ public:
 
     template<ExecutionContext context>
     void ExecuteCode(const char* code);
+    void ExecuteServerCode(const char* code);
+    void ExecuteClientCode(const char* code);
 
     template<ExecutionContext context>
     void RegisterFunction(HSQUIRRELVM v, const SQChar* name, SQFUNCTION func, int64_t unk1);

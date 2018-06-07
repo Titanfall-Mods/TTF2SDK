@@ -22,14 +22,13 @@ private:
     std::unique_ptr<SquirrelManager> m_sqManager;
     std::unique_ptr<PakManager> m_pakManager;
     std::unique_ptr<ModManager> m_modManager;
+    std::unique_ptr<UIManager> m_uiManager;
     std::list<DelayedFunc> m_delayedFuncs; // TODO: Probably not the right data structure
 
     SourceInterface<IVEngineServer> m_engineServer;
     SourceInterface<IVEngineClient> m_engineClient;
 
 public:
-    ID3D11Device** m_ppD3D11Device = nullptr;
-
     TTF2SDK(const SDKSettings& settings);
     ~TTF2SDK();
 
@@ -38,6 +37,7 @@ public:
     SquirrelManager& GetSQManager();
     PakManager& GetPakManager();
     ModManager& GetModManager();
+    UIManager& GetUIManager();
 
     SourceInterface<IVEngineServer>& GetEngineServer();
     SourceInterface<IVEngineClient>& GetEngineClient();

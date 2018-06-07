@@ -17,11 +17,18 @@
 
 #define D3D11_NO_HELPERS
 #define CINTERFACE
+#define INITGUID
 #include <d3d11.h>
+#include <DXGI.h>
+#undef INITGUID
 #undef CINTERFACE
 
 #include <d3dcompiler.h>
 #include "proto/pak_cache.pb.h"
+
+// imgui
+#include <imgui/imgui.h>
+#include <imgui/examples/directx11_example/imgui_impl_dx11.h>
 
 // TODO: clean these up
 #include "Memory.h"
@@ -47,6 +54,7 @@ namespace fs = std::experimental::filesystem;
 #include "SourceInterface.h"
 #include "Util.h"
 #include "IFileSystem.h"
+#include "ISurface.h"
 #include "IVEngineServer.h"
 #include "IVEngineClient.h"
 #include "IVModelInfo.h"
@@ -57,5 +65,6 @@ namespace fs = std::experimental::filesystem;
 #include "FileSystemManager.h"
 #include "ModManager.h"
 #include "PakManager.h"
+#include "UIManager.h"
 #include "TTF2SDK.h"
 

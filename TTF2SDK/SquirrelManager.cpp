@@ -141,6 +141,16 @@ void SquirrelManager::RunClientCommand(const CCommand& args)
     ExecuteCode<CONTEXT_CLIENT>(args.ArgS());
 }
 
+void SquirrelManager::ExecuteServerCode(const char* code)
+{
+    ExecuteCode<CONTEXT_SERVER>(code);
+}
+
+void SquirrelManager::ExecuteClientCode(const char* code)
+{
+    ExecuteCode<CONTEXT_CLIENT>(code);
+}
+
 void SquirrelManager::AddFuncRegistration(ExecutionContext context, const std::string& name, SQFUNCTION func)
 {
     m_funcsToRegister.emplace_back(context, name, func);

@@ -21,8 +21,6 @@ HookedFunc<void, double, float> _Host_RunFrame("engine.dll", "\x48\x8B\xC4\x48\x
 
 HookedVTableFunc<decltype(&IVEngineServer::VTable::SpewFunc), &IVEngineServer::VTable::SpewFunc> IVEngineServer_SpewFunc;
 
-SigScanFunc<void> d3d11DeviceFinder("materialsystem_dx11.dll", "\x48\x83\xEC\x00\x33\xC0\x89\x54\x24\x00\x4C\x8B\xC9\x48\x8B\x0D\x00\x00\x00\x00\xC7\x44\x24\x00\x00\x00\x00\x00", "xxx?xxxxx?xxxxxx????xxx?????");
-
 HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateGeometryShader), &ID3D11DeviceVtbl::CreateGeometryShader> ID3D11Device_CreateGeometryShader;
 HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreatePixelShader), &ID3D11DeviceVtbl::CreatePixelShader> ID3D11Device_CreatePixelShader;
 HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateVertexShader), &ID3D11DeviceVtbl::CreateVertexShader> ID3D11Device_CreateVertexShader;
@@ -199,6 +197,7 @@ void TTF2SDK::compileShaders()
         spdlog::get("logger")->info("Compute shader blob: {}", (void*)computeShaderBlob);
     }
 
+    /*
     ID3D11Device* dev = *m_ppD3D11Device;
 
     geometryShader = NULL;
@@ -276,6 +275,7 @@ void TTF2SDK::compileShaders()
     {
         spdlog::get("logger")->info("Compute shader: {}", (void*)computeShader);
     }
+    */
 }
 
 __int64 SpewFuncHook(IVEngineServer* engineServer, SpewType_t type, const char* format, va_list args)
@@ -336,24 +336,13 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     m_fsManager.reset(new FileSystemManager(settings.BasePath, *m_conCommandManager));
     m_sqManager.reset(new SquirrelManager(*m_conCommandManager));
     m_pakManager.reset(new PakManager(*m_conCommandManager, m_engineServer, *m_sqManager));
-    m_modManager.reset(new ModManager(*m_conCommandManager)); // TODO: Make settings.BasePath an actual fs path
+    m_modManager.reset(new ModManager(*m_conCommandManager));
+    m_uiManager.reset(new UIManager(*m_conCommandManager, *m_sqManager));
 
     IVEngineServer_SpewFunc.Hook(m_engineServer->m_vtable, SpewFuncHook);
 
     _Host_RunFrame.Hook(WRAPPED_MEMBER(RunFrameHook));
 
-    // Get pointer to d3d device
-    char* funcBase = (char*)d3d11DeviceFinder.GetFuncPtr();
-    int offset = *(int*)(funcBase + 16);
-    m_ppD3D11Device = (ID3D11Device**)(funcBase + 20 + offset);
-
-    SPDLOG_DEBUG(m_logger, "m_ppD3D11Device = {}", (void*)m_ppD3D11Device);
-    SPDLOG_DEBUG(m_logger, "pD3D11Device = {}", (void*)*m_ppD3D11Device);
-
-    ID3D11Device_CreateGeometryShader.Hook((*m_ppD3D11Device)->lpVtbl, CreateGeometryShader_Hook);
-    ID3D11Device_CreatePixelShader.Hook((*m_ppD3D11Device)->lpVtbl, CreatePixelShader_Hook);
-    ID3D11Device_CreateComputeShader.Hook((*m_ppD3D11Device)->lpVtbl, CreateComputeShader_Hook);
-    ID3D11Device_CreateVertexShader.Hook((*m_ppD3D11Device)->lpVtbl, CreateVertexShader_Hook);
 
     engineCompareFunc.Hook(compareFuncHook);
 
@@ -397,6 +386,11 @@ ModManager& TTF2SDK::GetModManager()
 ConCommandManager& TTF2SDK::GetConCommandManager()
 {
     return *m_conCommandManager;
+}
+
+UIManager& TTF2SDK::GetUIManager()
+{
+    return *m_uiManager;
 }
 
 SourceInterface<IVEngineServer>& TTF2SDK::GetEngineServer()
@@ -447,11 +441,13 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
 
 TTF2SDK::~TTF2SDK()
 {
+    // TODO: Reorder these
     m_sqManager.reset();
     m_conCommandManager.reset();
     m_fsManager.reset();
     m_pakManager.reset();
     m_modManager.reset();
+    m_uiManager.reset();
     
     MH_Uninitialize();
 }

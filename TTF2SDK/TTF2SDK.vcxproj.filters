@@ -19,6 +19,12 @@
     <Filter Include="Header Files\proto">
       <UniqueIdentifier>{0f893335-9714-4a6d-84d0-8ffae48068b8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\imgui">
+      <UniqueIdentifier>{addc4c0e-f7dc-4b6e-b81e-3767b08a3d99}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\imgui">
+      <UniqueIdentifier>{b9581da3-5dbe-411d-9c15-6c28bce1677e}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Header Files\rapidjson">
       <UniqueIdentifier>{d6f3bc4d-7b5b-4d44-b053-32924a67005c}</UniqueIdentifier>
     </Filter>
@@ -83,6 +89,24 @@
     </ClInclude>
     <ClInclude Include="IVModelInfo.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\imgui\imgui.h">
+      <Filter>Header Files\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\imgui\imgui_internal.h">
+      <Filter>Header Files\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\imgui\stb_rect_pack.h">
+      <Filter>Header Files\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\imgui\stb_textedit.h">
+      <Filter>Header Files\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\imgui\stb_truetype.h">
+      <Filter>Header Files\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\imgui\examples\directx11_example\imgui_impl_dx11.h">
+      <Filter>Header Files\imgui</Filter>
     </ClInclude>
     <ClInclude Include="SDKSettings.h">
       <Filter>Header Files</Filter>
@@ -153,6 +177,12 @@
     <ClInclude Include="diff_match_patch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ISurface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UIManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Util.cpp">
@@ -194,7 +224,19 @@
     <ClCompile Include="proto\pak_cache.pb.cc">
       <Filter>Source Files\proto</Filter>
     </ClCompile>
+    <ClCompile Include="..\thirdparty\imgui\imgui.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\imgui\imgui_draw.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\imgui\examples\directx11_example\imgui_impl_dx11.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
     <ClCompile Include="ModManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UIManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
