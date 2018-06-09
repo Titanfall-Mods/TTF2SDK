@@ -40,6 +40,21 @@ enum ModelsDisplayMode
 	Grid
 };
 
+struct Tool
+{
+public:
+	Tool( char * inId, char * inName, char * inDesc )
+	{
+		Id = inId;
+		FriendlyName = inName;
+		Description = inDesc;
+	}
+
+	std::string Id;
+	std::string FriendlyName;
+	std::string Description;
+};
+
 struct SpawnEntity
 {
 public:
@@ -113,7 +128,8 @@ private:
     SourceInterface<ISurface> m_surface;
     std::atomic_bool m_enableCursor;
 
-	std::vector<std::string> m_Tools;
+	std::vector<Tool> m_Tools;
+
 	std::vector<EntityCategory> m_EntCategories;
 	SpawnlistTab m_DisplayingTab = SpawnlistTab::Props;
 	bool m_IcepickMenuOpen = false;

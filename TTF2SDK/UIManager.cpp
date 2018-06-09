@@ -68,14 +68,14 @@ UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqMa
 	m_ViewingDirectory = &m_ModelsList->BaseDir;
 
 	// Add Tools
-	m_Tools.push_back( "Spawner" );
-	m_Tools.push_back( "Remover" );
-	m_Tools.push_back( "Stacker" );
-	m_Tools.push_back( "Nudger" );
-	m_Tools.push_back( "Prop Info" );
-	m_Tools.push_back( "Timeshift Prop" );
-	m_Tools.push_back( "Camera" );
-	m_Tools.push_back( "Zipline" );
+	m_Tools.push_back( Tool( "spawn_prop", "Spawner", "Spawns props when fired." ) );
+	m_Tools.push_back( Tool( "remove_prop", "Remover", "Removes the prop fired at." ) );
+	m_Tools.push_back( Tool( "stack_prop", "Stacker", "Stacks the same prop on itself in a direction." ) );
+	m_Tools.push_back( Tool( "nudge_prop", "Nudger", "Moves props by small amounts in the opposite direction." ) );
+	m_Tools.push_back( Tool( "prop_info", "Prop Info", "Prints out some debug information on a prop to the console." ) );
+	m_Tools.push_back( Tool( "mirror_prop", "Timeshift Prop", "Spawns an identical prop in the other timeline if playing on Effect and Cause." ) );
+	m_Tools.push_back( Tool( "camera", "Camera", "Spawns a camera which you can look through using the numpad." ) );
+	m_Tools.push_back( Tool( "zipline_spawner", "Zipline", "Allows you to place ziplines in the level." ) );
 
 	// Add Entities
 	EntityCategory entsHumans = EntityCategory( "Humans", SpawnlistTab::Entities, "Spawnmenu_SpawnGrunt(\"{0}\")" );
@@ -361,11 +361,16 @@ void UIManager::DrawDirectoryModels( struct ModelsDirectory * dir )
 
 void UIManager::DrawToolsGui( float ToolsPanelWidth )
 {
-	for( std::string & toolName : m_Tools )
+	for( Tool & tool : m_Tools )
 	{
-		if( ImGui::Button( toolName.c_str(), ImVec2( ToolsPanelWidth - 15, 0 ) ) )
+		if( ImGui::Button( tool.FriendlyName.c_str(), ImVec2( ToolsPanelWidth - 15, 0 ) ) )
 		{
-			SDK().GetSQManager().ExecuteServerCode( "print(\"called from server\")" );
+			std::string SwitchStr = "Spawnmenu_SelectTool(\"" + tool.Id + "\")";
+			SDK().GetSQManager().ExecuteClientCode( SwitchStr.c_str() );
+		}
+		if( ImGui::IsItemHovered() )
+		{
+			ImGui::SetTooltip( tool.Description.c_str() );
 		}
 	}
 }
@@ -405,7 +410,8 @@ void UIManager::DrawCategoryTab( SpawnlistTab displayTab )
 
 void UIManager::DoSpawnModel( std::string & model )
 {
-	m_logger->info( "Spawn: " + model );
+	std::string SpawnStr = "Spawnmenu_SpawnModel(\"" + model + "\")";
+	SDK().GetSQManager().ExecuteClientCode( SpawnStr.c_str() );
 }
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -503,7 +509,7 @@ HRESULT UIManager::PresentHook(IDXGISwapChain* SwapChain, UINT SyncInterval, UIN
         entry.second();
     }
 
-	if( true || m_enableCursor )
+	if( m_enableCursor )
 	{
 		ImGui::Begin( "Icepick", nullptr, ImGuiWindowFlags_MenuBar );
 		{
