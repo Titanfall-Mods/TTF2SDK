@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include <regex>
+#include <algorithm>
 
 UIManager& UIMan()
 {
@@ -84,6 +85,10 @@ UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqMa
 	m_EntCategories.push_back( entsTitans );
 
 	// Add Weapons
+	EntityCategory tools = EntityCategory( "Tools", SpawnlistTab::Weapons, "Spawnmenu_GiveWeapon(\"{0}\")" );
+	tools.Ents.push_back( SpawnEntity( "Toolgun", "mp_weapon_shotgun_pistol" ) );
+	m_EntCategories.push_back( tools );
+
 	EntityCategory pilotPrimaries = EntityCategory( "Primaries - Pilot", SpawnlistTab::Weapons, "Spawnmenu_GiveWeapon(\"{0}\")" );
 	pilotPrimaries.Ents.push_back( SpawnEntity( "G2A5", "mp_weapon_g2" ) );
 	pilotPrimaries.Ents.push_back( SpawnEntity( "Hemlok BF-R", "mp_weapon_hemlok" ) );
@@ -224,28 +229,32 @@ bool UIManager::IsACursorVisible()
     return m_enableCursor || m_surface->m_vtable->IsCursorVisible(m_surface);
 }
 
-void UIManager::DrawToolsGui()
+void UIManager::DrawToolsGui( float ToolsPanelWidth )
 {
 	for( std::string & toolName : m_Tools )
 	{
-		if( ImGui::Button( toolName.c_str() ) )
+		if( ImGui::Button( toolName.c_str(), ImVec2( ToolsPanelWidth - 15, 0 ) ) )
 		{
 			SDK().GetSQManager().ExecuteServerCode( "print(\"called from server\")" );
 		}
-	}	
+	}
 }
 
 void UIManager::DrawCategoryTab( SpawnlistTab displayTab )
 {
+	const float ButtonSize = m_SpawnmenuButtonSize > 0 ? m_SpawnmenuButtonSize : 200.0f;
+	const int NumColumns = (int) (ImGui::GetWindowContentRegionWidth() / ButtonSize);
+
 	for( EntityCategory & entCategory : m_EntCategories )
 	{
 		if( entCategory.Tab == displayTab )
 		{
 			if( ImGui::CollapsingHeader( entCategory.Title.c_str() ) )
 			{
+				ImGui::Columns( NumColumns, nullptr, false );
 				for ( SpawnEntity & ent : entCategory.Ents )
 				{
-					if( ImGui::Button( ent.FriendlyName.c_str() ) )
+					if( ImGui::Button( ent.FriendlyName.c_str(), ImVec2( m_SpawnmenuButtonSize, m_SpawnmenuButtonSize ) ) )
 					{
 						std::string ExecuteString = std::string( entCategory.SpawnCode );
 						std::string Replace = "{0}";
@@ -255,9 +264,10 @@ void UIManager::DrawCategoryTab( SpawnlistTab displayTab )
 							ExecuteString.replace( start_pos, Replace.length(), ent.EntityId );
 							SDK().GetSQManager().ExecuteServerCode( ExecuteString.c_str() );
 						}
-						
 					}
+					ImGui::NextColumn();
 				}
+				ImGui::Columns( 1 );
 			}
 		}
 	}
@@ -361,47 +371,81 @@ HRESULT UIManager::PresentHook(IDXGISwapChain* SwapChain, UINT SyncInterval, UIN
 	if( m_enableCursor )
 	{
 		ImGui::Begin( "Icepick", nullptr, ImGuiWindowFlags_MenuBar );
-		if( ImGui::BeginMenuBar() )
 		{
-			if( ImGui::MenuItem( "Props" ) )
+			if( ImGui::BeginMenuBar() )
 			{
-				m_DisplayingTab = SpawnlistTab::Props;
+				if( ImGui::MenuItem( "Props" ) )
+				{
+					m_DisplayingTab = SpawnlistTab::Props;
+				}
+				if( ImGui::MenuItem( "Entities" ) )
+				{
+					m_DisplayingTab = SpawnlistTab::Entities;
+				}
+				if( ImGui::MenuItem( "Weapons" ) )
+				{
+					m_DisplayingTab = SpawnlistTab::Weapons;
+				}
+				if( ImGui::BeginMenu( "Options" ) )
+				{
+					if( ImGui::BeginMenu( "Icon Size" ) )
+					{
+						for( int size : m_SpawnmenuButtonSizes )
+						{
+							std::string Label = size > 0 ? std::to_string( size ) : "Fitted";
+							if( ImGui::MenuItem( Label.c_str(), nullptr, m_SpawnmenuButtonSize == size ) )
+							{
+								m_SpawnmenuButtonSize = size;
+							}
+						}
+						ImGui::EndMenu();
+					}
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenuBar();
 			}
-			if( ImGui::MenuItem( "Entities" ) )
+
+			const float ToolsWidth = std::min( ImGui::GetWindowContentRegionWidth() * 0.15f, 150.0f );
+			const float OptionsWidth = std::min( ImGui::GetWindowContentRegionWidth() * 0.2f, 200.0f );
+			const float SpawnlistWidth = ImGui::GetWindowContentRegionWidth() - ToolsWidth - OptionsWidth - 15;
+
+			// Spawn Panel
+			ImGui::BeginGroup();
 			{
-				m_DisplayingTab = SpawnlistTab::Entities;
+				ImGui::BeginChild( "SpawnlistPane", ImVec2( SpawnlistWidth, 0 ) );
+				switch( m_DisplayingTab )
+				{
+					case SpawnlistTab::Props:
+						ImGui::Text( "to do" );
+					case SpawnlistTab::Entities:
+					case SpawnlistTab::Weapons:
+						DrawCategoryTab( m_DisplayingTab );
+						break;
+					default:
+						DrawGUI();
+						break;
+				}
+				ImGui::EndChild();
 			}
-			if( ImGui::MenuItem( "Weapons" ) )
+			ImGui::EndGroup();
+			ImGui::SameLine();
+
+			// Tools List
+			ImGui::BeginChild( "ToolsPane", ImVec2( ToolsWidth, 0 ), true );
 			{
-				m_DisplayingTab = SpawnlistTab::Weapons;
+				DrawToolsGui( ToolsWidth );
 			}
-			ImGui::EndMenuBar();
+			ImGui::EndChild();
+			ImGui::SameLine();
+
+			// Tool Options
+			ImGui::BeginChild( "OptionsPane", ImVec2( OptionsWidth, 0 ), true );
+			{
+				ImGui::Text( "Options panel" );
+			}
+			ImGui::EndChild();
+			ImGui::SameLine();
 		}
-
-		// left
-		ImGui::BeginChild( "ToolsPane", ImVec2( 150, 0 ), true );
-		DrawToolsGui();
-		ImGui::EndChild();
-		ImGui::SameLine();
-
-		// right
-		ImGui::BeginGroup();
-		ImGui::BeginChild( "SpawnlistPane", ImVec2( 0, 0 ) );
-		switch( m_DisplayingTab )
-		{
-			case SpawnlistTab::Props:
-				ImGui::Text( "to do" );
-			case SpawnlistTab::Entities:
-			case SpawnlistTab::Weapons:
-				DrawCategoryTab( m_DisplayingTab );
-				break;
-			default:
-				DrawGUI();
-				break;
-		}
-		ImGui::EndChild();
-		ImGui::EndGroup();
-
 		ImGui::End();
 	}
 	

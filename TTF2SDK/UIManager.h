@@ -76,7 +76,7 @@ public:
 
     bool IsACursorVisible();
 
-	void DrawToolsGui();
+	void DrawToolsGui( float ToolsPanelWidth );
 	void DrawCategoryTab( SpawnlistTab displayTab );
 
     int WindowProcHook(void* game, HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -100,5 +100,8 @@ private:
 	std::vector<EntityCategory> m_EntCategories;
 	SpawnlistTab m_DisplayingTab = SpawnlistTab::Props;
 	bool m_IcepickMenuOpen = false;
+
+	int m_SpawnmenuButtonSizes[7] = { 0, 32, 48, 64, 96, 128, 256 };
+	int m_SpawnmenuButtonSize = 96;
 
 };
