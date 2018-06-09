@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include <regex>
 #include <algorithm>
+#include "ModelsList.h"
 
 UIManager& UIMan()
 {
@@ -62,6 +63,10 @@ UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqMa
     sqManager.AddFuncRegistration(CONTEXT_CLIENT, "ShowCursor", WRAPPED_MEMBER(SQShowCursor));
     sqManager.AddFuncRegistration(CONTEXT_CLIENT, "HideCursor", WRAPPED_MEMBER(SQHideCursor));
 
+	// Add models
+	m_ModelsList = new ModelsList();
+	m_ViewingDirectory = &m_ModelsList->BaseDir;
+
 	// Add Tools
 	m_Tools.push_back( "Spawner" );
 	m_Tools.push_back( "Remover" );
@@ -90,15 +95,39 @@ UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqMa
 	m_EntCategories.push_back( tools );
 
 	EntityCategory pilotPrimaries = EntityCategory( "Primaries - Pilot", SpawnlistTab::Weapons, "Spawnmenu_GiveWeapon(\"{0}\")" );
-	pilotPrimaries.Ents.push_back( SpawnEntity( "G2A5", "mp_weapon_g2" ) );
-	pilotPrimaries.Ents.push_back( SpawnEntity( "Hemlok BF-R", "mp_weapon_hemlok" ) );
 	pilotPrimaries.Ents.push_back( SpawnEntity( "R-201 Carbine", "mp_weapon_rspn101" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "R-101 Carbine", "mp_weapon_rspn101_og" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "Hemlok BF-R", "mp_weapon_hemlok" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "G2A5", "mp_weapon_g2" ) );
 	pilotPrimaries.Ents.push_back( SpawnEntity( "V-47 Flatline", "mp_weapon_vinson" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "CAR", "mp_weapon_car" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "Alternator", "mp_weapon_alternator_smg" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "Volt", "mp_weapon_hemlok_smg" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "R-47", "mp_weapon_r97" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "Spitfire", "mp_weapon_lmg" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "L_STAR", "mp_weapon_lstar" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "X-55 Devotion", "mp_weapon_esaw" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "Kraber-AP Sniper", "mp_weapon_sniper" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "D-2 Double Take", "mp_weapon_doubletake" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "Longbow-DMR", "mp_weapon_dmr" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "EVA-8 Auto", "mp_weapon_shotgun" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "Mastiff", "mp_weapon_mastiff" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "Sidewinder SMR", "mp_weapon_smr" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "EPG-1", "mp_weapon_epg" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "R-6P Softball", "mp_weapon_softball" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "EM-4 Cold War", "mp_weapon_pulse_lmg" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "Wingman Elite", "mp_weapon_wingman_n" ) );
+	pilotPrimaries.Ents.push_back( SpawnEntity( "SA-3 Mozambique", "mp_weapon_shotgun_pistol" ) );
 	m_EntCategories.push_back( pilotPrimaries );
 
 	EntityCategory pilotSecondaries = EntityCategory( "Secondaries - Pilot", SpawnlistTab::Weapons, "Spawnmenu_GiveWeapon(\"{0}\")" );
 	pilotSecondaries.Ents.push_back( SpawnEntity( "Hammond P2016", "mp_weapon_semipistol" ) );
 	pilotSecondaries.Ents.push_back( SpawnEntity( "RE-45 Auto", "mp_weapon_autopistol" ) );
+	pilotSecondaries.Ents.push_back( SpawnEntity( "B3 Wingman", "mp_weapon_wingman" ) );
+	pilotSecondaries.Ents.push_back( SpawnEntity( "Charge Rifle", "mp_weapon_defender" ) );
+	pilotSecondaries.Ents.push_back( SpawnEntity( "MGL Mag Launcher", "mp_weapon_mgl" ) );
+	pilotSecondaries.Ents.push_back( SpawnEntity( "LG-97 Thunderbolt", "mp_weapon_arc_launcher" ) );
+	pilotSecondaries.Ents.push_back( SpawnEntity( "Archer", "mp_weapon_rocket_launcher" ) );
 	m_EntCategories.push_back( pilotSecondaries );
 
 	EntityCategory pilotAbilities = EntityCategory( "Pilot Abilities", SpawnlistTab::Weapons, "Spawnmenu_GiveAbility(\"{0}\")" );
@@ -229,6 +258,107 @@ bool UIManager::IsACursorVisible()
     return m_enableCursor || m_surface->m_vtable->IsCursorVisible(m_surface);
 }
 
+void UIManager::DrawPropsGui()
+{
+	float ButtonSize = m_SpawnmenuButtonSize > 0 ? m_SpawnmenuButtonSize : 200.0f;
+	int NumColumns = (int) (ImGui::GetWindowContentRegionWidth() / ButtonSize);
+	if( m_ModelsDisplayMode == ModelsDisplayMode::List )
+	{
+		NumColumns = 1;
+		ButtonSize = 0;
+	}
+
+	switch( m_SpawnlistDisplayMode )
+	{
+		default:
+		case Tree:
+			if( ImGui::TreeNode( "models/" ) )
+			{
+				DrawModelsDirectory( &m_ModelsList->BaseDir );
+				ImGui::TreePop();
+			}
+			break;
+		case Browser:
+			ImGui::Columns( NumColumns, nullptr, false );
+			ImGui::PushStyleColor( ImGuiCol_Button, (ImVec4) ImColor::HSV( 0.0f, 0.6f, 0.6f ) );
+			ImGui::PushStyleColor( ImGuiCol_ButtonHovered, (ImVec4) ImColor::HSV( 0.0f, 0.7f, 0.7f ) );
+			ImGui::PushStyleColor( ImGuiCol_ButtonActive, (ImVec4) ImColor::HSV( 0.0f, 0.8f, 0.8f ) );
+			if( ImGui::Button( "Root", ImVec2( ButtonSize, ButtonSize ) ) )
+			{
+				m_ViewingDirectory = &m_ModelsList->BaseDir;
+			}
+			ImGui::PopStyleColor( 3 );
+			ImGui::NextColumn();
+
+			if( m_ViewingDirectory )
+			{
+				for( std::pair<const std::string, ModelsDirectory> & Directories : m_ViewingDirectory->SubDirectories )
+				{
+					ModelsDirectory & subDir = Directories.second;
+
+					// Color directory buttons differently
+					ImGui::PushStyleColor( ImGuiCol_Button, (ImVec4) ImColor::HSV( 0.3f, 0.6f, 0.3f ) );
+					ImGui::PushStyleColor( ImGuiCol_ButtonHovered, (ImVec4) ImColor::HSV( 0.3f, 0.7f, 0.4f ) );
+					ImGui::PushStyleColor( ImGuiCol_ButtonActive, (ImVec4) ImColor::HSV( 0.3f, 0.8f, 0.4f ) );
+
+					if( ImGui::Button( subDir.Path.c_str(), ImVec2( ButtonSize, ButtonSize ) ) )
+					{
+						m_ViewingDirectory = &subDir;
+					}
+					ImGui::PopStyleColor( 3 );
+					ImGui::NextColumn();
+				}
+				DrawDirectoryModels( m_ViewingDirectory );
+			}
+			break;
+	}
+}
+
+void UIManager::DrawModelsDirectory( ModelsDirectory * dir )
+{
+	for( std::pair<const std::string, ModelsDirectory> & Directories : dir->SubDirectories )
+	{
+		ModelsDirectory & subDir = Directories.second;
+		if( ImGui::TreeNode( subDir.Path.c_str() ) )
+		{
+			DrawModelsDirectory( &subDir );
+			DrawDirectoryModels( &subDir );
+			ImGui::TreePop();
+		}
+	}
+}
+
+void UIManager::DrawDirectoryModels( struct ModelsDirectory * dir )
+{
+	switch( m_ModelsDisplayMode )
+	{
+		default:
+		case List:
+			for( int i = 0; i < dir->ModelNames.size(); ++i )
+			{
+				if( ImGui::Button( dir->ModelNames[i].c_str() ) )
+				{
+					DoSpawnModel( dir->Models[i] );
+				}
+			}
+			break;
+		case Grid:
+			const float ButtonSize = m_SpawnmenuButtonSize > 0 ? m_SpawnmenuButtonSize : 200.0f;
+			const int NumColumns = (int) (ImGui::GetWindowContentRegionWidth() / ButtonSize);
+			ImGui::Columns( NumColumns, nullptr, false );
+			for( int i = 0; i < dir->ModelNames.size(); ++i )
+			{
+				if( ImGui::Button( dir->ModelNames[i].c_str(), ImVec2( m_SpawnmenuButtonSize, m_SpawnmenuButtonSize ) ) )
+				{
+					DoSpawnModel( dir->Models[i] );
+				}
+				ImGui::NextColumn();
+			}
+			ImGui::Columns( 1 );
+			break;
+	}
+}
+
 void UIManager::DrawToolsGui( float ToolsPanelWidth )
 {
 	for( std::string & toolName : m_Tools )
@@ -271,6 +401,11 @@ void UIManager::DrawCategoryTab( SpawnlistTab displayTab )
 			}
 		}
 	}
+}
+
+void UIManager::DoSpawnModel( std::string & model )
+{
+	m_logger->info( "Spawn: " + model );
 }
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -368,7 +503,7 @@ HRESULT UIManager::PresentHook(IDXGISwapChain* SwapChain, UINT SyncInterval, UIN
         entry.second();
     }
 
-	if( m_enableCursor )
+	if( true || m_enableCursor )
 	{
 		ImGui::Begin( "Icepick", nullptr, ImGuiWindowFlags_MenuBar );
 		{
@@ -388,6 +523,27 @@ HRESULT UIManager::PresentHook(IDXGISwapChain* SwapChain, UINT SyncInterval, UIN
 				}
 				if( ImGui::BeginMenu( "Options" ) )
 				{
+					if( ImGui::BeginMenu( "Spawnlist" ) )
+					{
+						if( ImGui::MenuItem( "Tree Style", nullptr, m_SpawnlistDisplayMode == SpawnlistDisplayMode::Tree ) )
+						{
+							m_SpawnlistDisplayMode = SpawnlistDisplayMode::Tree;
+						}
+						if( ImGui::MenuItem( "Browser Style", nullptr, m_SpawnlistDisplayMode == SpawnlistDisplayMode::Browser ) )
+						{
+							m_SpawnlistDisplayMode = SpawnlistDisplayMode::Browser;
+						}
+						ImGui::Separator();
+						if( ImGui::MenuItem( "Grid", nullptr, m_ModelsDisplayMode == ModelsDisplayMode::Grid ) )
+						{
+							m_ModelsDisplayMode = ModelsDisplayMode::Grid;
+						}
+						if( ImGui::MenuItem( "List", nullptr, m_ModelsDisplayMode == ModelsDisplayMode::List ) )
+						{
+							m_ModelsDisplayMode = ModelsDisplayMode::List;
+						}
+						ImGui::EndMenu();
+					}
 					if( ImGui::BeginMenu( "Icon Size" ) )
 					{
 						for( int size : m_SpawnmenuButtonSizes )
@@ -416,7 +572,7 @@ HRESULT UIManager::PresentHook(IDXGISwapChain* SwapChain, UINT SyncInterval, UIN
 				switch( m_DisplayingTab )
 				{
 					case SpawnlistTab::Props:
-						ImGui::Text( "to do" );
+						DrawPropsGui();
 					case SpawnlistTab::Entities:
 					case SpawnlistTab::Weapons:
 						DrawCategoryTab( m_DisplayingTab );

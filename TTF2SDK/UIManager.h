@@ -28,6 +28,18 @@ enum SpawnlistTab
 	Weapons
 };
 
+enum SpawnlistDisplayMode
+{
+	Tree,
+	Browser
+};
+
+enum ModelsDisplayMode
+{
+	List,
+	Grid
+};
+
 struct SpawnEntity
 {
 public:
@@ -76,8 +88,13 @@ public:
 
     bool IsACursorVisible();
 
+	void DrawPropsGui();
+	void DrawModelsDirectory( struct ModelsDirectory * dir );
+	void DrawDirectoryModels( struct ModelsDirectory * dir );
 	void DrawToolsGui( float ToolsPanelWidth );
 	void DrawCategoryTab( SpawnlistTab displayTab );
+
+	void DoSpawnModel( std::string & model );
 
     int WindowProcHook(void* game, HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     void SetCursorHook(ISurface* surface, unsigned int cursor);
@@ -103,5 +120,10 @@ private:
 
 	int m_SpawnmenuButtonSizes[7] = { 0, 32, 48, 64, 96, 128, 256 };
 	int m_SpawnmenuButtonSize = 96;
+
+	class ModelsList * m_ModelsList = nullptr;
+	struct ModelsDirectory * m_ViewingDirectory = nullptr;
+	SpawnlistDisplayMode m_SpawnlistDisplayMode = SpawnlistDisplayMode::Tree;
+	ModelsDisplayMode m_ModelsDisplayMode = ModelsDisplayMode::List;
 
 };

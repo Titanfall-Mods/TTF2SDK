@@ -144,6 +144,7 @@
     <ClInclude Include="IFileSystem.h" />
     <ClInclude Include="IVModelInfo.h" />
     <ClInclude Include="Memory.h" />
+    <ClInclude Include="ModelsList.h" />
     <ClInclude Include="ModManager.h" />
     <ClInclude Include="ModuleScan.h" />
     <ClInclude Include="PakManager.h" />
@@ -178,6 +179,7 @@
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="FileSystemManager.cpp" />
     <ClCompile Include="Memory.cpp" />
+    <ClCompile Include="ModelsList.cpp" />
     <ClCompile Include="ModManager.cpp" />
     <ClCompile Include="ModuleScan.cpp" />
     <ClCompile Include="PakManager.cpp" />
