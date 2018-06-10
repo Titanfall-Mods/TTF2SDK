@@ -82,6 +82,7 @@ public:
 	SpawnlistTab Tab;
 	std::string SpawnCode;
 	std::vector<SpawnEntity> Ents;
+	ExecutionContext Context = CONTEXT_SERVER;
 };
 
 class UIManager

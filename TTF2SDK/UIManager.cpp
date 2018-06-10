@@ -78,15 +78,35 @@ UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqMa
 	m_Tools.push_back( Tool( "zipline_spawner", "Zipline", "Allows you to place ziplines in the level." ) );
 
 	// Add Entities
-	EntityCategory entsHumans = EntityCategory( "Humans", SpawnlistTab::Entities, "Spawnmenu_SpawnGrunt(\"{0}\")" );
-	entsHumans.Ents.push_back( SpawnEntity( "Militia Grunt", "militia" ) );
-	entsHumans.Ents.push_back( SpawnEntity( "IMC Grunt", "imc" ) );
-	entsHumans.Ents.push_back( SpawnEntity( "IMC Spectre", "todo" ) );
-	entsHumans.Ents.push_back( SpawnEntity( "IMC Stalker", "todo" ) );
+	EntityCategory entsHumans = EntityCategory( "Humans", SpawnlistTab::Entities, "Spawnmenu_SpawnNpc(\"{0}\")" );
+	entsHumans.Context = CONTEXT_CLIENT;
+	entsHumans.Ents.push_back( SpawnEntity( "Rifle Grunt", "npc_soldier" ) );
+	entsHumans.Ents.push_back( SpawnEntity( "Shotgun Grunt", "npc_soldier_shotgun" ) );
+	entsHumans.Ents.push_back( SpawnEntity( "SMG Grunt", "npc_soldier_smg" ) );
 	m_EntCategories.push_back( entsHumans );
 
-	EntityCategory entsTitans = EntityCategory( "Titans", SpawnlistTab::Entities, "" );
-	entsTitans.Ents.push_back( SpawnEntity( "BT-7274", "todo" ) );
+	EntityCategory entsRobots = EntityCategory( "Robots", SpawnlistTab::Entities, "Spawnmenu_SpawnNpc(\"{0}\")" );
+	entsRobots.Context = CONTEXT_CLIENT;
+	entsRobots.Ents.push_back( SpawnEntity( "Spectre", "npc_spectre" ) );
+	entsRobots.Ents.push_back( SpawnEntity( "Stalker", "npc_stalker" ) );
+	entsRobots.Ents.push_back( SpawnEntity( "Zombie Stalker", "npc_stalker_zombie" ) ); 
+	entsRobots.Ents.push_back( SpawnEntity( "Zombie Stalker (Mossy)", "npc_stalker_zombie_mossy" ) );
+	entsRobots.Ents.push_back( SpawnEntity( "Reaper", "npc_super_spectre" ) );
+	entsRobots.Ents.push_back( SpawnEntity( "Drone", "npc_drone" ) );
+	entsRobots.Ents.push_back( SpawnEntity( "Rocket Drone", "npc_drone_rocket" ) );
+	entsRobots.Ents.push_back( SpawnEntity( "Plasma Drone", "npc_drone_plasma" ) );
+	entsRobots.Ents.push_back( SpawnEntity( "Worker Drone", "npc_drone_worker" ) );
+	entsRobots.Ents.push_back( SpawnEntity( "Tick", "npc_frag_drone" ) );
+	entsRobots.Ents.push_back( SpawnEntity( "Marvin", "npc_marvin" ) );
+	m_EntCategories.push_back( entsRobots );
+
+	EntityCategory entsTitans = EntityCategory( "Titans", SpawnlistTab::Entities, "Spawnmenu_SpawnNpc(\"{0}\")" );
+	entsTitans.Context = CONTEXT_CLIENT;
+	entsTitans.Ents.push_back( SpawnEntity( "BT-7274", "npc_titan_bt" ) );
+	entsTitans.Ents.push_back( SpawnEntity( "BT-7274 2", "npc_titan_bt_spare" ) );
+	entsTitans.Ents.push_back( SpawnEntity( "Atlas", "npc_titan_atlas" ) );
+	entsTitans.Ents.push_back( SpawnEntity( "Stryder", "npc_titan_stryder" ) );
+	entsTitans.Ents.push_back( SpawnEntity( "Ogre", "npc_titan_ogre" ) );
 	m_EntCategories.push_back( entsTitans );
 
 	// Add Weapons
@@ -397,7 +417,16 @@ void UIManager::DrawCategoryTab( SpawnlistTab displayTab )
 						if( start_pos != std::string::npos )
 						{
 							ExecuteString.replace( start_pos, Replace.length(), ent.EntityId );
-							SDK().GetSQManager().ExecuteServerCode( ExecuteString.c_str() );
+							switch( entCategory.Context )
+							{
+								case CONTEXT_CLIENT:
+									SDK().GetSQManager().ExecuteClientCode( ExecuteString.c_str() );
+									break;
+								default:
+								case CONTEXT_SERVER:
+									SDK().GetSQManager().ExecuteServerCode( ExecuteString.c_str() );
+									break;
+							}
 						}
 					}
 					ImGui::NextColumn();
