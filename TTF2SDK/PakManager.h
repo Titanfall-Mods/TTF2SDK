@@ -192,6 +192,7 @@ public:
     void UnloadAllPaks();
 
     void WriteCacheToFile(const std::string& filename);
+    void WritePakCache();
 
     void MaterialFunc1Hook(CMaterialGlue* glue, MaterialData* data);
     void TextureFunc1Hook(TextureInfo* info, int64_t a2, int64_t a3, int64_t a4);

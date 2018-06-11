@@ -137,6 +137,7 @@
     <ClInclude Include="diff_match_patch.h" />
     <ClInclude Include="FileSystemManager.h" />
     <ClInclude Include="ICvar.h" />
+    <ClInclude Include="IFrameTask.h" />
     <ClInclude Include="ISurface.h" />
     <ClInclude Include="IVEngineClient.h" />
     <ClInclude Include="IVEngineServer.h" />
@@ -146,6 +147,7 @@
     <ClInclude Include="ModManager.h" />
     <ClInclude Include="ModuleScan.h" />
     <ClInclude Include="PakManager.h" />
+    <ClInclude Include="Preloader.h" />
     <ClInclude Include="proto\pak_cache.pb.h" />
     <ClInclude Include="SDKSettings.h" />
     <ClInclude Include="SigScanning.h" />
@@ -179,6 +181,7 @@
     <ClCompile Include="ModManager.cpp" />
     <ClCompile Include="ModuleScan.cpp" />
     <ClCompile Include="PakManager.cpp" />
+    <ClCompile Include="Preloader.cpp" />
     <ClCompile Include="proto\pak_cache.pb.cc">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>

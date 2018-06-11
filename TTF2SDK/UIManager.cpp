@@ -115,42 +115,75 @@ SQInteger UIManager::SQHideCursor(HSQUIRRELVM v)
 
 void UIManager::DrawGUI()
 {
-    static float f = 0.0f;
-    static int counter = 0;
-    ImGui::Text("Hello, world!");                           // Display some text (you can use a format string too)
-    ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f    
-    if (ImGui::Button("Button"))                            // Buttons return true when clicked (NB: most widgets return true when edited/activated)
+    const float DISTANCE = 10.0f;
+    static int corner = 0;
+    ImVec2 window_pos = ImVec2((corner & 1) ? ImGui::GetIO().DisplaySize.x - DISTANCE : DISTANCE, (corner & 2) ? ImGui::GetIO().DisplaySize.y - DISTANCE : DISTANCE);
+    ImVec2 window_pos_pivot = ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
+    if (corner != -1)
+        ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+    ImGui::SetNextWindowBgAlpha(0.3f); // Transparent background
+    if (ImGui::Begin("DebugOverlay", nullptr, (corner != -1 ? ImGuiWindowFlags_NoMove : 0) | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
     {
-        SDK().GetSQManager().ExecuteServerCode("print(\"called from server\")");
+        if (ImGui::IsMousePosValid())
+            ImGui::Text("Mouse Position: (%.1f,%.1f)", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
+        else
+            ImGui::Text("Mouse Position: <invalid>");
+        ImGui::Text("m_enableCursor: %d", (int)m_enableCursor);
+        ImGui::Text("IsCursorVisible: %d", m_surface->m_vtable->IsCursorVisible(m_surface));
+        ImGui::Text("WantCaptureMouse: %d", ImGui::GetIO().WantCaptureMouse);
+        ImGui::Text("WantCaptureKeyboard: %d", ImGui::GetIO().WantCaptureKeyboard);
+        ImGui::End();
     }
-    ImGui::SameLine();
-    ImGui::Text("counter = %d", counter);
+}
 
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+void UIManager::AddDrawCallback(const std::string& name, const std::function<void()>& func)
+{
+    m_drawCallbacks[name] = func;
+}
+
+void UIManager::RemoveDrawCallback(const std::string& name)
+{
+    m_drawCallbacks.erase(name);
+}
+
+bool IsKeyMsg(UINT uMsg)
+{
+    return uMsg >= WM_KEYFIRST && uMsg <= WM_KEYLAST;
+}
+
+bool IsMouseMsg(UINT uMsg)
+{
+    return uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST;
+}
+
+bool UIManager::IsACursorVisible()
+{
+    return m_enableCursor || m_surface->m_vtable->IsCursorVisible(m_surface);
 }
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 int UIManager::WindowProcHook(void* game, HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    if (uMsg != WM_SETCURSOR && (m_enableCursor || uMsg < WM_KEYFIRST || uMsg > WM_KEYLAST))
+    // Don't pass to imgui if there's no cursor visible
+    if (uMsg == WM_SETCURSOR || !IsACursorVisible())
     {
-        ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
-    }
-    
-    if (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST)
-    {
-        if (ImGui::GetIO().WantCaptureMouse)
-        {
-            return 0;
-        }
+        return GameWindowProc(game, hWnd, uMsg, wParam, lParam);
     }
 
-    if (uMsg >= WM_KEYFIRST && uMsg <= WM_KEYLAST)
+    ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
+    
+    // Do not pass to game if we're forcing the cursor
+    bool forcedCursor = m_enableCursor && !m_surface->m_vtable->IsCursorVisible(m_surface);
+
+    // Only block from game if imgui capturing
+    if (IsMouseMsg(uMsg) && (forcedCursor || ImGui::GetIO().WantCaptureMouse))
     {
-        if (ImGui::GetIO().WantCaptureKeyboard)
-        {
-            return 0;
-        }
+        return 0;
+    }
+    
+    if (IsKeyMsg(uMsg) && (forcedCursor || ImGui::GetIO().WantCaptureKeyboard))
+    {
+        return 0;
     }
 
     return GameWindowProc(game, hWnd, uMsg, wParam, lParam);
@@ -189,30 +222,41 @@ static bool ImGui_UpdateMouseCursor(ISurface* surface)
 
 void UIManager::SetCursorHook(ISurface* surface, unsigned int cursor)
 {
-    if (!m_enableCursor)
+    // If no cursors, let the engine deal with it
+    if (!IsACursorVisible())
     {
-        ISurface_SetCursor(surface, cursor);
+        return ISurface_SetCursor(surface, cursor);
     }
-    else
+
+    // If there's a cursor, and ImGui is capturing, let that handle it
+    if (ImGui::GetIO().WantCaptureMouse)
     {
         ImGui_UpdateMouseCursor(surface);
+        return;
     }
+    
+    // Otherwise let the game handle it
+    ISurface_SetCursor(surface, cursor);
 }
 
 void UIManager::LockCursorHook(ISurface* surface)
 {
-    if (!m_enableCursor)
+    if (!m_enableCursor || m_surface->m_vtable->IsCursorVisible(m_surface))
     {
-        ISurface_LockCursor(surface);
+        return ISurface_LockCursor(surface);
     }
 }
 
 HRESULT UIManager::PresentHook(IDXGISwapChain* SwapChain, UINT SyncInterval, UINT Flags)
 {
     ImGui_ImplDX11_NewFrame();
-    DrawGUI();
+    //DrawGUI();
 
-    ImVec4 clearColor = ImVec4(0.0f, 0.0f, 0.0f, 0.00f);
+    for (const auto& entry : m_drawCallbacks)
+    {
+        entry.second();
+    }
+
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
     return IDXGISwapChain_Present(SwapChain, SyncInterval, Flags);

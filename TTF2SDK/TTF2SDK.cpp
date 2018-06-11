@@ -403,30 +403,17 @@ SourceInterface<IVEngineClient>& TTF2SDK::GetEngineClient()
     return m_engineClient;
 }
 
-void TTF2SDK::AddDelayedFunc(std::function<void()> func, int frames)
-{
-    m_delayedFuncs.emplace_back(frames, func);
-}
-
 void TTF2SDK::RunFrameHook(double absTime, float frameTime)
 {
-    // TODO: Probably remove the delayed call stuff
-    for (auto& delay : m_delayedFuncs)
+    for (const auto& frameTask : m_frameTasks)
     {
-        delay.FramesTilRun = std::max(delay.FramesTilRun - 1, 0);
-        if (delay.FramesTilRun == 0)
-        {
-            m_logger->info("Executing delayed func");
-            delay.Func();
-        }
+        frameTask->RunFrame();
     }
 
-    auto newEnd = std::remove_if(m_delayedFuncs.begin(), m_delayedFuncs.end(), [](const DelayedFunc& delay)
+    m_frameTasks.erase(std::remove_if(m_frameTasks.begin(), m_frameTasks.end(), [](const std::unique_ptr<IFrameTask>& t)
     { 
-        return delay.FramesTilRun == 0; 
-    });
-
-    m_delayedFuncs.erase(newEnd, m_delayedFuncs.end());
+        return t->IsFinished();
+    }), m_frameTasks.end());
 
     static bool called = false;
     if (!called)
@@ -437,6 +424,11 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
     }
    
     return _Host_RunFrame(absTime, frameTime);
+}
+
+void TTF2SDK::AddFrameTask(std::unique_ptr<IFrameTask> task)
+{
+    m_frameTasks.push_back(std::move(task));
 }
 
 TTF2SDK::~TTF2SDK()

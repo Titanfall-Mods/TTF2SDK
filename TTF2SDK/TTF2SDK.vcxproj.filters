@@ -183,6 +183,12 @@
     <ClInclude Include="UIManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Preloader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IFrameTask.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Util.cpp">
@@ -237,6 +243,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UIManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Preloader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -35,6 +35,10 @@ public:
     SQInteger SQHideCursor(HSQUIRRELVM v);
 
     void DrawGUI();
+    void AddDrawCallback(const std::string& name, const std::function<void()>& func);
+    void RemoveDrawCallback(const std::string& name);
+
+    bool IsACursorVisible();
 
     int WindowProcHook(void* game, HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     void SetCursorHook(ISurface* surface, unsigned int cursor);
@@ -49,6 +53,7 @@ private:
     IDXGISwapChain** m_ppSwapChain = nullptr;
     ID3D11RenderTargetView* m_guiRenderTargetView = nullptr;
 
+    std::map<std::string, std::function<void()>> m_drawCallbacks;
     SourceInterface<ISurface> m_surface;
     std::atomic_bool m_enableCursor;
 };

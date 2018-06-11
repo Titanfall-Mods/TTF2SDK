@@ -53,6 +53,7 @@ namespace fs = std::experimental::filesystem;
 #include "SigScanning.h"
 #include "SourceInterface.h"
 #include "Util.h"
+#include "IFrameTask.h"
 #include "IFileSystem.h"
 #include "ISurface.h"
 #include "IVEngineServer.h"
@@ -65,6 +66,7 @@ namespace fs = std::experimental::filesystem;
 #include "FileSystemManager.h"
 #include "ModManager.h"
 #include "PakManager.h"
+#include "Preloader.h"
 #include "UIManager.h"
 #include "TTF2SDK.h"
 

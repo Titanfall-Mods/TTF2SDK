@@ -1,17 +1,5 @@
 #pragma once
 
-struct DelayedFunc
-{
-    int FramesTilRun;
-    std::function<void()> Func;
-
-    DelayedFunc(int frames, std::function<void()> func)
-    {
-        FramesTilRun = frames;
-        Func = func;
-    }
-};
-
 class TTF2SDK
 {
 private:
@@ -23,7 +11,8 @@ private:
     std::unique_ptr<PakManager> m_pakManager;
     std::unique_ptr<ModManager> m_modManager;
     std::unique_ptr<UIManager> m_uiManager;
-    std::list<DelayedFunc> m_delayedFuncs; // TODO: Probably not the right data structure
+
+    std::list<std::unique_ptr<IFrameTask>> m_frameTasks;
 
     SourceInterface<IVEngineServer> m_engineServer;
     SourceInterface<IVEngineClient> m_engineClient;
@@ -42,9 +31,9 @@ public:
     SourceInterface<IVEngineServer>& GetEngineServer();
     SourceInterface<IVEngineClient>& GetEngineClient();
 
-    void AddDelayedFunc(std::function<void()> func, int frames);
-
     void RunFrameHook(double absTime, float frameTime);
+
+    void AddFrameTask(std::unique_ptr<IFrameTask> task);
 
     void compileShaders();
 };

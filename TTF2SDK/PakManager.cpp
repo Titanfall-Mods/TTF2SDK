@@ -398,13 +398,8 @@ void PakManager::PreloadAllPaks()
 
     FileSystemManager& fsManager = SDK().GetFSManager();
     const auto& mapNames = fsManager.GetMapNames();
-    for (const auto& map : mapNames)
-    {
-        std::string pakName = map + ".rpak";
-        PreloadPak(pakName.c_str());
-    }
-
-    WriteCacheToFile((fsManager.GetBasePath() / "pakcache.dat").string());
+    std::unique_ptr<IFrameTask> task = std::make_unique<Preloader>(mapNames);
+    SDK().AddFrameTask(std::move(task));
 }
 
 void PakManager::ReloadExternalPak(const std::string& pakFile, std::unordered_set<std::string>& newMaterialsToLoad, std::unordered_set<std::string>& newTexturesToLoad, std::unordered_set<std::string>& newShadersToLoad)
@@ -571,6 +566,11 @@ void PakManager::WriteCacheToFile(const std::string& filename)
     {
         m_logger->info("Wrote pak cache to {}", filename);
     }
+}
+
+void PakManager::WritePakCache()
+{
+    WriteCacheToFile((SDK().GetFSManager().GetBasePath() / "pakcache.dat").string());
 }
 
 void PakManager::MaterialFunc1Hook(CMaterialGlue* glue, MaterialData* data)
