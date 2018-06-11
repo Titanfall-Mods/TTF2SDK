@@ -439,8 +439,16 @@ void UIManager::DrawCategoryTab( SpawnlistTab displayTab )
 
 void UIManager::DoSpawnModel( std::string & model )
 {
-	std::string SpawnStr = "Spawnmenu_SpawnModel(\"" + model + "\")";
-	SDK().GetSQManager().ExecuteClientCode( SpawnStr.c_str() );
+	if( true )
+	{
+		std::string SpawnStr = "Spawnmenu_SpawnModel_Broke(\"" + model + "\")";
+		SDK().GetSQManager().ExecuteServerCode( SpawnStr.c_str() );
+	}
+	else
+	{
+		std::string SpawnStr = "Spawnmenu_SpawnModel(\"" + model + "\")";
+		SDK().GetSQManager().ExecuteClientCode( SpawnStr.c_str() );
+	}
 }
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
