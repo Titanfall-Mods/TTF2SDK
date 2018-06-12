@@ -199,6 +199,16 @@ void SquirrelManager::ClearCallbacks()
 template<ExecutionContext context>
 void SquirrelManager::ExecuteCode(const char* code)
 {
+    if (!ThreadInMainThread())
+    {
+        m_logger->debug("Delaying execution into main thread: {}", code);
+        std::string strCode(code);
+        SDK().AddDelayedFunc([this, strCode]() {
+            this->ExecuteCode<context>(strCode.c_str());
+        }, 0);
+        return;
+    }
+
     HSQUIRRELVM v = nullptr;
     if (context == CONTEXT_SERVER)
     {
