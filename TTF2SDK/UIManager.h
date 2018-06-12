@@ -127,7 +127,9 @@ private:
 
     std::map<std::string, std::function<void()>> m_drawCallbacks;
     SourceInterface<ISurface> m_surface;
+
     std::atomic_bool m_enableCursor;
+    std::atomic_bool m_engineCursorSet;
 
 	std::vector<Tool> m_Tools;
 

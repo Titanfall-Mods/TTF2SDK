@@ -219,7 +219,7 @@ SQInteger UIManager::SQShowCursor(HSQUIRRELVM v)
     m_enableCursor = true;
     m_logger->info("Showing cursor");
     m_surface->m_vtable->UnlockCursor(m_surface);
-    m_surface->m_vtable->SetCursor(m_surface, dc_arrow);
+    ISurface_SetCursor(m_surface, dc_arrow);
     return 0;
 }
 
@@ -246,6 +246,7 @@ void UIManager::DrawGUI()
         else
             ImGui::Text("Mouse Position: <invalid>");
         ImGui::Text("m_enableCursor: %d", (int)m_enableCursor);
+        ImGui::Text("m_engineCursorSet: %d", (int)m_engineCursorSet);
         ImGui::Text("IsCursorVisible: %d", m_surface->m_vtable->IsCursorVisible(m_surface));
         ImGui::Text("WantCaptureMouse: %d", ImGui::GetIO().WantCaptureMouse);
         ImGui::Text("WantCaptureKeyboard: %d", ImGui::GetIO().WantCaptureKeyboard);
@@ -275,7 +276,7 @@ bool IsMouseMsg(UINT uMsg)
 
 bool UIManager::IsACursorVisible()
 {
-    return m_enableCursor || m_surface->m_vtable->IsCursorVisible(m_surface);
+    return m_enableCursor || m_engineCursorSet;
 }
 
 void UIManager::DrawPropsGui()
@@ -463,7 +464,7 @@ int UIManager::WindowProcHook(void* game, HWND hWnd, UINT uMsg, WPARAM wParam, L
     ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
     
     // Do not pass to game if we're forcing the cursor
-    bool forcedCursor = m_enableCursor && !m_surface->m_vtable->IsCursorVisible(m_surface);
+    bool forcedCursor = m_enableCursor && !m_engineCursorSet;
 
     // Only block from game if imgui capturing
     if (IsMouseMsg(uMsg) && (forcedCursor || ImGui::GetIO().WantCaptureMouse))
@@ -471,7 +472,7 @@ int UIManager::WindowProcHook(void* game, HWND hWnd, UINT uMsg, WPARAM wParam, L
         return 0;
     }
     
-    if (IsKeyMsg(uMsg) && (forcedCursor || ImGui::GetIO().WantCaptureKeyboard))
+    if (IsKeyMsg(uMsg) && ImGui::GetIO().WantCaptureKeyboard)
     {
         return 0;
     }
@@ -512,6 +513,8 @@ static bool ImGui_UpdateMouseCursor(ISurface* surface)
 
 void UIManager::SetCursorHook(ISurface* surface, unsigned int cursor)
 {
+    m_engineCursorSet = (cursor != dc_user && cursor != dc_none && cursor != dc_blank);
+
     // If no cursors, let the engine deal with it
     if (!IsACursorVisible())
     {
@@ -524,6 +527,13 @@ void UIManager::SetCursorHook(ISurface* surface, unsigned int cursor)
         ImGui_UpdateMouseCursor(surface);
         return;
     }
+
+    // If we're forcing the cursor and the engine isn't, use ours
+    if (m_enableCursor && !m_engineCursorSet)
+    {
+        ImGui_UpdateMouseCursor(surface);
+        return;
+    }
     
     // Otherwise let the game handle it
     ISurface_SetCursor(surface, cursor);
@@ -531,7 +541,8 @@ void UIManager::SetCursorHook(ISurface* surface, unsigned int cursor)
 
 void UIManager::LockCursorHook(ISurface* surface)
 {
-    if (!m_enableCursor || m_surface->m_vtable->IsCursorVisible(m_surface))
+    // Only allow the cursor to be locked if we're not forcing it
+    if (!m_enableCursor)
     {
         return ISurface_LockCursor(surface);
     }

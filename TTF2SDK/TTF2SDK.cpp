@@ -418,7 +418,7 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
     static bool called = false;
     if (!called)
     {
-        m_logger->warn("RunFrame called for the first time");
+        m_logger->info("RunFrame called for the first time");
         m_pakManager->PreloadAllPaks();
         called = true;
     }
