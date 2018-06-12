@@ -395,7 +395,7 @@ void PakManager::PreloadAllPaks()
 
     FileSystemManager& fsManager = SDK().GetFSManager();
     const auto& mapNames = fsManager.GetMapNames();
-    std::unique_ptr<IFrameTask> task = std::make_unique<Preloader>(mapNames);
+    std::shared_ptr<IFrameTask> task = std::make_shared<Preloader>(mapNames);
     SDK().AddFrameTask(std::move(task));
 }
 

@@ -361,6 +361,10 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
         TempReadWrite rw(ptr);
         *((unsigned char*)ptr + 1) = 0x85;
     }
+
+    // Add delayed func task
+    m_delayedFuncTask = std::make_shared<DelayedFuncTask>();
+    AddFrameTask(m_delayedFuncTask);
 }
 
 FileSystemManager& TTF2SDK::GetFSManager()
@@ -410,7 +414,7 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
         frameTask->RunFrame();
     }
 
-    m_frameTasks.erase(std::remove_if(m_frameTasks.begin(), m_frameTasks.end(), [](const std::unique_ptr<IFrameTask>& t)
+    m_frameTasks.erase(std::remove_if(m_frameTasks.begin(), m_frameTasks.end(), [](const std::shared_ptr<IFrameTask>& t)
     { 
         return t->IsFinished();
     }), m_frameTasks.end());
@@ -426,9 +430,14 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
     return _Host_RunFrame(absTime, frameTime);
 }
 
-void TTF2SDK::AddFrameTask(std::unique_ptr<IFrameTask> task)
+void TTF2SDK::AddFrameTask(std::shared_ptr<IFrameTask> task)
 {
     m_frameTasks.push_back(std::move(task));
+}
+
+void TTF2SDK::AddDelayedFunc(std::function<void()> func, int frames)
+{
+    m_delayedFuncTask->AddFunc(func, frames);
 }
 
 TTF2SDK::~TTF2SDK()
