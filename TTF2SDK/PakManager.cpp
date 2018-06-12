@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-const int PAK_CACHE_FILE_VERSION = 1;
+const int PAK_CACHE_FILE_VERSION = 2;
 
 PakManager& PakMan()
 {
@@ -385,9 +385,6 @@ bool PakManager::LoadCacheFile()
 
 void PakManager::PreloadAllPaks()
 {
-    // TODO: This function causes a large amount of memory usage.
-    // Probably need to set it up so that it will load one, run a few frames, then go to the next one
-    // to allow for the memory to get freed before moving on.
     m_cachedMaterialData.clear();
 
     // Check if pakcache exists and load if so
@@ -400,6 +397,17 @@ void PakManager::PreloadAllPaks()
     const auto& mapNames = fsManager.GetMapNames();
     std::unique_ptr<IFrameTask> task = std::make_unique<Preloader>(mapNames);
     SDK().AddFrameTask(std::move(task));
+}
+
+void PakManager::SortCachedMaterialData()
+{
+    for (auto& entry : m_cachedMaterialData)
+    {
+        CachedMaterialData& data = entry.second;
+        std::sort(data.pakFiles.begin(), data.pakFiles.end());
+        std::sort(data.shaderNames.begin(), data.shaderNames.end());
+        std::sort(data.textures.begin(), data.textures.end());
+    }
 }
 
 void PakManager::ReloadExternalPak(const std::string& pakFile, std::unordered_set<std::string>& newMaterialsToLoad, std::unordered_set<std::string>& newTexturesToLoad, std::unordered_set<std::string>& newShadersToLoad)
@@ -850,6 +858,7 @@ uint64_t PakManager::LoadMaterialsHook(int64_t a1, int32_t* phdr, int64_t a3, st
             }
             else
             {
+                std::sort(pakCandidates.begin(), pakCandidates.end());
                 auto end = std::set_intersection(
                     pakCandidates.begin(), pakCandidates.end(),
                     matData.pakFiles.begin(), matData.pakFiles.end(),

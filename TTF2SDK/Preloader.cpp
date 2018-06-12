@@ -19,6 +19,7 @@ void Preloader::RunFrame()
     {
         if (m_mapsToPreload.size() == 0)
         {
+            SDK().GetPakManager().SortCachedMaterialData();
             SDK().GetPakManager().WritePakCache();
             SDK().GetUIManager().RemoveDrawCallback("Preload_UI");
             m_state = PRELOADER_STATE_FINISHED;

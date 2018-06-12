@@ -185,6 +185,7 @@ public:
     void PreloadPak(const char* name);
     bool LoadCacheFile();
     void PreloadAllPaks();
+    void SortCachedMaterialData();
     
     void ReloadExternalPak(const std::string& pakFile, std::unordered_set<std::string>& newMaterialsToLoad, std::unordered_set<std::string>& newTexturesToLoad, std::unordered_set<std::string>& newShadersToLoad);
     void LoadExternalPak(const std::string& pakFile);
