@@ -32,6 +32,7 @@
 
 // TODO: clean these up
 #include "Memory.h"
+#include "tier0.h"
 #include <algorithm>
 #include <functional>
 #include <shared_mutex>

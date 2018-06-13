@@ -14,12 +14,5 @@ public:
     VTable* m_vtable;
 };
 
-extern "C"
-{
-    IMemAlloc* CreateGlobalMemAlloc();
-    __declspec(dllimport) extern IMemAlloc* g_pMemAllocSingleton;
-    bool ThreadInMainThread(); // TODO: Maybe move all of these into tier0.h, including ones in memory.h
-}
-
 void* operator new(std::size_t n);
 void operator delete(void* p) throw();
