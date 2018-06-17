@@ -2,6 +2,7 @@
 #include <regex>
 #include <algorithm>
 #include "ModelsList.h"
+#include <string>
 
 UIManager& UIMan()
 {
@@ -63,30 +64,24 @@ UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqMa
     sqManager.AddFuncRegistration(CONTEXT_CLIENT, "ShowCursor", WRAPPED_MEMBER(SQShowCursor));
     sqManager.AddFuncRegistration(CONTEXT_CLIENT, "HideCursor", WRAPPED_MEMBER(SQHideCursor));
 
+	// Commands
+	conCommandManager.RegisterCommand( "register_tool", WRAPPED_MEMBER( RegisterToolCommand ), "Register a tool to appear in the spawn menu", 0 );
+	conCommandManager.RegisterCommand( "register_option", WRAPPED_MEMBER( RegisterToolOption ), "Register an option for a specific tool", 0 );
+	conCommandManager.RegisterCommand( "option_set_default", WRAPPED_MEMBER( SetOptionDefaultValue ), "Set the default value for an option", 0 );
+	conCommandManager.RegisterCommand( "option_set_minmax", WRAPPED_MEMBER( SetOptionMinMax ), "Set the minmax values for an option", 0 );
+
 	// Add models
 	m_ModelsList = new ModelsList();
 	m_ViewingDirectory = &m_ModelsList->BaseDir;
 
-	// Add Tools
-	m_Tools.push_back( Tool( "spawn_prop", "Spawner", "Spawns props when fired." ) );
-	m_Tools.push_back( Tool( "remove_prop", "Remover", "Removes the prop fired at." ) );
-	m_Tools.push_back( Tool( "stack_prop", "Stacker", "Stacks the same prop on itself in a direction." ) );
-	m_Tools.push_back( Tool( "nudge_prop", "Nudger", "Moves props by small amounts in the opposite direction." ) );
-	m_Tools.push_back( Tool( "prop_info", "Prop Info", "Prints out some debug information on a prop to the console." ) );
-	m_Tools.push_back( Tool( "mirror_prop", "Timeshift Prop", "Spawns an identical prop in the other timeline if playing on Effect and Cause." ) );
-	m_Tools.push_back( Tool( "camera", "Camera", "Spawns a camera which you can look through using the numpad." ) );
-	m_Tools.push_back( Tool( "zipline_spawner", "Zipline", "Allows you to place ziplines in the level." ) );
-
 	// Add Entities
 	EntityCategory entsHumans = EntityCategory( "Humans", SpawnlistTab::Entities, "Spawnmenu_SpawnNpc(\"{0}\")" );
-	entsHumans.Context = CONTEXT_CLIENT;
 	entsHumans.Ents.push_back( SpawnEntity( "Rifle Grunt", "npc_soldier" ) );
 	entsHumans.Ents.push_back( SpawnEntity( "Shotgun Grunt", "npc_soldier_shotgun" ) );
 	entsHumans.Ents.push_back( SpawnEntity( "SMG Grunt", "npc_soldier_smg" ) );
 	m_EntCategories.push_back( entsHumans );
 
 	EntityCategory entsRobots = EntityCategory( "Robots", SpawnlistTab::Entities, "Spawnmenu_SpawnNpc(\"{0}\")" );
-	entsRobots.Context = CONTEXT_CLIENT;
 	entsRobots.Ents.push_back( SpawnEntity( "Spectre", "npc_spectre" ) );
 	entsRobots.Ents.push_back( SpawnEntity( "Stalker", "npc_stalker" ) );
 	entsRobots.Ents.push_back( SpawnEntity( "Zombie Stalker", "npc_stalker_zombie" ) ); 
@@ -101,7 +96,6 @@ UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqMa
 	m_EntCategories.push_back( entsRobots );
 
 	EntityCategory entsTitans = EntityCategory( "Titans", SpawnlistTab::Entities, "Spawnmenu_SpawnNpc(\"{0}\")" );
-	entsTitans.Context = CONTEXT_CLIENT;
 	entsTitans.Ents.push_back( SpawnEntity( "BT-7274", "npc_titan_bt" ) );
 	entsTitans.Ents.push_back( SpawnEntity( "BT-7274 2", "npc_titan_bt_spare" ) );
 	entsTitans.Ents.push_back( SpawnEntity( "Atlas", "npc_titan_atlas" ) );
@@ -212,6 +206,118 @@ void UIManager::ShowCursorCommand(const CCommand& args)
     {
         m_logger->error("Invalid argument to show_cursor, must be 1 or 0");
     }
+}
+
+void UIManager::RegisterToolCommand( const CCommand& args )
+{
+	const char * id = args[1];
+	const char * name = args[2];
+	const char * tooltip = args[3];
+
+	for( Tool & t : m_Tools )
+	{
+		if( t.Id.compare( id ) == 0 )
+		{
+			return; // Tool already registered
+		}
+	}
+	m_Tools.push_back( Tool( id, name, tooltip ) );
+
+	// Put tools in alphabetical order
+	std::sort( m_Tools.begin(), m_Tools.end(), []( Tool & a, Tool & b )
+	{
+		return a.FriendlyName < b.FriendlyName;
+	} );
+}
+
+void UIManager::RegisterToolOption( const CCommand& args )
+{
+	const char * toolId = args[1];
+	const char * optionId = args[2];
+	const char * name = args[3];
+	ToolOptionType type = (ToolOptionType) std::stoi( args[4] );
+
+	for( Tool & t : m_Tools )
+	{
+		if( t.Id.compare( toolId ) == 0 )
+		{
+			for( ToolOption & option : t.Options )
+			{
+				if( option.Id.compare( optionId ) == 0 )
+				{
+					return; // Already registered
+				}
+			}
+			
+			t.Options.push_back( ToolOption( optionId, name, type ) );
+			break;
+		}
+	}
+}
+
+void UIManager::SetOptionDefaultValue( const CCommand& args )
+{
+	const char * toolId = args[1];
+	const char * optionId = args[2];
+	const bool isStringValue = (bool) std::stoi( args[4] );
+
+	if( Tool * tool = GetToolFromId( toolId ) )
+	{
+		if( ToolOption * option = GetOptionFromId( tool, optionId ) )
+		{
+			if( isStringValue )
+			{
+				option->StringValue = args[3];
+			}
+			else
+			{
+				const float value = std::stof( args[3] );
+				option->FloatValue = value;
+				option->IntValue = value;
+			}
+		}
+	}
+}
+
+void UIManager::SetOptionMinMax( const CCommand& args )
+{
+	const char * toolId = args[1];
+	const char * optionId = args[2];
+	const float min = std::stof( args[3] );
+	const float max = std::stof( args[4] );
+
+	if( Tool * tool = GetToolFromId( toolId ) )
+	{
+		if( ToolOption * option = GetOptionFromId( tool, optionId ) )
+		{
+			option->Min = min;
+			option->Max = max;
+		}
+	}
+}
+
+Tool * UIManager::GetToolFromId( const char * toolId )
+{
+	for( Tool & t : m_Tools )
+	{
+		if( t.Id.compare( toolId ) == 0 )
+		{
+			return &t;
+		}
+	}
+	return nullptr;
+}
+
+ToolOption * UIManager::GetOptionFromId( Tool * tool, const char * optionId )
+{
+	for( ToolOption & option : tool->Options )
+	{
+		if( option.Id.compare( optionId ) == 0 )
+		{
+			return &option;
+		}
+	}
+	return nullptr;
 }
 
 SQInteger UIManager::SQShowCursor(HSQUIRRELVM v)
@@ -388,10 +494,68 @@ void UIManager::DrawToolsGui( float ToolsPanelWidth )
 		{
 			std::string SwitchStr = "Spawnmenu_SelectTool(\"" + tool.Id + "\")";
 			SDK().GetSQManager().ExecuteClientCode( SwitchStr.c_str() );
+			m_ViewingTool = &tool;
 		}
 		if( ImGui::IsItemHovered() )
 		{
 			ImGui::SetTooltip( tool.Description.c_str() );
+		}
+	}
+}
+
+void UIManager::DrawOptionsGui()
+{
+	if( m_ViewingTool == nullptr )
+	{
+		return;
+	}
+
+	ImGui::TextWrapped( m_ViewingTool->FriendlyName.c_str() );
+	ImGui::Separator();
+
+	if( m_ViewingTool->Options.size() == 0 )
+	{
+		ImGui::TextWrapped( "No options for this tool." );
+		return;
+	}
+
+	for( ToolOption & option : m_ViewingTool->Options )
+	{
+		switch( option.Type )
+		{
+			case ToolOptionType::Divider:
+				ImGui::Separator();
+				break;
+			case ToolOptionType::Button:
+				if( ImGui::Button( option.FriendlyName.c_str() ) )
+				{
+					std::string command = "Spawnmenu_UpdateToolOption( \"" + option.Id + "\", 1 )";
+					SDK().GetSQManager().ExecuteClientCode( command.c_str() );
+					SDK().GetSQManager().ExecuteServerCode( command.c_str() );
+				}
+				break;
+			case ToolOptionType::Slider:
+				if( ImGui::SliderFloat( option.FriendlyName.c_str(), &option.FloatValue, option.Min, option.Max ) )
+				{
+					std::string command = "Spawnmenu_UpdateToolOption( \"" + option.Id + "\", " + std::to_string( option.FloatValue ) + " )";
+					SDK().GetSQManager().ExecuteClientCode( command.c_str() );
+					SDK().GetSQManager().ExecuteServerCode( command.c_str() );
+				}
+				break;
+			case ToolOptionType::IntSlider:
+				if( ImGui::SliderInt( option.FriendlyName.c_str(), &option.IntValue, option.Min, option.Max ) )
+				{
+					std::string command = "Spawnmenu_UpdateToolOption( \"" + option.Id + "\", " + std::to_string( option.IntValue ) + " )";
+					SDK().GetSQManager().ExecuteClientCode( command.c_str() );
+					SDK().GetSQManager().ExecuteServerCode( command.c_str() );
+				}
+				break;
+			case ToolOptionType::Text:
+				ImGui::TextWrapped( option.FriendlyName.c_str() );
+				break;
+			default:
+				ImGui::Text( ("Invalid tool: " + option.Id).c_str() );
+				break;
 		}
 	}
 }
@@ -440,16 +604,8 @@ void UIManager::DrawCategoryTab( SpawnlistTab displayTab )
 
 void UIManager::DoSpawnModel( std::string & model )
 {
-	if( true )
-	{
-		std::string SpawnStr = "Spawnmenu_SpawnModel_Broke(\"" + model + "\")";
-		SDK().GetSQManager().ExecuteServerCode( SpawnStr.c_str() );
-	}
-	else
-	{
-		std::string SpawnStr = "Spawnmenu_SpawnModel(\"" + model + "\")";
-		SDK().GetSQManager().ExecuteClientCode( SpawnStr.c_str() );
-	}
+	std::string SpawnStr = "Spawnmenu_SpawnModel(\"" + model + "\")";
+	SDK().GetSQManager().ExecuteServerCode( SpawnStr.c_str() );
 }
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -651,7 +807,7 @@ HRESULT UIManager::PresentHook(IDXGISwapChain* SwapChain, UINT SyncInterval, UIN
 			// Tool Options
 			ImGui::BeginChild( "OptionsPane", ImVec2( OptionsWidth, 0 ), true );
 			{
-				ImGui::Text( "Options panel" );
+				DrawOptionsGui();
 			}
 			ImGui::EndChild();
 			ImGui::SameLine();

@@ -40,10 +40,41 @@ enum ModelsDisplayMode
 	Grid
 };
 
+enum ToolOptionType
+{
+	Divider = -1,
+	Button = 0,
+	Slider,
+	IntSlider,
+	Text,
+};
+
+struct ToolOption
+{
+public:
+	ToolOption( const char * inId, const char * inName, ToolOptionType inType )
+	{
+		Id = inId;
+		FriendlyName = inName;
+		Type = inType;
+	}
+
+	std::string Id;
+	std::string FriendlyName;
+	ToolOptionType Type;
+
+	float FloatValue = 0.0f;
+	int IntValue = 0;
+	std::string StringValue;
+
+	int Min = 0;
+	int Max = 10;
+};
+
 struct Tool
 {
 public:
-	Tool( char * inId, char * inName, char * inDesc )
+	Tool( const char * inId, const char * inName, const char * inDesc )
 	{
 		Id = inId;
 		FriendlyName = inName;
@@ -53,6 +84,7 @@ public:
 	std::string Id;
 	std::string FriendlyName;
 	std::string Description;
+	std::vector<ToolOption> Options;
 };
 
 struct SpawnEntity
@@ -94,6 +126,13 @@ public:
     void InitImGui();
 
     void ShowCursorCommand(const CCommand& args);
+	void RegisterToolCommand( const CCommand& args );
+	void RegisterToolOption( const CCommand& args );
+	void SetOptionDefaultValue( const CCommand& args );
+	void SetOptionMinMax( const CCommand& args );
+
+	Tool * GetToolFromId( const char * toolId );
+	ToolOption * GetOptionFromId( Tool * tool, const char * optionId );
 
     SQInteger SQShowCursor(HSQUIRRELVM v);
     SQInteger SQHideCursor(HSQUIRRELVM v);
@@ -108,6 +147,7 @@ public:
 	void DrawModelsDirectory( struct ModelsDirectory * dir );
 	void DrawDirectoryModels( struct ModelsDirectory * dir );
 	void DrawToolsGui( float ToolsPanelWidth );
+	void DrawOptionsGui();
 	void DrawCategoryTab( SpawnlistTab displayTab );
 
 	void DoSpawnModel( std::string & model );
@@ -132,6 +172,7 @@ private:
     std::atomic_bool m_engineCursorSet;
 
 	std::vector<Tool> m_Tools;
+	Tool * m_ViewingTool = nullptr;
 
 	std::vector<EntityCategory> m_EntCategories;
 	SpawnlistTab m_DisplayingTab = SpawnlistTab::Props;
