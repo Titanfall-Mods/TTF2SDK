@@ -99,7 +99,7 @@ public:
 class IcepickMenu
 {
 public:
-    IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiManager);
+    IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiManager, SquirrelManager& sqManager);
     ~IcepickMenu();
 
     void DrawPropsGui();
@@ -123,6 +123,8 @@ public:
 
     Tool * GetToolFromId(const char * toolId);
     ToolOption * GetOptionFromId(Tool * tool, const char * optionId);
+
+    SQInteger ExampleClientFunc(HSQUIRRELVM v);
 
 private:
     std::vector<Tool> m_Tools;

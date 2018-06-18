@@ -8,7 +8,7 @@ IcepickMenu& Menu()
 
 #define WRAPPED_MEMBER(name) MemberWrapper<decltype(&IcepickMenu::##name), &IcepickMenu::##name, decltype(&Menu), &Menu>::Call
 
-IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiManager)
+IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiManager, SquirrelManager& sqManager)
 {
     // Commands
     conCommandManager.RegisterCommand("show_icepick_menu", WRAPPED_MEMBER(ShowMenuCommand), "Shows the Icepick Menu", 0);
@@ -120,6 +120,15 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
     m_EntCategories.push_back(pilotMelee);
 
     uiManager.AddDrawCallback("IcepickMenu", std::bind(&IcepickMenu::DrawCallback, this));
+
+    sqManager.AddFuncRegistration(
+        CONTEXT_CLIENT,
+        "void",
+        "SomeCoolFunc",
+        "string coolArg, int sweetArg, float someOtherThing",
+        "Help text for function",
+        WRAPPED_MEMBER(ExampleClientFunc)
+    );
 }
 
 IcepickMenu::~IcepickMenu()
@@ -237,6 +246,17 @@ ToolOption * IcepickMenu::GetOptionFromId(Tool * tool, const char * optionId)
         }
     }
     return nullptr;
+}
+
+SQInteger IcepickMenu::ExampleClientFunc(HSQUIRRELVM v)
+{
+    const SQChar* str = sq_getstring.CallClient(v, 1);
+    int intVal = sq_getinteger.CallClient(v, 2);
+    float floatVal = sq_getfloat.CallClient(v, 3);
+
+    spdlog::get("logger")->info("SomeCoolFunc called with {}, {}, {}", str, intVal, floatVal);
+
+    return 0;
 }
 
 

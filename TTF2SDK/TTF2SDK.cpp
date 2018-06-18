@@ -339,7 +339,7 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     m_modManager.reset(new ModManager(*m_conCommandManager));
     m_uiManager.reset(new UIManager(*m_conCommandManager, *m_sqManager, *m_fsManager));
 
-    m_icepickMenu.reset(new IcepickMenu(*m_conCommandManager, *m_uiManager));
+    m_icepickMenu.reset(new IcepickMenu(*m_conCommandManager, *m_uiManager, *m_sqManager));
 
     IVEngineServer_SpewFunc.Hook(m_engineServer->m_vtable, SpewFuncHook);
 
