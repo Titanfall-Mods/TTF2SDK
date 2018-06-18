@@ -123,7 +123,7 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
 
     sqManager.AddFuncRegistration(
         CONTEXT_CLIENT,
-        "void",
+        "string",
         "SomeCoolFunc",
         "string coolArg, int sweetArg, float someOtherThing",
         "Help text for function",
@@ -256,7 +256,8 @@ SQInteger IcepickMenu::ExampleClientFunc(HSQUIRRELVM v)
 
     spdlog::get("logger")->info("SomeCoolFunc called with {}, {}, {}", str, intVal, floatVal);
 
-    return 0;
+    sq_pushstring.CallClient(v, "this is a string", -1);
+    return 1;
 }
 
 

@@ -171,3 +171,7 @@ public:
 extern SharedSigFunc<const SQChar*, HSQUIRRELVM, SQInteger> sq_getstring;
 extern SharedSigFunc<SQInteger, HSQUIRRELVM, SQInteger> sq_getinteger;
 extern SharedSigFunc<SQFloat, HSQUIRRELVM, SQInteger> sq_getfloat;
+
+extern SharedSigFunc<void, HSQUIRRELVM, const SQChar*, SQInteger> sq_pushstring;
+extern SharedSigFunc<void, HSQUIRRELVM, SQInteger> sq_pushinteger;
+extern SharedSigFunc<void, HSQUIRRELVM, SQFloat> sq_pushfloat;
