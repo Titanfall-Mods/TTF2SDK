@@ -337,7 +337,7 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     m_sqManager.reset(new SquirrelManager(*m_conCommandManager));
     m_pakManager.reset(new PakManager(*m_conCommandManager, m_engineServer, *m_sqManager));
     m_modManager.reset(new ModManager(*m_conCommandManager));
-    m_uiManager.reset(new UIManager(*m_conCommandManager, *m_sqManager));
+    m_uiManager.reset(new UIManager(*m_conCommandManager, *m_sqManager, *m_fsManager));
 
     m_icepickMenu.reset(new IcepickMenu(*m_conCommandManager, *m_uiManager));
 

@@ -21,7 +21,7 @@ HookedFunc<int, void*, HWND, UINT, WPARAM, LPARAM> GameWindowProc("inputsystem.d
 HookedVTableFunc<decltype(&ISurface::VTable::LockCursor), &ISurface::VTable::LockCursor> ISurface_LockCursor;
 HookedVTableFunc<decltype(&ISurface::VTable::SetCursor), &ISurface::VTable::SetCursor> ISurface_SetCursor;
 
-UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqManager) :
+UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqManager, FileSystemManager& fsManager) :
     m_surface("vguimatsurface.dll", "VGUI_Surface031")
 {
     m_logger = spdlog::get("logger");
@@ -50,7 +50,7 @@ UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqMa
     SPDLOG_DEBUG(m_logger, "m_ppSwapChain = {}", (void*)m_ppSwapChain);
     SPDLOG_DEBUG(m_logger, "pSwapChain = {}", (void*)*m_ppSwapChain);
 
-    InitImGui();
+    InitImGui(fsManager.GetModsPath());
 
     IDXGISwapChain_Present.Hook((*m_ppSwapChain)->lpVtbl, WRAPPED_MEMBER(PresentHook));
 
@@ -70,7 +70,7 @@ UIManager::~UIManager()
     ImGui::DestroyContext();
 }
 
-void UIManager::InitImGui()
+void UIManager::InitImGui(const fs::path& modsPath)
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -81,6 +81,14 @@ void UIManager::InitImGui()
 
     ImGui_ImplDX11_Init(wnd, *m_ppD3D11Device, *m_ppD3D11DeviceContext);
     ImGui::StyleColorsDark();
+
+    // Check if the font file exists in the icepick mod
+    fs::path fontPath = modsPath / "Icepick.Framework/fonts/NotoSans-Medium.ttf";
+    if (fs::exists(fontPath))
+    {
+        ImGui::GetIO().Fonts->AddFontFromFileTTF(fontPath.string().c_str(), 16.0f);
+    }
+    
     ImGui_ImplDX11_CreateDeviceObjects();
 }
 

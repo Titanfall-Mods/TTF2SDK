@@ -24,10 +24,10 @@ enum CursorCode
 class UIManager
 {
 public:
-    UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqManager);
+    UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqManager, FileSystemManager& fsManager);
     ~UIManager();
 
-    void InitImGui();
+    void InitImGui(const fs::path& modsPath);
     void ShowCursorCommand(const CCommand& args);
 	
     SQInteger SQShowCursor(HSQUIRRELVM v);
