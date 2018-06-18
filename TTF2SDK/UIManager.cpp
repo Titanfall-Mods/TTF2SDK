@@ -81,6 +81,7 @@ void UIManager::InitImGui(const fs::path& modsPath)
 
     ImGui_ImplDX11_Init(wnd, *m_ppD3D11Device, *m_ppD3D11DeviceContext);
     ImGui::StyleColorsDark();
+    ImGui::GetIO().IniFilename = nullptr;
 
     // Check if the font file exists in the icepick mod
     fs::path fontPath = modsPath / "Icepick.Framework/fonts/NotoSans-Medium.ttf";
