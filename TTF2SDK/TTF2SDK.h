@@ -63,6 +63,8 @@ private:
     std::unique_ptr<ModManager> m_modManager;
     std::unique_ptr<UIManager> m_uiManager;
 
+    std::unique_ptr<IcepickMenu> m_icepickMenu;
+
     std::list<std::shared_ptr<IFrameTask>> m_frameTasks;
     std::shared_ptr<DelayedFuncTask> m_delayedFuncTask;
 
@@ -79,6 +81,8 @@ public:
     PakManager& GetPakManager();
     ModManager& GetModManager();
     UIManager& GetUIManager();
+
+    IcepickMenu& GetIcepickMenu();
 
     SourceInterface<IVEngineServer>& GetEngineServer();
     SourceInterface<IVEngineClient>& GetEngineClient();

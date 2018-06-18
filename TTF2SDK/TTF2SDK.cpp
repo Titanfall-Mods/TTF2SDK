@@ -339,6 +339,8 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     m_modManager.reset(new ModManager(*m_conCommandManager));
     m_uiManager.reset(new UIManager(*m_conCommandManager, *m_sqManager));
 
+    m_icepickMenu.reset(new IcepickMenu(*m_conCommandManager, *m_uiManager));
+
     IVEngineServer_SpewFunc.Hook(m_engineServer->m_vtable, SpewFuncHook);
 
     _Host_RunFrame.Hook(WRAPPED_MEMBER(RunFrameHook));
@@ -395,6 +397,11 @@ ConCommandManager& TTF2SDK::GetConCommandManager()
 UIManager& TTF2SDK::GetUIManager()
 {
     return *m_uiManager;
+}
+
+IcepickMenu& TTF2SDK::GetIcepickMenu()
+{
+    return *m_icepickMenu;
 }
 
 SourceInterface<IVEngineServer>& TTF2SDK::GetEngineServer()

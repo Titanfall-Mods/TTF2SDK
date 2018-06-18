@@ -69,5 +69,6 @@ namespace fs = std::experimental::filesystem;
 #include "PakManager.h"
 #include "Preloader.h"
 #include "UIManager.h"
+#include "IcepickMenu.h"
 #include "TTF2SDK.h"
 

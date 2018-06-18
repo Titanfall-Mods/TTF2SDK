@@ -136,6 +136,7 @@
     <ClInclude Include="Console.h" />
     <ClInclude Include="diff_match_patch.h" />
     <ClInclude Include="FileSystemManager.h" />
+    <ClInclude Include="IcepickMenu.h" />
     <ClInclude Include="ICvar.h" />
     <ClInclude Include="IFrameTask.h" />
     <ClInclude Include="ISurface.h" />
@@ -179,6 +180,7 @@
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="FileSystemManager.cpp" />
+    <ClCompile Include="IcepickMenu.cpp" />
     <ClCompile Include="Memory.cpp" />
     <ClCompile Include="ModelsList.cpp" />
     <ClCompile Include="ModManager.cpp" />
