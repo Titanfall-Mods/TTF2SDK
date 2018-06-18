@@ -29,18 +29,19 @@ SharedHookedFunc<void, HSQUIRRELVM, const SQChar*, const SQChar*, SQInteger, SQI
 SharedSigFunc<SQRESULT, HSQUIRRELVM, SQInteger, SQBool> sq_newslot("\x40\x53\x48\x83\xEC\x00\x44\x8B\x49\x00\x45\x8B\xD8", "xxxxx?xxx?xxx");
 SharedSigFunc<void, HSQUIRRELVM, const SQChar*, SQInteger> sq_pushstring("\x40\x56\x48\x83\xEC\x00\x48\x8B\xF1\x48\x85\xD2\x0F\x84\x00\x00\x00\x00\x48\x89\x5C\x24\x00\x48\x8B\x59\x00\x48\x89\x7C\x24\x00\x48\x8B\x8B\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\xC7\x44\x24\x00\x00\x00\x00\x00\x48\x89\x58\x00\xFF\x40\x00\x8B\x56\x00", "xxxxx?xxxxxxxx????xxxx?xxx?xxxx?xxx????x????xxxx?????xxx?xx?xx?");
 SharedSigFunc<void, HSQUIRRELVM> sq_poptop("\xCC\x8B\x41\x68\xFF\xC8\x89\x41\x68\x8B\xD0\x33\xC0", "xxxxxxxxxxxxx");
-SharedSigFunc<void, HSQUIRRELVM, SQFUNCTION> sq_almost_newclosure("\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x00\x48\x8B\x69\x00\x48\x8B\xF9\x48\x8B\x0D\x00\x00\x00\x00\x48\x83\x39\x00\x48\x8B\xF2", "xxxx?xxxx?xxxx?xxxx?xxx?xxxxxx????xxx?xxx");
-SharedSigFunc<SQRESULT, HSQUIRRELVM, SQInteger, const SQChar*> sq_setnativeclosurename("\x40\x56\x48\x83\xEC\x00\x8B\x51\x00", "xxxxx?xx?");
-SharedSigFunc<void, HSQUIRRELVM, SQInteger, const SQChar*, char, char> sq_almost_setparamscheck("\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x44\x8B\x51\x00", "xxxx?xxxx?xxxx?xxxx????xxx?");
-SharedSigFunc<int64_t, HSQUIRRELVM, const SQChar*, SQFUNCTION, int64_t, char, uint64_t> sq_registerfunc("\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x41\x56\x41\x57\x48\x83\xEC\x00\x48\x8B\x59\x00\x4C\x8B\xF1", "xxxx?xxxx?xxxx?xxxxxxxx?xxx?xxx");
 
-SharedHookedFunc<int64_t, HSQUIRRELVM, int64_t, int64_t, int64_t> sqstd_register_mathlib("\x40\x55\x48\x83\xEC\x00\x48\x89\x5C\x24\x00\x33\xED", "xxxxx?xxxx?xx");
+SharedSigFunc<const SQChar*, HSQUIRRELVM, SQInteger> sq_getstring("\x48\x8B\x41\x00\x4C\x63\xC2\x4D\x03\xC0\x4A\x8B\x44\xC0\x00\x48\x83\xC0\x00", "xxx?xxxxxxxxxx?xxx?");
+SharedSigFunc<SQInteger, HSQUIRRELVM, SQInteger> sq_getinteger("\x48\x63\xC2\x48\xC1\xE0\x00\x48\x03\x41\x00\x81\x38\x00\x00\x00\x00\x75\x00\x8B\x40\x00", "xxxxxx?xxx?xx????x?xx?");
+SharedSigFunc<SQFloat, HSQUIRRELVM, SQInteger> sq_getfloat("\x48\x63\xC2\x48\xC1\xE0\x00\x48\x03\x41\x00\x81\x38\x00\x00\x00\x00\x75\x00\xF3\x0F\x10\x40\x00", "xxxxxx?xxx?xx????x?xxxx?");
+
 SharedHookedFunc<R2SquirrelVM*, int64_t, int, float> CreateNewVM("\x40\x53\x56\x57\x48\x83\xEC\x00\xB9\x00\x00\x00\x00", "xxxxxxx?x????");
 SigScanFunc<void> clientVMFinder("client.dll", "\x44\x8B\xC2\x48\x8B\xD1\x48\x8B\x0D\x00\x00\x00\x00", "xxxxxxxxx????");
 SigScanFunc<void> serverVMFinder("server.dll", "\x48\x89\x5C\x24\x00\x55\x48\x83\xEC\x00\x48\x8B\x05\x00\x00\x00\x00\x48\x8B\xEA", "xxxx?xxxx?xxx????xxx");
 HookedFunc<int64_t> RunClientInitCallbacks("client.dll", "\x40\x53\x48\x83\xEC\x00\x48\x8B\x05\x00\x00\x00\x00\x83\x78\x00\x00\x7C\x00", "xxxxx?xxx????xx??x?");
 HookedFunc<int64_t> RunServerInitCallbacks("server.dll", "\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x00\x48\x8B\x0D\x00\x00\x00\x00\xB2\x00", "xxxx?xxxx?xxx????x?");
 SharedSigFunc<bool, R2SquirrelVM*, const char*> RunCallback("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x48\x83\xEC\x60\x48\x8B\x59\x08\x48\x8B\xE9", "xxxxxxxxxxxxxxxxxxxxxxxxxxx");
+
+SharedSigFunc<int64_t, R2SquirrelVM*, SQFuncRegistrationInternal*, char> AddSquirrelReg("\x48\x83\xEC\x00\x45\x0F\xB6\xC8\x45\x33\xC0", "xxx?xxxxxxx");
 
 SquirrelManager::SquirrelManager(ConCommandManager& conCommandManager)
 {
@@ -61,7 +62,6 @@ SquirrelManager::SquirrelManager(ConCommandManager& conCommandManager)
     base_print.Hook(WRAPPED_MEMBER(BasePrintHook<CONTEXT_CLIENT>), WRAPPED_MEMBER(BasePrintHook<CONTEXT_SERVER>));
     sqstd_compiler_error.Hook(WRAPPED_MEMBER(CompilerErrorHook<CONTEXT_CLIENT>), WRAPPED_MEMBER(CompilerErrorHook<CONTEXT_SERVER>));
     CreateNewVM.Hook(WRAPPED_MEMBER(CreateNewVMHook<CONTEXT_CLIENT>), WRAPPED_MEMBER(CreateNewVMHook<CONTEXT_SERVER>));
-    sqstd_register_mathlib.Hook(WRAPPED_MEMBER(RegisterMathlibHook<CONTEXT_CLIENT>), WRAPPED_MEMBER(RegisterMathlibHook<CONTEXT_SERVER>));
     RunClientInitCallbacks.Hook(WRAPPED_MEMBER(RunClientInitCallbacksHook));
     RunServerInitCallbacks.Hook(WRAPPED_MEMBER(RunServerInitCallbacksHook));
 
@@ -151,9 +151,16 @@ void SquirrelManager::ExecuteClientCode(const char* code)
     ExecuteCode<CONTEXT_CLIENT>(code);
 }
 
-void SquirrelManager::AddFuncRegistration(ExecutionContext context, const std::string& name, SQFUNCTION func)
+void SquirrelManager::AddFuncRegistration(
+    ExecutionContext context,
+    const std::string& returnType,
+    const std::string& name,
+    const std::string& argTypes,
+    const std::string& helpText,
+    SQFUNCTION func
+)
 {
-    m_funcsToRegister.emplace_back(context, name, func);
+    m_funcsToRegister.emplace_back(context, returnType, name, argTypes, helpText, func);
 }
 
 int64_t SquirrelManager::RunClientInitCallbacksHook()
@@ -239,12 +246,16 @@ void SquirrelManager::ExecuteCode(const char* code)
     }
 }
 
-template<ExecutionContext context>
-void SquirrelManager::RegisterFunction(HSQUIRRELVM v, const SQChar* name, SQFUNCTION func, int64_t unk1)
+void SquirrelManager::RegisterFunction(R2SquirrelVM* vm, SQFuncRegistration& reg)
 {
-    // TODO: These constants will probably not work in general.
-    sq_registerfunc.Call<context>(v, name, func, unk1, 0, 0);
-    sq_almost_setparamscheck.Call<context>(v, 0x05000002, ".", 0, 0);
+    if (reg.GetContext() == CONTEXT_CLIENT)
+    {
+        AddSquirrelReg.CallClient(vm, reg.GetInternalReg(), 1);
+    }
+    else if (reg.GetContext() == CONTEXT_SERVER)
+    {
+        AddSquirrelReg.CallServer(vm, reg.GetInternalReg(), 1);
+    }
 }
 
 template<ExecutionContext context>
@@ -252,20 +263,13 @@ R2SquirrelVM* SquirrelManager::CreateNewVMHook(int64_t a1, int a2, float a3)
 {
     R2SquirrelVM* vm = CreateNewVM.Call<context>(a2, a2, a3);
     SPDLOG_TRACE(m_logger, "CreateNewVM ({}): {}", Util::GetContextName(context), (void*)vm);
-    return vm;
-}
-
-template<ExecutionContext context>
-int64_t SquirrelManager::RegisterMathlibHook(HSQUIRRELVM a1, int64_t a2, int64_t a3, int64_t a4)
-{
-    SPDLOG_TRACE(m_logger, "RegisterMathlibHook ({})", Util::GetContextName(context));
-    for (const auto& reg : m_funcsToRegister)
+    for (auto& reg : m_funcsToRegister)
     {
-        if (reg.context == context)
+        if (reg.GetContext() == context)
         {
-            RegisterFunction<context>(a1, reg.name.c_str(), reg.func, a4);
-            SPDLOG_DEBUG(m_logger, "Registered {} in {} context", reg.name, Util::GetContextName(context));
+            RegisterFunction(vm, reg);
+            SPDLOG_DEBUG(m_logger, "Registered {} in {} context", reg.GetName(), Util::GetContextName(context));
         }
     }
-    return sqstd_register_mathlib.Call<context>(a1, a2, a3, a4);
+    return vm;
 }

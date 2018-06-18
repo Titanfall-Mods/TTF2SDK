@@ -60,8 +60,8 @@ UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqMa
 
     conCommandManager.RegisterCommand("show_cursor", WRAPPED_MEMBER(ShowCursorCommand), "Set visibility of cursor", 0);
 
-    sqManager.AddFuncRegistration(CONTEXT_CLIENT, "ShowCursor", WRAPPED_MEMBER(SQShowCursor));
-    sqManager.AddFuncRegistration(CONTEXT_CLIENT, "HideCursor", WRAPPED_MEMBER(SQHideCursor));
+    sqManager.AddFuncRegistration(CONTEXT_CLIENT, "void", "ShowCursor", "", "", WRAPPED_MEMBER(SQShowCursor));
+    sqManager.AddFuncRegistration(CONTEXT_CLIENT, "void", "HideCursor", "", "", WRAPPED_MEMBER(SQHideCursor));
 }
 
 UIManager::~UIManager()

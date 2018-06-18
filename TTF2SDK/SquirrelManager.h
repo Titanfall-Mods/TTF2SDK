@@ -5,6 +5,7 @@
 #define SQTrue	(1)
 #define SQFalse	(0)
 
+typedef float SQFloat;
 typedef long SQInteger;
 typedef unsigned long SQUnsignedInteger;
 typedef char SQChar;
@@ -38,17 +39,80 @@ struct R2SquirrelVM
     HSQUIRRELVM sqvm;
 };
 
-struct SQFuncRegistration
+struct SQFuncRegistrationInternal
 {
-    ExecutionContext context;
-    std::string name;
-    SQFUNCTION func;
+    const char* squirrelFuncName;
+    const char* cppFuncName;
+    const char* helpText;
+    const char* returnValueType;
+    const char* argTypes;
+    int16_t somethingThatsZero;
+    int16_t padding1;
+    int32_t unknown1;
+    int64_t unknown2;
+    int32_t unknown3;
+    int32_t padding2;
+    int64_t unknown4;
+    int64_t unknown5;
+    int64_t unknown6;
+    int32_t unknown7;
+    int32_t padding3;
+    void* funcPtr;
 
-    SQFuncRegistration(ExecutionContext context, const std::string& name, SQFUNCTION func)
-        : context(context),
-          name(name),
-          func(func)
-    { }
+    SQFuncRegistrationInternal()
+    {
+        memset(this, 0, sizeof(SQFuncRegistrationInternal));
+        this->padding2 = 32;
+    }
+};
+
+class SQFuncRegistration
+{
+public:
+    SQFuncRegistration(
+        ExecutionContext context,
+        const std::string& returnType,
+        const std::string& name,
+        const std::string& argTypes,
+        const std::string& helpText,
+        SQFUNCTION funcPtr
+    ) : 
+        m_context(context),
+        m_retValueType(returnType),
+        m_funcName(name),
+        m_argTypes(argTypes),
+        m_helpText(helpText)
+    {
+        m_internalReg.squirrelFuncName = m_funcName.c_str();
+        m_internalReg.cppFuncName = m_funcName.c_str();
+        m_internalReg.helpText = m_helpText.c_str();
+        m_internalReg.returnValueType = m_retValueType.c_str();
+        m_internalReg.argTypes = m_argTypes.c_str();
+        m_internalReg.funcPtr = funcPtr;
+    }
+
+    ExecutionContext GetContext() const
+    {
+        return m_context;
+    }
+
+    SQFuncRegistrationInternal* GetInternalReg()
+    {
+        return &m_internalReg;
+    }
+
+    const std::string& GetName() const
+    {
+        return m_funcName;
+    }
+
+private:
+    ExecutionContext m_context;
+    std::string m_funcName;
+    std::string m_helpText;
+    std::string m_retValueType;
+    std::string m_argTypes;
+    SQFuncRegistrationInternal m_internalReg;
 };
 
 class SquirrelManager
@@ -57,7 +121,7 @@ private:
     std::shared_ptr<spdlog::logger> m_logger;
     R2SquirrelVM** m_ppClientVM = nullptr;
     R2SquirrelVM** m_ppServerVM = nullptr;
-    std::vector<SQFuncRegistration> m_funcsToRegister;
+    std::list<SQFuncRegistration> m_funcsToRegister;
     std::vector<std::string> m_clientCallbacks;
     std::vector<std::string> m_serverCallbacks;
 
@@ -82,16 +146,19 @@ public:
     void ExecuteServerCode(const char* code);
     void ExecuteClientCode(const char* code);
 
-    template<ExecutionContext context>
-    void RegisterFunction(HSQUIRRELVM v, const SQChar* name, SQFUNCTION func, int64_t unk1);
+    void RegisterFunction(R2SquirrelVM* vm, SQFuncRegistration& reg);
 
-    void AddFuncRegistration(ExecutionContext context, const std::string& name, SQFUNCTION func);
+    void AddFuncRegistration(
+        ExecutionContext context,
+        const std::string& returnType,
+        const std::string& name,
+        const std::string& argTypes,
+        const std::string& helpText,
+        SQFUNCTION func
+    );
 
     template<ExecutionContext context>
     R2SquirrelVM* CreateNewVMHook(int64_t a1, int a2, float a3);
-
-    template<ExecutionContext context>
-    int64_t RegisterMathlibHook(HSQUIRRELVM a1, int64_t a2, int64_t a3, int64_t a4);
 
     int64_t RunClientInitCallbacksHook();
     int64_t RunServerInitCallbacksHook();
@@ -100,3 +167,7 @@ public:
     void AddClientCallback(const std::string& cb);
     void ClearCallbacks();
 };
+
+extern SharedSigFunc<const SQChar*, HSQUIRRELVM, SQInteger> sq_getstring;
+extern SharedSigFunc<SQInteger, HSQUIRRELVM, SQInteger> sq_getinteger;
+extern SharedSigFunc<SQFloat, HSQUIRRELVM, SQInteger> sq_getfloat;

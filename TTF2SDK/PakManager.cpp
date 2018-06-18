@@ -124,8 +124,8 @@ PakManager::PakManager(
     conCommandManager.RegisterCommand("print_current_level_pak", WRAPPED_MEMBER(PrintCurrentLevelPak), "Prints current level pak file", 0);
     // TODO: Command to print stuff we want to load
 
-    squirrelManager.AddFuncRegistration(CONTEXT_SERVER, "EnableExternalSpawnMode", WRAPPED_MEMBER(EnableExternalSpawnMode));
-    squirrelManager.AddFuncRegistration(CONTEXT_SERVER, "DisableExternalSpawnMode", WRAPPED_MEMBER(DisableExternalSpawnMode));
+    squirrelManager.AddFuncRegistration(CONTEXT_SERVER, "void", "EnableExternalSpawnMode", "", "", WRAPPED_MEMBER(EnableExternalSpawnMode));
+    squirrelManager.AddFuncRegistration(CONTEXT_SERVER, "void", "DisableExternalSpawnMode", "", "", WRAPPED_MEMBER(DisableExternalSpawnMode));
 }
 
 void PakManager::PrintRegistrations(const CCommand& args)
