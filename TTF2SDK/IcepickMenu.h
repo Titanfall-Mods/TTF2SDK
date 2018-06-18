@@ -1,12 +1,5 @@
 #pragma once
 
-enum SpawnlistTab
-{
-    Props,
-    Entities,
-    Weapons
-};
-
 enum SpawnlistDisplayMode
 {
     Tree,
@@ -69,7 +62,7 @@ public:
 struct SpawnEntity
 {
 public:
-    SpawnEntity(char * inName, char * inId)
+    SpawnEntity( const char * inName, const char * inId )
     {
         FriendlyName = inName;
         EntityId = inId;
@@ -82,18 +75,32 @@ public:
 struct EntityCategory
 {
 public:
-    EntityCategory(char * inTitle, SpawnlistTab inTab, char * inSpawnCode)
-    {
-        Title = inTitle;
-        Tab = inTab;
-        SpawnCode = inSpawnCode;
-    }
+	EntityCategory( const char * inId, const char * inTitle, const char * inCallbackName )
+	{
+		Id = inId;
+		Title = inTitle;
+		CallbackName = inCallbackName;
+	}
 
-    std::string Title;
-    SpawnlistTab Tab;
-    std::string SpawnCode;
-    std::vector<SpawnEntity> Ents;
-    ExecutionContext Context = CONTEXT_SERVER;
+	std::string Id;
+	std::string Title;
+	std::string CallbackName;
+	std::vector<SpawnEntity> Ents;
+	ExecutionContext Context = CONTEXT_SERVER;
+};
+
+struct SpawnmenuPage
+{
+public:
+	SpawnmenuPage( const char * inId, const char * inFriendlyName )
+	{
+		Id = inId;
+		FriendlyName = inFriendlyName;
+	}
+
+	std::string Id;
+	std::string FriendlyName;
+	std::vector<EntityCategory> Categories;
 };
 
 class IcepickMenu
@@ -107,7 +114,7 @@ public:
     void DrawDirectoryModels(struct ModelsDirectory * dir);
     void DrawToolsGui(float ToolsPanelWidth);
     void DrawOptionsGui();
-    void DrawCategoryTab(SpawnlistTab displayTab);
+    void DrawPage( int idx );
 
     void DrawCallback();
 
@@ -121,8 +128,21 @@ public:
     void SetOptionDefaultValue(const CCommand& args);
     void SetOptionMinMax(const CCommand& args);
 
+	SQInteger RegisterTool( HSQUIRRELVM v );
+	SQInteger AddToolOption_Divider( HSQUIRRELVM v );
+	SQInteger AddToolOption_Text( HSQUIRRELVM v );
+	SQInteger AddToolOption_Button( HSQUIRRELVM v );
+	SQInteger AddToolOption_Slider( HSQUIRRELVM v );
+	SQInteger AddToolOption_IntSlider( HSQUIRRELVM v );
+
+	SQInteger RegisterSpawnmenuPage( HSQUIRRELVM v );
+	SQInteger RegisterPageCategory( HSQUIRRELVM v );
+	SQInteger RegisterCategoryItem( HSQUIRRELVM v );
+
     Tool * GetToolFromId(const char * toolId);
     ToolOption * GetOptionFromId(Tool * tool, const char * optionId);
+	SpawnmenuPage * GetPageFromId( const char * pageId );
+	EntityCategory * GetCategoryFromId( const char * categoryId );
 
     SQInteger ExampleClientFunc(HSQUIRRELVM v);
 
@@ -130,8 +150,8 @@ private:
     std::vector<Tool> m_Tools;
     Tool * m_ViewingTool = nullptr;
 
-    std::vector<EntityCategory> m_EntCategories;
-    SpawnlistTab m_DisplayingTab = SpawnlistTab::Props;
+	int m_DisplayingPage = 0;
+	std::vector<SpawnmenuPage> m_Pages;
     bool m_IcepickMenuOpen = false;
 
     int m_SpawnmenuButtonSizes[7] = { 0, 32, 48, 64, 96, 128, 256 };

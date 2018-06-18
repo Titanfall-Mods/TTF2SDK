@@ -18,106 +18,20 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
     conCommandManager.RegisterCommand("option_set_default", WRAPPED_MEMBER(SetOptionDefaultValue), "Set the default value for an option", 0);
     conCommandManager.RegisterCommand("option_set_minmax", WRAPPED_MEMBER(SetOptionMinMax), "Set the minmax values for an option", 0);
 
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "RegisterTool", "string id, string friendlyName, string tooltip", "Help text", WRAPPED_MEMBER( RegisterTool ) );
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddDividerOption", "string toolId", "Help text", WRAPPED_MEMBER( AddToolOption_Divider ) );
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddTextOption", "string toolId, string text", "Help text", WRAPPED_MEMBER( AddToolOption_Text ) );
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddButtonOption", "string toolId, string id, string buttonText", "Help text", WRAPPED_MEMBER( AddToolOption_Button ) );
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddSliderOption", "string toolId, string id, string name, float default, float min, float max", "Help text", WRAPPED_MEMBER( AddToolOption_Slider ) );
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddIntSliderOption", "string toolId, string id, string name, int default, int min, int max", "Help text", WRAPPED_MEMBER( AddToolOption_IntSlider ) );
+
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "RegisterSpawnmenuPage", "string id, string friendlyName", "Help text", WRAPPED_MEMBER( RegisterSpawnmenuPage ) );
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "RegisterPageCategory", "string pageId, string id, string friendlyName, string callbackName", "Help text", WRAPPED_MEMBER( RegisterPageCategory ) );
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "RegisterCategoryItem", "string categoryId, string itemId, string friendlyName", "Help text", WRAPPED_MEMBER( RegisterCategoryItem ) );
+
     // Add models
     m_ModelsList = new ModelsList();
     m_ViewingDirectory = &m_ModelsList->BaseDir;
-
-    // Add Entities
-    EntityCategory entsHumans = EntityCategory("Humans", SpawnlistTab::Entities, "Spawnmenu_SpawnNpc(\"{0}\")");
-    entsHumans.Ents.push_back(SpawnEntity("Rifle Grunt", "npc_soldier"));
-    entsHumans.Ents.push_back(SpawnEntity("Shotgun Grunt", "npc_soldier_shotgun"));
-    entsHumans.Ents.push_back(SpawnEntity("SMG Grunt", "npc_soldier_smg"));
-    m_EntCategories.push_back(entsHumans);
-
-    EntityCategory entsRobots = EntityCategory("Robots", SpawnlistTab::Entities, "Spawnmenu_SpawnNpc(\"{0}\")");
-    entsRobots.Ents.push_back(SpawnEntity("Spectre", "npc_spectre"));
-    entsRobots.Ents.push_back(SpawnEntity("Stalker", "npc_stalker"));
-    entsRobots.Ents.push_back(SpawnEntity("Zombie Stalker", "npc_stalker_zombie"));
-    entsRobots.Ents.push_back(SpawnEntity("Zombie Stalker (Mossy)", "npc_stalker_zombie_mossy"));
-    entsRobots.Ents.push_back(SpawnEntity("Reaper", "npc_super_spectre"));
-    entsRobots.Ents.push_back(SpawnEntity("Drone", "npc_drone"));
-    entsRobots.Ents.push_back(SpawnEntity("Rocket Drone", "npc_drone_rocket"));
-    entsRobots.Ents.push_back(SpawnEntity("Plasma Drone", "npc_drone_plasma"));
-    entsRobots.Ents.push_back(SpawnEntity("Worker Drone", "npc_drone_worker"));
-    entsRobots.Ents.push_back(SpawnEntity("Tick", "npc_frag_drone"));
-    entsRobots.Ents.push_back(SpawnEntity("Marvin", "npc_marvin"));
-    m_EntCategories.push_back(entsRobots);
-
-    EntityCategory entsTitans = EntityCategory("Titans", SpawnlistTab::Entities, "Spawnmenu_SpawnNpc(\"{0}\")");
-    entsTitans.Ents.push_back(SpawnEntity("BT-7274", "npc_titan_bt"));
-    entsTitans.Ents.push_back(SpawnEntity("BT-7274 2", "npc_titan_bt_spare"));
-    entsTitans.Ents.push_back(SpawnEntity("Atlas", "npc_titan_atlas"));
-    entsTitans.Ents.push_back(SpawnEntity("Stryder", "npc_titan_stryder"));
-    entsTitans.Ents.push_back(SpawnEntity("Ogre", "npc_titan_ogre"));
-    m_EntCategories.push_back(entsTitans);
-
-    // Add Weapons
-    EntityCategory tools = EntityCategory("Tools", SpawnlistTab::Weapons, "Spawnmenu_GiveWeapon(\"{0}\")");
-    tools.Ents.push_back(SpawnEntity("Toolgun", "mp_weapon_shotgun_pistol"));
-    m_EntCategories.push_back(tools);
-
-    EntityCategory pilotPrimaries = EntityCategory("Primaries - Pilot", SpawnlistTab::Weapons, "Spawnmenu_GiveWeapon(\"{0}\")");
-    pilotPrimaries.Ents.push_back(SpawnEntity("R-201 Carbine", "mp_weapon_rspn101"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("R-101 Carbine", "mp_weapon_rspn101_og"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("Hemlok BF-R", "mp_weapon_hemlok"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("G2A5", "mp_weapon_g2"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("V-47 Flatline", "mp_weapon_vinson"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("CAR", "mp_weapon_car"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("Alternator", "mp_weapon_alternator_smg"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("Volt", "mp_weapon_hemlok_smg"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("R-47", "mp_weapon_r97"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("Spitfire", "mp_weapon_lmg"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("L_STAR", "mp_weapon_lstar"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("X-55 Devotion", "mp_weapon_esaw"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("Kraber-AP Sniper", "mp_weapon_sniper"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("D-2 Double Take", "mp_weapon_doubletake"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("Longbow-DMR", "mp_weapon_dmr"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("EVA-8 Auto", "mp_weapon_shotgun"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("Mastiff", "mp_weapon_mastiff"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("Sidewinder SMR", "mp_weapon_smr"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("EPG-1", "mp_weapon_epg"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("R-6P Softball", "mp_weapon_softball"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("EM-4 Cold War", "mp_weapon_pulse_lmg"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("Wingman Elite", "mp_weapon_wingman_n"));
-    pilotPrimaries.Ents.push_back(SpawnEntity("SA-3 Mozambique", "mp_weapon_shotgun_pistol"));
-    m_EntCategories.push_back(pilotPrimaries);
-
-    EntityCategory pilotSecondaries = EntityCategory("Secondaries - Pilot", SpawnlistTab::Weapons, "Spawnmenu_GiveWeapon(\"{0}\")");
-    pilotSecondaries.Ents.push_back(SpawnEntity("Hammond P2016", "mp_weapon_semipistol"));
-    pilotSecondaries.Ents.push_back(SpawnEntity("RE-45 Auto", "mp_weapon_autopistol"));
-    pilotSecondaries.Ents.push_back(SpawnEntity("B3 Wingman", "mp_weapon_wingman"));
-    pilotSecondaries.Ents.push_back(SpawnEntity("Charge Rifle", "mp_weapon_defender"));
-    pilotSecondaries.Ents.push_back(SpawnEntity("MGL Mag Launcher", "mp_weapon_mgl"));
-    pilotSecondaries.Ents.push_back(SpawnEntity("LG-97 Thunderbolt", "mp_weapon_arc_launcher"));
-    pilotSecondaries.Ents.push_back(SpawnEntity("Archer", "mp_weapon_rocket_launcher"));
-    m_EntCategories.push_back(pilotSecondaries);
-
-    EntityCategory pilotAbilities = EntityCategory("Pilot Abilities", SpawnlistTab::Weapons, "Spawnmenu_GiveAbility(\"{0}\")");
-    pilotAbilities.Ents.push_back(SpawnEntity("Cloak", "mp_ability_cloak"));
-    pilotAbilities.Ents.push_back(SpawnEntity("Grapple", "mp_ability_grapple"));
-    pilotAbilities.Ents.push_back(SpawnEntity("Stim", "mp_ability_heal"));
-    pilotAbilities.Ents.push_back(SpawnEntity("Holopilot", "mp_ability_holopilot"));
-    pilotAbilities.Ents.push_back(SpawnEntity("Phase Shift", "mp_ability_shifter"));
-    pilotAbilities.Ents.push_back(SpawnEntity("Pulse Blade", "mp_weapon_grenade_sonar"));
-    pilotAbilities.Ents.push_back(SpawnEntity("A-Wall", "mp_weapon_deployable_cover"));
-    pilotAbilities.Ents.push_back(SpawnEntity("Timeshift [Effect and Cause]", "mp_ability_timeshift"));
-    pilotAbilities.Ents.push_back(SpawnEntity("Arcblast [Dev]", "mp_ability_arc_blast"));
-    pilotAbilities.Ents.push_back(SpawnEntity("Super Phase Shift [Dev]", "mp_ability_shifter_super"));
-    m_EntCategories.push_back(pilotAbilities);
-
-    EntityCategory pilotGrenades = EntityCategory("Pilot Ordnance", SpawnlistTab::Weapons, "Spawnmenu_GiveGrenade(\"{0}\")");
-    pilotGrenades.Ents.push_back(SpawnEntity("Frag Grenade", "mp_weapon_frag_grenade"));
-    pilotGrenades.Ents.push_back(SpawnEntity("Firestar", "mp_weapon_thermite_grenade"));
-    pilotGrenades.Ents.push_back(SpawnEntity("Electric Smoke Grenade", "mp_weapon_grenade_electric_smoke"));
-    pilotGrenades.Ents.push_back(SpawnEntity("Arc Grenade", "mp_weapon_grenade_emp"));
-    pilotGrenades.Ents.push_back(SpawnEntity("Gravity Star", "mp_weapon_grenade_gravity"));
-    pilotGrenades.Ents.push_back(SpawnEntity("Satchel", "mp_weapon_satchel"));
-    m_EntCategories.push_back(pilotGrenades);
-
-    EntityCategory pilotMelee = EntityCategory("Pilot Melee", SpawnlistTab::Weapons, "Spawnmenu_GiveMelee(\"{0}\")");
-    pilotMelee.Ents.push_back(SpawnEntity("Standard Melee", "melee_pilot_emptyhanded"));
-    pilotMelee.Ents.push_back(SpawnEntity("Sword Melee", "melee_pilot_sword"));
-    m_EntCategories.push_back(pilotMelee);
 
     uiManager.AddDrawCallback("IcepickMenu", std::bind(&IcepickMenu::DrawCallback, this));
 
@@ -224,6 +138,158 @@ void IcepickMenu::SetOptionMinMax(const CCommand& args)
     }
 }
 
+SQInteger IcepickMenu::RegisterTool( HSQUIRRELVM v )
+{
+	const SQChar * toolId = sq_getstring.CallClient( v, 1 );
+	const SQChar * name = sq_getstring.CallClient( v, 2 );
+	const SQChar * tooltip = sq_getstring.CallClient( v, 3 );
+
+	for( Tool & t : m_Tools )
+	{
+		if( t.Id.compare( toolId ) == 0 )
+		{
+			return 0; // Tool already registered
+		}
+	}
+	m_Tools.push_back( Tool( toolId, name, tooltip ) );
+
+	// Put tools in alphabetical order
+	std::sort( m_Tools.begin(), m_Tools.end(), []( Tool & a, Tool & b )
+	{
+		return a.FriendlyName < b.FriendlyName;
+	} );
+
+	return 0;
+}
+
+SQInteger IcepickMenu::AddToolOption_Divider( HSQUIRRELVM v )
+{
+	const SQChar * toolId = sq_getstring.CallClient( v, 1 );
+
+	if( Tool * tool = GetToolFromId( toolId ) )
+	{
+		tool->Options.push_back( ToolOption( toolId, "", ToolOptionType::Divider ) );
+	}
+	return 0;
+}
+
+SQInteger IcepickMenu::AddToolOption_Text( HSQUIRRELVM v )
+{
+	const SQChar * toolId = sq_getstring.CallClient( v, 1 );
+	const SQChar * text = sq_getstring.CallClient( v, 2 );
+
+	if( Tool * tool = GetToolFromId( toolId ) )
+	{
+		tool->Options.push_back( ToolOption( text, text, ToolOptionType::Text ) );
+	}
+	return 0;
+}
+
+SQInteger IcepickMenu::AddToolOption_Button( HSQUIRRELVM v )
+{
+	const SQChar * toolId = sq_getstring.CallClient( v, 1 );
+	const SQChar * optionId = sq_getstring.CallClient( v, 2 );
+	const SQChar * text = sq_getstring.CallClient( v, 3 );
+
+	if( Tool * tool = GetToolFromId( toolId ) )
+	{
+		tool->Options.push_back( ToolOption( optionId, text, ToolOptionType::Button ) );
+	}
+	return 0;
+}
+
+SQInteger IcepickMenu::AddToolOption_Slider( HSQUIRRELVM v )
+{
+	const SQChar * toolId = sq_getstring.CallClient( v, 1 );
+	const SQChar * optionId = sq_getstring.CallClient( v, 2 );
+	const SQChar * name = sq_getstring.CallClient( v, 3 );
+	float defaultValue = sq_getfloat.CallClient( v, 4 );
+	float min = sq_getfloat.CallClient( v, 5 );
+	float max = sq_getfloat.CallClient( v, 6 );
+
+	if( Tool * tool = GetToolFromId( toolId ) )
+	{
+		ToolOption option = ToolOption( optionId, name, ToolOptionType::Slider );
+		option.FloatValue = defaultValue;
+		option.IntValue = (int) defaultValue;
+		option.Min = min;
+		option.Max = max;
+		tool->Options.push_back( option );
+	}
+	return 0;
+}
+
+SQInteger IcepickMenu::AddToolOption_IntSlider( HSQUIRRELVM v )
+{
+	const SQChar * toolId = sq_getstring.CallClient( v, 1 );
+	const SQChar * optionId = sq_getstring.CallClient( v, 2 );
+	const SQChar * name = sq_getstring.CallClient( v, 3 );
+	int defaultValue = sq_getinteger.CallClient( v, 4 );
+	int min = sq_getinteger.CallClient( v, 5 );
+	int max = sq_getinteger.CallClient( v, 6 );
+
+	if( Tool * tool = GetToolFromId( toolId ) )
+	{
+		ToolOption option = ToolOption( optionId, name, ToolOptionType::IntSlider );
+		option.FloatValue = (float) defaultValue;
+		option.IntValue = defaultValue;
+		option.Min = min;
+		option.Max = max;
+		tool->Options.push_back( option );
+	}
+	return 0;
+}
+
+SQInteger IcepickMenu::RegisterSpawnmenuPage( HSQUIRRELVM v )
+{
+	const SQChar * pageId = sq_getstring.CallClient( v, 1 );
+	const SQChar * pageName = sq_getstring.CallClient( v, 2 );
+
+	SpawnmenuPage newPage = SpawnmenuPage( pageId, pageName );
+	m_Pages.push_back( newPage );
+
+	return 0;
+}
+
+SQInteger IcepickMenu::RegisterPageCategory( HSQUIRRELVM v )
+{
+	const SQChar * pageId = sq_getstring.CallClient( v, 1 );
+	const SQChar * categoryId = sq_getstring.CallClient( v, 2 );
+	const SQChar * categoryName = sq_getstring.CallClient( v, 3 );
+	const SQChar * callbackName = sq_getstring.CallClient( v, 4 );
+
+	if( SpawnmenuPage * page = GetPageFromId( pageId ) )
+	{
+		EntityCategory newCategory = EntityCategory( categoryId, categoryName, callbackName );
+		page->Categories.push_back( newCategory );
+	}
+	else
+	{
+		spdlog::get( "logger" )->error( "Could not register category! No page found with id {}", pageId );
+	}
+
+	return 0;
+}
+
+SQInteger IcepickMenu::RegisterCategoryItem( HSQUIRRELVM v )
+{
+	const SQChar * categoryId = sq_getstring.CallClient( v, 1 );
+	const SQChar * itemId = sq_getstring.CallClient( v, 2 );
+	const SQChar * itemName = sq_getstring.CallClient( v, 3 );
+
+	if( EntityCategory * category = GetCategoryFromId( categoryId ) )
+	{
+		SpawnEntity newEnt = SpawnEntity( itemName, itemId );
+		category->Ents.push_back( newEnt );
+	}
+	else
+	{
+		spdlog::get( "logger" )->error( "Could not register item! No category found with id {}", categoryId );
+	}
+
+	return 0;
+}
+
 Tool * IcepickMenu::GetToolFromId(const char * toolId)
 {
     for (Tool & t : m_Tools)
@@ -246,6 +312,33 @@ ToolOption * IcepickMenu::GetOptionFromId(Tool * tool, const char * optionId)
         }
     }
     return nullptr;
+}
+
+SpawnmenuPage * IcepickMenu::GetPageFromId( const char * pageId )
+{
+	for( SpawnmenuPage & page : m_Pages )
+	{
+		if( page.Id.compare( pageId ) == 0 )
+		{
+			return &page;
+		}
+	}
+	return nullptr;
+}
+
+EntityCategory * IcepickMenu::GetCategoryFromId( const char * categoryId )
+{
+	for( SpawnmenuPage & page : m_Pages )
+	{
+		for( EntityCategory & category : page.Categories )
+		{
+			if( category.Id.compare( categoryId ) == 0 )
+			{
+				return &category;
+			}
+		}
+	}
+	return nullptr;
 }
 
 SQInteger IcepickMenu::ExampleClientFunc(HSQUIRRELVM v)
@@ -436,46 +529,40 @@ void IcepickMenu::DrawOptionsGui()
     }
 }
 
-void IcepickMenu::DrawCategoryTab(SpawnlistTab displayTab)
+void IcepickMenu::DrawPage( int idx )
 {
     const float ButtonSize = m_SpawnmenuButtonSize > 0 ? m_SpawnmenuButtonSize : 200.0f;
     const int NumColumns = (int)(ImGui::GetWindowContentRegionWidth() / ButtonSize);
 
-    for (EntityCategory & entCategory : m_EntCategories)
-    {
-        if (entCategory.Tab == displayTab)
-        {
-            if (ImGui::CollapsingHeader(entCategory.Title.c_str()))
-            {
-                ImGui::Columns(NumColumns, nullptr, false);
-                for (SpawnEntity & ent : entCategory.Ents)
-                {
-                    if (ImGui::Button(ent.FriendlyName.c_str(), ImVec2(m_SpawnmenuButtonSize, m_SpawnmenuButtonSize)))
-                    {
-                        std::string ExecuteString = std::string(entCategory.SpawnCode);
-                        std::string Replace = "{0}";
-                        size_t start_pos = ExecuteString.find(Replace);
-                        if (start_pos != std::string::npos)
-                        {
-                            ExecuteString.replace(start_pos, Replace.length(), ent.EntityId);
-                            switch (entCategory.Context)
-                            {
-                            case CONTEXT_CLIENT:
-                                SDK().GetSQManager().ExecuteClientCode(ExecuteString.c_str());
-                                break;
-                            default:
-                            case CONTEXT_SERVER:
-                                SDK().GetSQManager().ExecuteServerCode(ExecuteString.c_str());
-                                break;
-                            }
-                        }
-                    }
-                    ImGui::NextColumn();
-                }
-                ImGui::Columns(1);
-            }
-        }
-    }
+	if( SpawnmenuPage * currentPage = &(m_Pages[idx]) )
+	{
+		for( EntityCategory & entCategory : currentPage->Categories )
+		{
+			if( ImGui::CollapsingHeader( entCategory.Title.c_str() ) )
+			{
+				ImGui::Columns( NumColumns, nullptr, false );
+				for( SpawnEntity & ent : entCategory.Ents )
+				{
+					if( ImGui::Button( ent.FriendlyName.c_str(), ImVec2( m_SpawnmenuButtonSize, m_SpawnmenuButtonSize ) ) )
+					{
+						std::string ExecuteString = entCategory.CallbackName + "( \"" + ent.EntityId + "\" )";
+						switch( entCategory.Context )
+						{
+							case CONTEXT_CLIENT:
+								SDK().GetSQManager().ExecuteClientCode( ExecuteString.c_str() );
+								break;
+							default:
+							case CONTEXT_SERVER:
+								SDK().GetSQManager().ExecuteServerCode( ExecuteString.c_str() );
+								break;
+						}
+					}
+					ImGui::NextColumn();
+				}
+				ImGui::Columns( 1 );
+			}
+		}
+	}
 }
 
 void IcepickMenu::DrawCallback()
@@ -485,22 +572,25 @@ void IcepickMenu::DrawCallback()
         return;
     }
 
-    ImGui::Begin("Icepick", nullptr, ImGuiWindowFlags_MenuBar);
+	float Padding = 10.0f;
+	ImGui::SetNextWindowSize( ImVec2( ImGui::GetIO().DisplaySize.x - Padding * 2.0f, ImGui::GetIO().DisplaySize.y - Padding * 2.0f ) );
+	ImGui::SetNextWindowPos( ImVec2( Padding, Padding ) );
+    ImGui::Begin( "Icepick", nullptr, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse );
     {
         if (ImGui::BeginMenuBar())
         {
-            if (ImGui::MenuItem("Props"))
-            {
-                m_DisplayingTab = SpawnlistTab::Props;
-            }
-            if (ImGui::MenuItem("Entities"))
-            {
-                m_DisplayingTab = SpawnlistTab::Entities;
-            }
-            if (ImGui::MenuItem("Weapons"))
-            {
-                m_DisplayingTab = SpawnlistTab::Weapons;
-            }
+			if( ImGui::MenuItem( "Props" ) )
+			{
+				m_DisplayingPage = 0;
+			}
+			for( int i = 0; i < m_Pages.size(); ++i )
+			{
+				if( ImGui::MenuItem( m_Pages[i].FriendlyName.c_str() ) )
+				{
+					m_DisplayingPage = i + 1;
+				}
+			}
+
             if (ImGui::BeginMenu("Options"))
             {
                 if (ImGui::BeginMenu("Spawnlist"))
@@ -549,15 +639,14 @@ void IcepickMenu::DrawCallback()
         ImGui::BeginGroup();
         {
             ImGui::BeginChild("SpawnlistPane", ImVec2(SpawnlistWidth, 0));
-            switch (m_DisplayingTab)
-            {
-            case SpawnlistTab::Props:
-                DrawPropsGui();
-            case SpawnlistTab::Entities:
-            case SpawnlistTab::Weapons:
-                DrawCategoryTab(m_DisplayingTab);
-                break;
-            }
+			if( m_DisplayingPage == 0 )
+			{
+				DrawPropsGui();
+			}
+			else
+			{
+				DrawPage( m_DisplayingPage - 1 );
+			}
             ImGui::EndChild();
         }
         ImGui::EndGroup();
