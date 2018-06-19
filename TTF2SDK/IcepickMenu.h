@@ -123,6 +123,7 @@ public:
     void ShowMenuCommand(const CCommand& args);
     void HideMenuCommand(const CCommand& args);
 
+	SQInteger ClearTools( HSQUIRRELVM v );
 	SQInteger RegisterTool( HSQUIRRELVM v );
 	SQInteger AddToolOption_Divider( HSQUIRRELVM v );
 	SQInteger AddToolOption_Text( HSQUIRRELVM v );
@@ -130,6 +131,7 @@ public:
 	SQInteger AddToolOption_Slider( HSQUIRRELVM v );
 	SQInteger AddToolOption_IntSlider( HSQUIRRELVM v );
 
+	SQInteger ClearSpawnmenu( HSQUIRRELVM v );
 	SQInteger RegisterSpawnmenuPage( HSQUIRRELVM v );
 	SQInteger RegisterPageCategory( HSQUIRRELVM v );
 	SQInteger RegisterCategoryItem( HSQUIRRELVM v );

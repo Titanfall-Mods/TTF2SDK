@@ -14,6 +14,7 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
     conCommandManager.RegisterCommand("show_icepick_menu", WRAPPED_MEMBER(ShowMenuCommand), "Shows the Icepick Menu", 0);
     conCommandManager.RegisterCommand("hide_icepick_menu", WRAPPED_MEMBER(HideMenuCommand), "Hides the Icepick Menu", 0);
 
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "ClearTools", "", "Help text", WRAPPED_MEMBER( ClearTools ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "RegisterTool", "string id, string friendlyName, string tooltip", "Help text", WRAPPED_MEMBER( RegisterTool ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddDividerOption", "string toolId", "Help text", WRAPPED_MEMBER( AddToolOption_Divider ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddTextOption", "string toolId, string text", "Help text", WRAPPED_MEMBER( AddToolOption_Text ) );
@@ -21,9 +22,10 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddSliderOption", "string toolId, string id, string name, float default, float min, float max", "Help text", WRAPPED_MEMBER( AddToolOption_Slider ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddIntSliderOption", "string toolId, string id, string name, int default, int min, int max", "Help text", WRAPPED_MEMBER( AddToolOption_IntSlider ) );
 
-	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "RegisterSpawnmenuPage", "string id, string friendlyName", "Help text", WRAPPED_MEMBER( RegisterSpawnmenuPage ) );
-	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "RegisterPageCategory", "string pageId, string id, string friendlyName, string callbackName", "Help text", WRAPPED_MEMBER( RegisterPageCategory ) );
-	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "RegisterCategoryItem", "string categoryId, string itemId, string friendlyName", "Help text", WRAPPED_MEMBER( RegisterCategoryItem ) );
+	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "ClearSpawnmenu", "", "Help text", WRAPPED_MEMBER( ClearSpawnmenu ) );
+	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "RegisterSpawnmenuPage", "string id, string friendlyName", "Help text", WRAPPED_MEMBER( RegisterSpawnmenuPage ) );
+	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "RegisterPageCategory", "string pageId, string id, string friendlyName, string callbackName", "Help text", WRAPPED_MEMBER( RegisterPageCategory ) );
+	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "RegisterCategoryItem", "string categoryId, string itemId, string friendlyName", "Help text", WRAPPED_MEMBER( RegisterCategoryItem ) );
 
     // Add models
     m_ModelsList = new ModelsList();
@@ -136,6 +138,12 @@ SQInteger IcepickMenu::AddToolOption_IntSlider( HSQUIRRELVM v )
 		option.Max = max;
 		tool->Options.push_back( option );
 	}
+	return 0;
+}
+
+SQInteger IcepickMenu::ClearSpawnmenu( HSQUIRRELVM v )
+{
+	m_Pages.clear();
 	return 0;
 }
 
@@ -573,4 +581,10 @@ void IcepickMenu::HideMenuCommand(const CCommand& args)
 {
     m_IcepickMenuOpen = false;
     SDK().GetUIManager().SQHideCursor(0);
+}
+
+SQInteger IcepickMenu::ClearTools( HSQUIRRELVM v )
+{
+	m_Tools.clear();
+	return 0;
 }
