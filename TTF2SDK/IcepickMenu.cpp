@@ -13,10 +13,6 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
     // Commands
     conCommandManager.RegisterCommand("show_icepick_menu", WRAPPED_MEMBER(ShowMenuCommand), "Shows the Icepick Menu", 0);
     conCommandManager.RegisterCommand("hide_icepick_menu", WRAPPED_MEMBER(HideMenuCommand), "Hides the Icepick Menu", 0);
-    conCommandManager.RegisterCommand("register_tool", WRAPPED_MEMBER(RegisterToolCommand), "Register a tool to appear in the spawn menu", 0);
-    conCommandManager.RegisterCommand("register_option", WRAPPED_MEMBER(RegisterToolOption), "Register an option for a specific tool", 0);
-    conCommandManager.RegisterCommand("option_set_default", WRAPPED_MEMBER(SetOptionDefaultValue), "Set the default value for an option", 0);
-    conCommandManager.RegisterCommand("option_set_minmax", WRAPPED_MEMBER(SetOptionMinMax), "Set the minmax values for an option", 0);
 
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "RegisterTool", "string id, string friendlyName, string tooltip", "Help text", WRAPPED_MEMBER( RegisterTool ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddDividerOption", "string toolId", "Help text", WRAPPED_MEMBER( AddToolOption_Divider ) );
@@ -34,108 +30,11 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
     m_ViewingDirectory = &m_ModelsList->BaseDir;
 
     uiManager.AddDrawCallback("IcepickMenu", std::bind(&IcepickMenu::DrawCallback, this));
-
-    sqManager.AddFuncRegistration(
-        CONTEXT_CLIENT,
-        "string",
-        "SomeCoolFunc",
-        "string coolArg, int sweetArg, float someOtherThing",
-        "Help text for function",
-        WRAPPED_MEMBER(ExampleClientFunc)
-    );
 }
 
 IcepickMenu::~IcepickMenu()
 {
     SDK().GetUIManager().RemoveDrawCallback("IcepickMenu");
-}
-
-void IcepickMenu::RegisterToolCommand(const CCommand& args)
-{
-    const char * id = args[1];
-    const char * name = args[2];
-    const char * tooltip = args[3];
-
-    for (Tool & t : m_Tools)
-    {
-        if (t.Id.compare(id) == 0)
-        {
-            return; // Tool already registered
-        }
-    }
-    m_Tools.push_back(Tool(id, name, tooltip));
-
-    // Put tools in alphabetical order
-    std::sort(m_Tools.begin(), m_Tools.end(), [](Tool & a, Tool & b)
-    {
-        return a.FriendlyName < b.FriendlyName;
-    });
-}
-
-void IcepickMenu::RegisterToolOption(const CCommand& args)
-{
-    const char * toolId = args[1];
-    const char * optionId = args[2];
-    const char * name = args[3];
-    ToolOptionType type = (ToolOptionType)std::stoi(args[4]);
-
-    for (Tool & t : m_Tools)
-    {
-        if (t.Id.compare(toolId) == 0)
-        {
-            for (ToolOption & option : t.Options)
-            {
-                if (option.Id.compare(optionId) == 0)
-                {
-                    return; // Already registered
-                }
-            }
-
-            t.Options.push_back(ToolOption(optionId, name, type));
-            break;
-        }
-    }
-}
-
-void IcepickMenu::SetOptionDefaultValue(const CCommand& args)
-{
-    const char * toolId = args[1];
-    const char * optionId = args[2];
-    const bool isStringValue = (bool)std::stoi(args[4]);
-
-    if (Tool * tool = GetToolFromId(toolId))
-    {
-        if (ToolOption * option = GetOptionFromId(tool, optionId))
-        {
-            if (isStringValue)
-            {
-                option->StringValue = args[3];
-            }
-            else
-            {
-                const float value = std::stof(args[3]);
-                option->FloatValue = value;
-                option->IntValue = value;
-            }
-        }
-    }
-}
-
-void IcepickMenu::SetOptionMinMax(const CCommand& args)
-{
-    const char * toolId = args[1];
-    const char * optionId = args[2];
-    const float min = std::stof(args[3]);
-    const float max = std::stof(args[4]);
-
-    if (Tool * tool = GetToolFromId(toolId))
-    {
-        if (ToolOption * option = GetOptionFromId(tool, optionId))
-        {
-            option->Min = min;
-            option->Max = max;
-        }
-    }
 }
 
 SQInteger IcepickMenu::RegisterTool( HSQUIRRELVM v )
@@ -340,19 +239,6 @@ EntityCategory * IcepickMenu::GetCategoryFromId( const char * categoryId )
 	}
 	return nullptr;
 }
-
-SQInteger IcepickMenu::ExampleClientFunc(HSQUIRRELVM v)
-{
-    const SQChar* str = sq_getstring.CallClient(v, 1);
-    int intVal = sq_getinteger.CallClient(v, 2);
-    float floatVal = sq_getfloat.CallClient(v, 3);
-
-    spdlog::get("logger")->info("SomeCoolFunc called with {}, {}, {}", str, intVal, floatVal);
-
-    sq_pushstring.CallClient(v, "this is a string", -1);
-    return 1;
-}
-
 
 void IcepickMenu::DrawPropsGui()
 {

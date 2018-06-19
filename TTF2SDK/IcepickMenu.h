@@ -123,11 +123,6 @@ public:
     void ShowMenuCommand(const CCommand& args);
     void HideMenuCommand(const CCommand& args);
 
-    void RegisterToolCommand(const CCommand& args);
-    void RegisterToolOption(const CCommand& args);
-    void SetOptionDefaultValue(const CCommand& args);
-    void SetOptionMinMax(const CCommand& args);
-
 	SQInteger RegisterTool( HSQUIRRELVM v );
 	SQInteger AddToolOption_Divider( HSQUIRRELVM v );
 	SQInteger AddToolOption_Text( HSQUIRRELVM v );
@@ -143,8 +138,6 @@ public:
     ToolOption * GetOptionFromId(Tool * tool, const char * optionId);
 	SpawnmenuPage * GetPageFromId( const char * pageId );
 	EntityCategory * GetCategoryFromId( const char * categoryId );
-
-    SQInteger ExampleClientFunc(HSQUIRRELVM v);
 
 private:
     std::vector<Tool> m_Tools;
