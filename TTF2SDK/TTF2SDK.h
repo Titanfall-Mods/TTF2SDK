@@ -71,6 +71,8 @@ private:
     SourceInterface<IVEngineServer> m_engineServer;
     SourceInterface<IVEngineClient> m_engineClient;
 
+    ID3D11Device** m_ppD3D11Device;
+
 public:
     TTF2SDK(const SDKSettings& settings);
     ~TTF2SDK();

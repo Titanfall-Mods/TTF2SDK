@@ -18,265 +18,12 @@ TTF2SDK& SDK()
 #define WRAPPED_MEMBER(name) MemberWrapper<decltype(&TTF2SDK::##name), &TTF2SDK::##name, decltype(&SDK), &SDK>::Call
 
 HookedFunc<void, double, float> _Host_RunFrame("engine.dll", "\x48\x8B\xC4\x48\x89\x58\x00\xF3\x0F\x11\x48\x00\xF2\x0F\x11\x40\x00", "xxxxxx?xxxx?xxxx?");
-
 HookedVTableFunc<decltype(&IVEngineServer::VTable::SpewFunc), &IVEngineServer::VTable::SpewFunc> IVEngineServer_SpewFunc;
-
-HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateGeometryShader), &ID3D11DeviceVtbl::CreateGeometryShader> ID3D11Device_CreateGeometryShader;
-HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreatePixelShader), &ID3D11DeviceVtbl::CreatePixelShader> ID3D11Device_CreatePixelShader;
-HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateVertexShader), &ID3D11DeviceVtbl::CreateVertexShader> ID3D11Device_CreateVertexShader;
-HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateComputeShader), &ID3D11DeviceVtbl::CreateComputeShader> ID3D11Device_CreateComputeShader;
-
 HookedFunc<bool, char*> LoadPakForLevel("engine.dll", "\x48\x81\xEC\x00\x00\x00\x00\x48\x8D\x54\x24\x00\x41\xB8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8D\x4C\x24\x00", "xxx????xxxx?xx????x????xxxx?");
-
+SigScanFunc<void> d3d11DeviceFinder("materialsystem_dx11.dll", "\x48\x83\xEC\x00\x33\xC0\x89\x54\x24\x00\x4C\x8B\xC9\x48\x8B\x0D\x00\x00\x00\x00\xC7\x44\x24\x00\x00\x00\x00\x00", "xxx?xxxxx?xxxxxx????xxx?????");
 SigScanFunc<void> mpJumpPatchFinder("engine.dll", "\x75\x00\x44\x8D\x40\x00\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00", "x?xxx?xxx????xxx????x????");
 HookedFunc<int64_t, const char*, const char*, int64_t> engineCompareFunc("engine.dll", "\x4D\x8B\xD0\x4D\x85\xC0", "xxxxxx");
 SigScanFunc<void> secondMpJumpPatchFinder("engine.dll", "\x0F\x84\x00\x00\x00\x00\x84\xDB\x74\x00\x48\x8B\x0D\x00\x00\x00\x00", "xx????xxx?xxx????");
-
-std::atomic_bool inLoad = false;
-std::atomic_bool overrideShaders = false;
-ID3D11GeometryShader* geometryShader = NULL;
-ID3D11PixelShader* pixelShader = NULL;
-ID3D11ComputeShader* computeShader = NULL;
-ID3D11VertexShader* vertexShader = NULL;
-
-HRESULT STDMETHODCALLTYPE CreateVertexShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11VertexShader** ppVertexShader)
-{
-    if (inLoad && overrideShaders)
-    {
-        *ppVertexShader = vertexShader;
-        return ERROR_SUCCESS;
-    }
-    else
-    {
-        return ID3D11Device_CreateVertexShader(This, pShaderBytecode, BytecodeLength, pClassLinkage, ppVertexShader);
-    }
-}
-
-HRESULT STDMETHODCALLTYPE CreateGeometryShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11GeometryShader** ppGeometryShader)
-{
-    if (inLoad && overrideShaders)
-    {
-        *ppGeometryShader = geometryShader;
-        return ERROR_SUCCESS;
-    }
-    else
-    {
-        return ID3D11Device_CreateGeometryShader(This, pShaderBytecode, BytecodeLength, pClassLinkage, ppGeometryShader);
-    }
-}
-
-HRESULT STDMETHODCALLTYPE CreatePixelShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11PixelShader** ppPixelShader)
-{
-    if (inLoad && overrideShaders)
-    {
-        *ppPixelShader = pixelShader;
-        return ERROR_SUCCESS;
-    }
-    else
-    {
-        return ID3D11Device_CreatePixelShader(This, pShaderBytecode, BytecodeLength, pClassLinkage, ppPixelShader);
-    }
-}
-
-HRESULT STDMETHODCALLTYPE CreateComputeShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11ComputeShader** ppComputeShader)
-{
-    if (inLoad && overrideShaders)
-    {
-        *ppComputeShader = computeShader;
-        return ERROR_SUCCESS;
-    }
-    else
-    {
-        return ID3D11Device_CreateComputeShader(This, pShaderBytecode, BytecodeLength, pClassLinkage, ppComputeShader);
-    }
-}
-
-void TTF2SDK::compileShaders()
-{
-    const char* shaderText = "void main() { return; }";
-    const char* geometryShaderText = "struct GS_INPUT {}; [maxvertexcount(4)] void main(point GS_INPUT a[1]) { return; }";
-    const char* computeShaderText = "[numthreads(1, 1, 1)] void main() { return; }";
-
-    ID3DBlob* vertexShaderBlob = NULL;
-    HRESULT result = D3DCompile(
-        shaderText,
-        strlen(shaderText),
-        "TTF2SDK_VS",
-        NULL,
-        NULL,
-        "main",
-        "vs_5_0",
-        D3DCOMPILE_OPTIMIZATION_LEVEL0,
-        0,
-        &vertexShaderBlob,
-        NULL
-    );
-
-    if (!SUCCEEDED(result))
-    {
-        spdlog::get("logger")->error("Failed to compile vertex shader");
-        return;
-    }
-    else
-    {
-        spdlog::get("logger")->info("Vertex shader blob: {}", (void*)vertexShaderBlob);
-    }
-
-    ID3DBlob* pixelShaderBlob = NULL;
-    result = D3DCompile(
-        shaderText,
-        strlen(shaderText),
-        "TTF2SDK_PS",
-        NULL,
-        NULL,
-        "main",
-        "ps_5_0",
-        D3DCOMPILE_OPTIMIZATION_LEVEL0,
-        0,
-        &pixelShaderBlob,
-        NULL
-    );
-
-    if (!SUCCEEDED(result))
-    {
-        spdlog::get("logger")->error("Failed to compile pixel shader");
-        return;
-    }
-    else
-    {
-        spdlog::get("logger")->info("Pixel shader blob: {}", (void*)pixelShaderBlob);
-    }
-
-    ID3DBlob* geometryShaderBlob = NULL;
-    result = D3DCompile(
-        geometryShaderText,
-        strlen(geometryShaderText),
-        "TTF2SDK_GS",
-        NULL,
-        NULL,
-        "main",
-        "gs_5_0",
-        D3DCOMPILE_OPTIMIZATION_LEVEL0,
-        0,
-        &geometryShaderBlob,
-        NULL
-    );
-
-    if (!SUCCEEDED(result))
-    {
-        spdlog::get("logger")->error("Failed to compile geometry shader");
-        return;
-    }
-    else
-    {
-        spdlog::get("logger")->info("Geometry shader blob: {}", (void*)geometryShaderBlob);
-    }
-
-    ID3DBlob* computeShaderBlob = NULL;
-    result = D3DCompile(
-        computeShaderText,
-        strlen(computeShaderText),
-        "TTF2SDK_CS",
-        NULL,
-        NULL,
-        "main",
-        "cs_5_0",
-        D3DCOMPILE_OPTIMIZATION_LEVEL0,
-        0,
-        &computeShaderBlob,
-        NULL
-    );
-
-    if (!SUCCEEDED(result))
-    {
-        spdlog::get("logger")->error("Failed to compile compute shader");
-        return;
-    }
-    else
-    {
-        spdlog::get("logger")->info("Compute shader blob: {}", (void*)computeShaderBlob);
-    }
-
-    /*
-    ID3D11Device* dev = *m_ppD3D11Device;
-
-    geometryShader = NULL;
-    result = dev->lpVtbl->CreateGeometryShader(
-        dev,
-        geometryShaderBlob->lpVtbl->GetBufferPointer(geometryShaderBlob),
-        geometryShaderBlob->lpVtbl->GetBufferSize(geometryShaderBlob),
-        NULL,
-        &geometryShader
-    );
-
-    if (!SUCCEEDED(result))
-    {
-        spdlog::get("logger")->error("Failed to create geometry shader");
-        return;
-    }
-    else
-    {
-        spdlog::get("logger")->info("Geometry shader: {}", (void*)geometryShader);
-    }
-
-    vertexShader = NULL;
-    result = dev->lpVtbl->CreateVertexShader(
-        dev,
-        vertexShaderBlob->lpVtbl->GetBufferPointer(vertexShaderBlob),
-        vertexShaderBlob->lpVtbl->GetBufferSize(vertexShaderBlob),
-        NULL,
-        &vertexShader
-    );
-
-    if (!SUCCEEDED(result))
-    {
-        spdlog::get("logger")->error("Failed to create vertex shader");
-        return;
-    }
-    else
-    {
-        spdlog::get("logger")->info("Vertex shader: {}", (void*)vertexShader);
-    }
-
-    pixelShader = NULL;
-    result = dev->lpVtbl->CreatePixelShader(
-        dev,
-        pixelShaderBlob->lpVtbl->GetBufferPointer(pixelShaderBlob),
-        pixelShaderBlob->lpVtbl->GetBufferSize(pixelShaderBlob),
-        NULL,
-        &pixelShader
-    );
-
-    if (!SUCCEEDED(result))
-    {
-        spdlog::get("logger")->error("Failed to create pixel shader");
-        return;
-    }
-    else
-    {
-        spdlog::get("logger")->info("Pixel shader: {}", (void*)pixelShader);
-    }
-
-    computeShader = NULL;
-    result = dev->lpVtbl->CreateComputeShader(
-        dev,
-        computeShaderBlob->lpVtbl->GetBufferPointer(computeShaderBlob),
-        computeShaderBlob->lpVtbl->GetBufferSize(computeShaderBlob),
-        NULL,
-        &computeShader
-    );
-
-    if (!SUCCEEDED(result))
-    {
-        spdlog::get("logger")->error("Failed to create compute shader");
-        return;
-    }
-    else
-    {
-        spdlog::get("logger")->info("Compute shader: {}", (void*)computeShader);
-    }
-    */
-}
 
 __int64 SpewFuncHook(IVEngineServer* engineServer, SpewType_t type, const char* format, va_list args)
 {
@@ -331,21 +78,26 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
         throw std::exception("Failed to initialise MinHook");
     }
 
+    // Get pointer to d3d device
+    char* funcBase = (char*)d3d11DeviceFinder.GetFuncPtr();
+    int offset = *(int*)(funcBase + 16);
+    m_ppD3D11Device = (ID3D11Device**)(funcBase + 20 + offset);
+
+    SPDLOG_DEBUG(m_logger, "m_ppD3D11Device = {}", (void*)m_ppD3D11Device);
+    SPDLOG_DEBUG(m_logger, "pD3D11Device = {}", (void*)*m_ppD3D11Device);
+
     m_conCommandManager.reset(new ConCommandManager());
 
     m_fsManager.reset(new FileSystemManager(settings.BasePath, *m_conCommandManager));
     m_sqManager.reset(new SquirrelManager(*m_conCommandManager));
-    m_pakManager.reset(new PakManager(*m_conCommandManager, m_engineServer, *m_sqManager));
+    m_uiManager.reset(new UIManager(*m_conCommandManager, *m_sqManager, *m_fsManager, m_ppD3D11Device));
+    m_pakManager.reset(new PakManager(*m_conCommandManager, m_engineServer, *m_sqManager, m_ppD3D11Device));
     m_modManager.reset(new ModManager(*m_conCommandManager));
-    m_uiManager.reset(new UIManager(*m_conCommandManager, *m_sqManager, *m_fsManager));
 
     m_icepickMenu.reset(new IcepickMenu(*m_conCommandManager, *m_uiManager, *m_sqManager));
 
     IVEngineServer_SpewFunc.Hook(m_engineServer->m_vtable, SpewFuncHook);
-
     _Host_RunFrame.Hook(WRAPPED_MEMBER(RunFrameHook));
-
-
     engineCompareFunc.Hook(compareFuncHook);
 
     // Patch jump for loading MP maps in single player

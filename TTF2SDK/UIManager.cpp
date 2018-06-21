@@ -10,7 +10,6 @@ UIManager& UIMan()
 
 #define WRAPPED_MEMBER(name) MemberWrapper<decltype(&UIManager::##name), &UIManager::##name, decltype(&UIMan), &UIMan>::Call
 
-SigScanFunc<void> d3d11DeviceFinder("materialsystem_dx11.dll", "\x48\x83\xEC\x00\x33\xC0\x89\x54\x24\x00\x4C\x8B\xC9\x48\x8B\x0D\x00\x00\x00\x00\xC7\x44\x24\x00\x00\x00\x00\x00", "xxx?xxxxx?xxxxxx????xxx?????");
 SigScanFunc<void> d3d11ContextFinder("materialsystem_dx11.dll", "\x40\x53\x48\x83\xEC\x00\x48\x8B\x0D\x00\x00\x00\x00\x48\x8B\x01\xFF\x90\x00\x00\x00\x00\xE8\x00\x00\x00\x00", "xxxxx?xxx????xxxxx????x????");
 SigScanFunc<void> d3d11SwapChainFinder("materialsystem_dx11.dll", "\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x00\x48\x83\x3D\x00\x00\x00\x00\x00\x8B\xDA", "xxxx?xxxx?xxx?????xx");
 
@@ -21,19 +20,14 @@ HookedFunc<int, void*, HWND, UINT, WPARAM, LPARAM> GameWindowProc("inputsystem.d
 HookedVTableFunc<decltype(&ISurface::VTable::LockCursor), &ISurface::VTable::LockCursor> ISurface_LockCursor;
 HookedVTableFunc<decltype(&ISurface::VTable::SetCursor), &ISurface::VTable::SetCursor> ISurface_SetCursor;
 
-UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqManager, FileSystemManager& fsManager) :
+UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqManager, FileSystemManager& fsManager, ID3D11Device** ppD3DDevice) :
     m_surface("vguimatsurface.dll", "VGUI_Surface031")
 {
     m_logger = spdlog::get("logger");
 
-    // Get pointer to d3d device
-    char* funcBase = (char*)d3d11DeviceFinder.GetFuncPtr();
-    int offset = *(int*)(funcBase + 16);
-    m_ppD3D11Device = (ID3D11Device**)(funcBase + 20 + offset);
-
     // Get pointer to d3d context
-    funcBase = (char*)d3d11ContextFinder.GetFuncPtr();
-    offset = *(int*)(funcBase + 9);
+    char* funcBase = (char*)d3d11ContextFinder.GetFuncPtr();
+    int offset = *(int*)(funcBase + 9);
     m_ppD3D11DeviceContext = (ID3D11DeviceContext**)(funcBase + 13 + offset);
 
     // Get the swap chain
@@ -41,16 +35,13 @@ UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqMa
     offset = *(int*)(funcBase + 13);
     m_ppSwapChain = (IDXGISwapChain**)(funcBase + 18 + offset);
 
-    SPDLOG_DEBUG(m_logger, "m_ppD3D11Device = {}", (void*)m_ppD3D11Device);
-    SPDLOG_DEBUG(m_logger, "pD3D11Device = {}", (void*)*m_ppD3D11Device);
-
     SPDLOG_DEBUG(m_logger, "m_ppD3D11DeviceContext = {}", (void*)m_ppD3D11DeviceContext);
     SPDLOG_DEBUG(m_logger, "pD3D11DeviceContext = {}", (void*)*m_ppD3D11DeviceContext);
 
     SPDLOG_DEBUG(m_logger, "m_ppSwapChain = {}", (void*)m_ppSwapChain);
     SPDLOG_DEBUG(m_logger, "pSwapChain = {}", (void*)*m_ppSwapChain);
 
-    InitImGui(fsManager.GetModsPath());
+    InitImGui(fsManager.GetModsPath(), ppD3DDevice);
 
     IDXGISwapChain_Present.Hook((*m_ppSwapChain)->lpVtbl, WRAPPED_MEMBER(PresentHook));
 
@@ -70,7 +61,7 @@ UIManager::~UIManager()
     ImGui::DestroyContext();
 }
 
-void UIManager::InitImGui(const fs::path& modsPath)
+void UIManager::InitImGui(const fs::path& modsPath, ID3D11Device** ppD3DDevice)
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -79,8 +70,10 @@ void UIManager::InitImGui(const fs::path& modsPath)
     HWND wnd = FindWindow(NULL, L"Titanfall 2");
     m_logger->info("Game window = {}", (void*)wnd);
 
-    ImGui_ImplDX11_Init(wnd, *m_ppD3D11Device, *m_ppD3D11DeviceContext);
+    ImGui_ImplDX11_Init(wnd, *ppD3DDevice, *m_ppD3D11DeviceContext);
+    SPDLOG_TRACE(m_logger, "ImGui_ImplDX11_Init complete");
     ImGui::StyleColorsDark();
+    SPDLOG_TRACE(m_logger, "ImGui::StyleColorsDark complete");
     ImGui::GetIO().IniFilename = nullptr;
 
     // Check if the font file exists in the icepick mod
@@ -91,6 +84,7 @@ void UIManager::InitImGui(const fs::path& modsPath)
     }
     
     ImGui_ImplDX11_CreateDeviceObjects();
+    SPDLOG_TRACE(m_logger, "ImGui_ImplDX11_CreateDeviceObjects complete");
 }
 
 void UIManager::ShowCursorCommand(const CCommand& args)

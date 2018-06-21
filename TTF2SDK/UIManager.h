@@ -24,10 +24,10 @@ enum CursorCode
 class UIManager
 {
 public:
-    UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqManager, FileSystemManager& fsManager);
+    UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqManager, FileSystemManager& fsManager, ID3D11Device** ppD3DDevice);
     ~UIManager();
 
-    void InitImGui(const fs::path& modsPath);
+    void InitImGui(const fs::path& modsPath, ID3D11Device** ppD3DDevice);
     void ShowCursorCommand(const CCommand& args);
 	
     SQInteger SQShowCursor(HSQUIRRELVM v);
@@ -47,7 +47,6 @@ public:
 private:
     std::shared_ptr<spdlog::logger> m_logger;
 
-    ID3D11Device** m_ppD3D11Device = nullptr;
     ID3D11DeviceContext** m_ppD3D11DeviceContext = nullptr;
     IDXGISwapChain** m_ppSwapChain = nullptr;
     ID3D11RenderTargetView* m_guiRenderTargetView = nullptr;

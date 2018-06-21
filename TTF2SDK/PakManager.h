@@ -168,7 +168,7 @@ typedef CClientState* (*tClientStateFunc)();
 class PakManager
 {
 public:
-    PakManager(ConCommandManager& conCommandManager, SourceInterface<IVEngineServer> engineServer, SquirrelManager& squirrelManager);
+    PakManager(ConCommandManager& conCommandManager, SourceInterface<IVEngineServer> engineServer, SquirrelManager& squirrelManager, ID3D11Device** ppD3DDevice);
     void PrintRegistrations(const CCommand& args);
     void PrintPakRefs(const CCommand& args);
     void PrintCachedMaterialData(const CCommand& args);
@@ -200,6 +200,7 @@ public:
     int64_t TextureFunc2Hook(TextureInfo* info);
     void TextureFunc3Hook(TextureInfo* dst, TextureInfo* src, void* a3);
     void ShaderFunc1Hook(ShaderInfo* info, int64_t a2);
+    void ShaderFunc2Hook(ShaderInfo* info);
 
     int32_t PakFunc3Hook(const char* src, PakAllocFuncs* allocFuncs, int unk);
     int64_t PakFunc6Hook(int32_t pakRef, void* a2);
@@ -214,6 +215,12 @@ public:
 
     bool LoadMapPakHook(const char* name);
 
+    void CreateDummyShaders(ID3D11Device** ppD3DDevice);
+    HRESULT STDMETHODCALLTYPE CreateVertexShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11VertexShader** ppVertexShader);
+    HRESULT STDMETHODCALLTYPE CreateGeometryShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11GeometryShader** ppGeometryShader);
+    HRESULT STDMETHODCALLTYPE CreatePixelShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11PixelShader** ppPixelShader);
+    HRESULT STDMETHODCALLTYPE CreateComputeShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11ComputeShader** ppComputeShader);
+
 private:
     std::shared_ptr<spdlog::logger> m_logger;
 
@@ -225,6 +232,9 @@ private:
     int32_t* m_pakRefs;
     PakState m_state;
     std::string m_currentLevelPak;
+
+    std::mutex m_dummyShaderMutex;
+    bool m_loadingExtranousShader = false;
 
     model_t* m_savedModelPtr;
     int32_t m_savedPakRef2;
@@ -245,6 +255,11 @@ private:
 
     std::unordered_set<model_t*> m_levelModels;
 
+    ID3D11GeometryShader* m_dummyGeometryShader;
+    ID3D11PixelShader* m_dummyPixelShader;
+    ID3D11ComputeShader* m_dummyComputeShader;
+    ID3D11VertexShader* m_dummyVertexShader;
+
     void* m_modelLoader = nullptr;
     void* m_studioRenderContext = nullptr; // TODO: Move this to an engine interface
     std::unordered_map<std::string, std::unordered_set<model_t*>> m_loadedExternalModels; // pak name => { model ptrs }
@@ -260,4 +275,5 @@ private:
     HookedRegistrationFunc<decltype(&TextureFunc2Hook)> m_texFunc2;
     HookedRegistrationFunc<decltype(&TextureFunc3Hook)> m_texFunc3;
     HookedRegistrationFunc<decltype(&ShaderFunc1Hook)> m_shaderFunc1;
+    HookedRegistrationFunc<decltype(&ShaderFunc2Hook)> m_shaderFunc2;
 };

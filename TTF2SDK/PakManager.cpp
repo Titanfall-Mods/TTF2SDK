@@ -42,6 +42,11 @@ HookedVTableFunc<decltype(&IVEngineServer::VTable::PrecacheModel), &IVEngineServ
 SigScanFunc<void> CServerFinder("engine.dll", "\x48\x83\xEC\x00\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x85\xC0", "xxx?xxx????x????xx");
 SigScanFunc<void> CClientStateFinder("engine.dll", "\x41\x83\xF8\x00\x7C\x00\x53", "xxx?x?x");
 
+HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateGeometryShader), &ID3D11DeviceVtbl::CreateGeometryShader> ID3D11Device_CreateGeometryShader;
+HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreatePixelShader), &ID3D11DeviceVtbl::CreatePixelShader> ID3D11Device_CreatePixelShader;
+HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateVertexShader), &ID3D11DeviceVtbl::CreateVertexShader> ID3D11Device_CreateVertexShader;
+HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateComputeShader), &ID3D11DeviceVtbl::CreateComputeShader> ID3D11Device_CreateComputeShader;
+
 const int MAT_REG_INDEX = 4;
 const int TEX_REG_INDEX = 12;
 const int SHADER_REG_INDEX = 13;
@@ -49,12 +54,15 @@ const int SHADER_REG_INDEX = 13;
 PakManager::PakManager(
     ConCommandManager& conCommandManager, 
     SourceInterface<IVEngineServer> engineServer,
-    SquirrelManager& squirrelManager
+    SquirrelManager& squirrelManager,
+    ID3D11Device** ppD3DDevice
 ) :
     m_modelInfo("engine.dll", "VModelInfoServer002")
 {
     m_logger = spdlog::get("logger");
     m_state = PAK_STATE_NONE;
+
+    CreateDummyShaders(ppD3DDevice);
 
     int64_t base = (int64_t)PakFunc1.GetFuncPtr() + 33;
     int32_t offset = *((int32_t*)(base - 4));
@@ -101,6 +109,7 @@ PakManager::PakManager(
     m_texFunc2.Hook(&m_typeRegistrations[TEX_REG_INDEX], 1, WRAPPED_MEMBER(TextureFunc2Hook));
     m_texFunc3.Hook(&m_typeRegistrations[TEX_REG_INDEX], 2, WRAPPED_MEMBER(TextureFunc3Hook));
     m_shaderFunc1.Hook(&m_typeRegistrations[SHADER_REG_INDEX], 0, WRAPPED_MEMBER(ShaderFunc1Hook));
+    m_shaderFunc2.Hook(&m_typeRegistrations[SHADER_REG_INDEX], 1, WRAPPED_MEMBER(ShaderFunc2Hook));
 
     PakFunc6.Hook(WRAPPED_MEMBER(PakFunc6Hook));
 #ifdef _DEBUG
@@ -116,6 +125,11 @@ PakManager::PakManager(
     CBaseEntity_SetModel.Hook(WRAPPED_MEMBER(SetModelHook));
 
     IVEngineServer_PrecacheModel.Hook(engineServer->m_vtable, WRAPPED_MEMBER(PrecacheModelHook));
+
+    ID3D11Device_CreateGeometryShader.Hook((*ppD3DDevice)->lpVtbl, WRAPPED_MEMBER(CreateGeometryShader_Hook));
+    ID3D11Device_CreatePixelShader.Hook((*ppD3DDevice)->lpVtbl, WRAPPED_MEMBER(CreatePixelShader_Hook));
+    ID3D11Device_CreateComputeShader.Hook((*ppD3DDevice)->lpVtbl, WRAPPED_MEMBER(CreateComputeShader_Hook));
+    ID3D11Device_CreateVertexShader.Hook((*ppD3DDevice)->lpVtbl, WRAPPED_MEMBER(CreateVertexShader_Hook));
 
     conCommandManager.RegisterCommand("print_registrations", WRAPPED_MEMBER(PrintRegistrations), "Print type registrations for pak system", 0);
     conCommandManager.RegisterCommand("print_pak_refs", WRAPPED_MEMBER(PrintPakRefs), "Print engine pak references", 0);
@@ -685,7 +699,7 @@ void PakManager::TextureFunc3Hook(TextureInfo* dst, TextureInfo* src, void* a3)
 
 void PakManager::ShaderFunc1Hook(ShaderInfo* info, int64_t a2)
 {
-    SPDLOG_TRACE(m_logger, "ShaderFunc1: {}, type = {}", (info->name != NULL) ? info->name : "NULL", info->type);
+    SPDLOG_TRACE(m_logger, "ShaderFunc1: {}, type = {}", (info->name != nullptr) ? info->name : "NULL", info->type);
 
     if (m_state == PAK_STATE_PRELOAD)
     {
@@ -693,7 +707,30 @@ void PakManager::ShaderFunc1Hook(ShaderInfo* info, int64_t a2)
         m_tempLoadedShaders.emplace(info->name);
     }
 
-    m_shaderFunc1(info, a2);
+    if (((m_state == PAK_STATE_SPAWN_EXTERNAL || m_state == PAK_STATE_UNLOAD_EXTERNAL) && info->name != nullptr && m_shadersToLoad.find(info->name) != m_shadersToLoad.end()) || m_state == PAK_STATE_PRELOAD)
+    {
+        SPDLOG_TRACE(m_logger, "Blocking shader {} from loading", info->name);
+        std::lock_guard<std::mutex> lock(m_dummyShaderMutex);
+        m_loadingExtranousShader = true;
+        m_shaderFunc1(info, a2);
+        m_loadingExtranousShader = false;
+    }
+    else
+    {
+        m_shaderFunc1(info, a2);
+    }
+}
+
+void PakManager::ShaderFunc2Hook(ShaderInfo* info)
+{
+    SPDLOG_TRACE(m_logger, "ShaderFunc2: {}, type = {}", (info->name != nullptr) ? info->name : "NULL", info->type);
+    if ((m_state == PAK_STATE_SPAWN_EXTERNAL && info->name != nullptr && m_shadersToLoad.find(info->name) != m_shadersToLoad.end()) || m_state == PAK_STATE_PRELOAD)
+    {
+        SPDLOG_TRACE(m_logger, "Ignoring unload for shader {}", info->name);
+        return;
+    }
+
+    m_shaderFunc2(info);
 }
 
 int32_t PakManager::PakFunc3Hook(const char* src, PakAllocFuncs* allocFuncs, int unk)
@@ -961,4 +998,241 @@ bool PakManager::LoadMapPakHook(const char* name)
     m_savedPakRef2 = -1;
 
     return ret;
+}
+
+void PakManager::CreateDummyShaders(ID3D11Device** ppD3DDevice)
+{
+    const char* shaderText = "void main() { return; }";
+    const char* geometryShaderText = "struct GS_INPUT {}; [maxvertexcount(4)] void main(point GS_INPUT a[1]) { return; }";
+    const char* computeShaderText = "[numthreads(1, 1, 1)] void main() { return; }";
+
+    m_dummyGeometryShader = nullptr;
+    m_dummyPixelShader = nullptr;
+    m_dummyComputeShader = nullptr;
+    m_dummyVertexShader = nullptr;
+
+    ID3DBlob* vertexShaderBlob = nullptr;
+    HRESULT result = D3DCompile(
+        shaderText,
+        strlen(shaderText),
+        "TTF2SDK_VS",
+        nullptr,
+        nullptr,
+        "main",
+        "vs_5_0",
+        D3DCOMPILE_OPTIMIZATION_LEVEL0,
+        0,
+        &vertexShaderBlob,
+        nullptr
+    );
+
+    if (!SUCCEEDED(result))
+    {
+        m_logger->error("Failed to compile vertex shader");
+        return;
+    }
+    else
+    {
+        SPDLOG_DEBUG(m_logger, "Vertex shader blob: {}", (void*)vertexShaderBlob);
+    }
+
+    ID3DBlob* pixelShaderBlob = nullptr;
+    result = D3DCompile(
+        shaderText,
+        strlen(shaderText),
+        "TTF2SDK_PS",
+        nullptr,
+        nullptr,
+        "main",
+        "ps_5_0",
+        D3DCOMPILE_OPTIMIZATION_LEVEL0,
+        0,
+        &pixelShaderBlob,
+        nullptr
+    );
+
+    if (!SUCCEEDED(result))
+    {
+        m_logger->error("Failed to compile pixel shader");
+        return;
+    }
+    else
+    {
+        SPDLOG_DEBUG(m_logger, "Pixel shader blob: {}", (void*)pixelShaderBlob);
+    }
+
+    ID3DBlob* geometryShaderBlob = nullptr;
+    result = D3DCompile(
+        geometryShaderText,
+        strlen(geometryShaderText),
+        "TTF2SDK_GS",
+        nullptr,
+        nullptr,
+        "main",
+        "gs_5_0",
+        D3DCOMPILE_OPTIMIZATION_LEVEL0,
+        0,
+        &geometryShaderBlob,
+        nullptr
+    );
+
+    if (!SUCCEEDED(result))
+    {
+        m_logger->error("Failed to compile geometry shader");
+        return;
+    }
+    else
+    {
+        SPDLOG_DEBUG(m_logger, "Geometry shader blob: {}", (void*)geometryShaderBlob);
+    }
+
+    ID3DBlob* computeShaderBlob = nullptr;
+    result = D3DCompile(
+        computeShaderText,
+        strlen(computeShaderText),
+        "TTF2SDK_CS",
+        nullptr,
+        nullptr,
+        "main",
+        "cs_5_0",
+        D3DCOMPILE_OPTIMIZATION_LEVEL0,
+        0,
+        &computeShaderBlob,
+        nullptr
+    );
+
+    if (!SUCCEEDED(result))
+    {
+        m_logger->error("Failed to compile compute shader");
+        return;
+    }
+    else
+    {
+        SPDLOG_DEBUG(m_logger, "Compute shader blob: {}", (void*)computeShaderBlob);
+    }
+
+    ID3D11Device* dev = *ppD3DDevice;
+    result = dev->lpVtbl->CreateGeometryShader(
+        dev,
+        geometryShaderBlob->lpVtbl->GetBufferPointer(geometryShaderBlob),
+        geometryShaderBlob->lpVtbl->GetBufferSize(geometryShaderBlob),
+        nullptr,
+        &m_dummyGeometryShader
+    );
+
+    if (!SUCCEEDED(result))
+    {
+        m_logger->error("Failed to create geometry shader");
+        return;
+    }
+    else
+    {
+        SPDLOG_DEBUG(m_logger, "Geometry shader: {}", (void*)m_dummyGeometryShader);
+    }
+
+    result = dev->lpVtbl->CreateVertexShader(
+        dev,
+        vertexShaderBlob->lpVtbl->GetBufferPointer(vertexShaderBlob),
+        vertexShaderBlob->lpVtbl->GetBufferSize(vertexShaderBlob),
+        nullptr,
+        &m_dummyVertexShader
+    );
+
+    if (!SUCCEEDED(result))
+    {
+        m_logger->error("Failed to create vertex shader");
+        return;
+    }
+    else
+    {
+        SPDLOG_DEBUG(m_logger, "Vertex shader: {}", (void*)m_dummyVertexShader);
+    }
+
+    result = dev->lpVtbl->CreatePixelShader(
+        dev,
+        pixelShaderBlob->lpVtbl->GetBufferPointer(pixelShaderBlob),
+        pixelShaderBlob->lpVtbl->GetBufferSize(pixelShaderBlob),
+        NULL,
+        &m_dummyPixelShader
+    );
+
+    if (!SUCCEEDED(result))
+    {
+        m_logger->error("Failed to create pixel shader");
+        return;
+    }
+    else
+    {
+        SPDLOG_DEBUG(m_logger, "Pixel shader: {}", (void*)m_dummyPixelShader);
+    }
+
+    result = dev->lpVtbl->CreateComputeShader(
+        dev,
+        computeShaderBlob->lpVtbl->GetBufferPointer(computeShaderBlob),
+        computeShaderBlob->lpVtbl->GetBufferSize(computeShaderBlob),
+        NULL,
+        &m_dummyComputeShader
+    );
+
+    if (!SUCCEEDED(result))
+    {
+        m_logger->error("Failed to create compute shader");
+        return;
+    }
+    else
+    {
+        SPDLOG_DEBUG(m_logger, "Compute shader: {}", (void*)m_dummyComputeShader);
+    }
+}
+
+HRESULT STDMETHODCALLTYPE PakManager::CreateVertexShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11VertexShader** ppVertexShader)
+{
+    if (m_loadingExtranousShader && m_dummyVertexShader != nullptr)
+    {
+        *ppVertexShader = m_dummyVertexShader;
+        return ERROR_SUCCESS;
+    }
+    else
+    {
+        return ID3D11Device_CreateVertexShader(This, pShaderBytecode, BytecodeLength, pClassLinkage, ppVertexShader);
+    }
+}
+
+HRESULT STDMETHODCALLTYPE PakManager::CreateGeometryShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11GeometryShader** ppGeometryShader)
+{
+    if (m_loadingExtranousShader && m_dummyGeometryShader != nullptr)
+    {
+        *ppGeometryShader = m_dummyGeometryShader;
+        return ERROR_SUCCESS;
+    }
+    else
+    {
+        return ID3D11Device_CreateGeometryShader(This, pShaderBytecode, BytecodeLength, pClassLinkage, ppGeometryShader);
+    }
+}
+
+HRESULT STDMETHODCALLTYPE PakManager::CreatePixelShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11PixelShader** ppPixelShader)
+{
+    if (m_loadingExtranousShader && m_dummyPixelShader != nullptr)
+    {
+        *ppPixelShader = m_dummyPixelShader;
+        return ERROR_SUCCESS;
+    }
+    else
+    {
+        return ID3D11Device_CreatePixelShader(This, pShaderBytecode, BytecodeLength, pClassLinkage, ppPixelShader);
+    }
+}
+
+HRESULT STDMETHODCALLTYPE PakManager::CreateComputeShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11ComputeShader** ppComputeShader)
+{
+    if (m_loadingExtranousShader && m_dummyComputeShader != nullptr)
+    {
+        *ppComputeShader = m_dummyComputeShader;
+        return ERROR_SUCCESS;
+    }
+    else
+    {
+        return ID3D11Device_CreateComputeShader(This, pShaderBytecode, BytecodeLength, pClassLinkage, ppComputeShader);
+    }
 }
