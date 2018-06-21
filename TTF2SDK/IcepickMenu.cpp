@@ -41,9 +41,9 @@ IcepickMenu::~IcepickMenu()
 
 SQInteger IcepickMenu::RegisterTool( HSQUIRRELVM v )
 {
-	const SQChar * toolId = sq_getstring.CallClient( v, 1 );
-	const SQChar * name = sq_getstring.CallClient( v, 2 );
-	const SQChar * tooltip = sq_getstring.CallClient( v, 3 );
+	const SQChar * toolId = sq_getstring.CallServer( v, 1 );
+	const SQChar * name = sq_getstring.CallServer( v, 2 );
+	const SQChar * tooltip = sq_getstring.CallServer( v, 3 );
 
 	for( Tool & t : m_Tools )
 	{
@@ -65,7 +65,7 @@ SQInteger IcepickMenu::RegisterTool( HSQUIRRELVM v )
 
 SQInteger IcepickMenu::AddToolOption_Divider( HSQUIRRELVM v )
 {
-	const SQChar * toolId = sq_getstring.CallClient( v, 1 );
+	const SQChar * toolId = sq_getstring.CallServer( v, 1 );
 
 	if( Tool * tool = GetToolFromId( toolId ) )
 	{
@@ -76,8 +76,8 @@ SQInteger IcepickMenu::AddToolOption_Divider( HSQUIRRELVM v )
 
 SQInteger IcepickMenu::AddToolOption_Text( HSQUIRRELVM v )
 {
-	const SQChar * toolId = sq_getstring.CallClient( v, 1 );
-	const SQChar * text = sq_getstring.CallClient( v, 2 );
+	const SQChar * toolId = sq_getstring.CallServer( v, 1 );
+	const SQChar * text = sq_getstring.CallServer( v, 2 );
 
 	if( Tool * tool = GetToolFromId( toolId ) )
 	{
@@ -88,9 +88,9 @@ SQInteger IcepickMenu::AddToolOption_Text( HSQUIRRELVM v )
 
 SQInteger IcepickMenu::AddToolOption_Button( HSQUIRRELVM v )
 {
-	const SQChar * toolId = sq_getstring.CallClient( v, 1 );
-	const SQChar * optionId = sq_getstring.CallClient( v, 2 );
-	const SQChar * text = sq_getstring.CallClient( v, 3 );
+	const SQChar * toolId = sq_getstring.CallServer( v, 1 );
+	const SQChar * optionId = sq_getstring.CallServer( v, 2 );
+	const SQChar * text = sq_getstring.CallServer( v, 3 );
 
 	if( Tool * tool = GetToolFromId( toolId ) )
 	{
@@ -101,12 +101,12 @@ SQInteger IcepickMenu::AddToolOption_Button( HSQUIRRELVM v )
 
 SQInteger IcepickMenu::AddToolOption_Slider( HSQUIRRELVM v )
 {
-	const SQChar * toolId = sq_getstring.CallClient( v, 1 );
-	const SQChar * optionId = sq_getstring.CallClient( v, 2 );
-	const SQChar * name = sq_getstring.CallClient( v, 3 );
-	float defaultValue = sq_getfloat.CallClient( v, 4 );
-	float min = sq_getfloat.CallClient( v, 5 );
-	float max = sq_getfloat.CallClient( v, 6 );
+	const SQChar * toolId = sq_getstring.CallServer( v, 1 );
+	const SQChar * optionId = sq_getstring.CallServer( v, 2 );
+	const SQChar * name = sq_getstring.CallServer( v, 3 );
+	float defaultValue = sq_getfloat.CallServer( v, 4 );
+	float min = sq_getfloat.CallServer( v, 5 );
+	float max = sq_getfloat.CallServer( v, 6 );
 
 	if( Tool * tool = GetToolFromId( toolId ) )
 	{
@@ -122,12 +122,12 @@ SQInteger IcepickMenu::AddToolOption_Slider( HSQUIRRELVM v )
 
 SQInteger IcepickMenu::AddToolOption_IntSlider( HSQUIRRELVM v )
 {
-	const SQChar * toolId = sq_getstring.CallClient( v, 1 );
-	const SQChar * optionId = sq_getstring.CallClient( v, 2 );
-	const SQChar * name = sq_getstring.CallClient( v, 3 );
-	int defaultValue = sq_getinteger.CallClient( v, 4 );
-	int min = sq_getinteger.CallClient( v, 5 );
-	int max = sq_getinteger.CallClient( v, 6 );
+	const SQChar * toolId = sq_getstring.CallServer( v, 1 );
+	const SQChar * optionId = sq_getstring.CallServer( v, 2 );
+	const SQChar * name = sq_getstring.CallServer( v, 3 );
+	int defaultValue = sq_getinteger.CallServer( v, 4 );
+	int min = sq_getinteger.CallServer( v, 5 );
+	int max = sq_getinteger.CallServer( v, 6 );
 
 	if( Tool * tool = GetToolFromId( toolId ) )
 	{
