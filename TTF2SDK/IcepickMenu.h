@@ -1,5 +1,7 @@
 #pragma once
 
+#define SearchMaxChars 255
+
 enum SpawnlistDisplayMode
 {
     Tree,
@@ -110,6 +112,7 @@ public:
     ~IcepickMenu();
 
     void DrawPropsGui();
+	void DrawSearchResults();
     void DrawModelsDirectory(struct ModelsDirectory * dir);
     void DrawDirectoryModels(struct ModelsDirectory * dir);
     void DrawToolsGui(float ToolsPanelWidth);
@@ -141,6 +144,14 @@ public:
 	SpawnmenuPage * GetPageFromId( const char * pageId );
 	EntityCategory * GetCategoryFromId( const char * categoryId );
 
+protected:
+
+	void ClearSearch();
+
+	int SearchInputLength();
+
+	void UpdateSearchResults();
+
 private:
     std::vector<Tool> m_Tools;
     Tool * m_ViewingTool = nullptr;
@@ -151,6 +162,10 @@ private:
 
     int m_SpawnmenuButtonSizes[7] = { 0, 32, 48, 64, 96, 128, 256 };
     int m_SpawnmenuButtonSize = 96;
+
+	char m_SearchInput[SearchMaxChars] = "";
+	int m_CachedSearchInputLength = 0;
+	std::vector<std::string *> m_SearchResults;
 
     class ModelsList * m_ModelsList = nullptr;
     struct ModelsDirectory * m_ViewingDirectory = nullptr;

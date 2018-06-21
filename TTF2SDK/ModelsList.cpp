@@ -7,7 +7,7 @@
 #include <iostream>
 
 // Load this from file or some shit later
-std::string ModelsList::Models[] = {
+std::vector<std::string> ModelsList::Models = {
 	"models/angel_city/ac_genki_market_sign_big_01.mdl",
 	"models/angel_city/ac_wall_01_128.mdl",
 	"models/angel_city/ac_wall_01_256.mdl",

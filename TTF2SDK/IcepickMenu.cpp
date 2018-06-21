@@ -248,6 +248,43 @@ EntityCategory * IcepickMenu::GetCategoryFromId( const char * categoryId )
 	return nullptr;
 }
 
+void IcepickMenu::ClearSearch()
+{
+	for( int i = 0; i < SearchMaxChars; ++i )
+	{
+		m_SearchInput[i] = '\0';
+	}
+}
+
+int IcepickMenu::SearchInputLength()
+{
+	for( int i = 0; i < SearchMaxChars; ++i )
+	{
+		if( m_SearchInput[i] == '\0' )
+		{
+			return i;
+		}
+	}
+	return SearchMaxChars;
+}
+
+void IcepickMenu::UpdateSearchResults()
+{
+	if( m_CachedSearchInputLength != SearchInputLength() )
+	{
+		m_SearchResults.clear();
+		for( std::string & model : ModelsList::Models )
+		{
+			if( model.find( m_SearchInput ) != std::string::npos )
+			{
+				m_SearchResults.push_back( &model );
+			}
+		}
+
+		m_CachedSearchInputLength = SearchInputLength();
+	}
+}
+
 void IcepickMenu::DrawPropsGui()
 {
     float ButtonSize = m_SpawnmenuButtonSize > 0 ? m_SpawnmenuButtonSize : 200.0f;
@@ -258,50 +295,90 @@ void IcepickMenu::DrawPropsGui()
         ButtonSize = 0;
     }
 
-    switch (m_SpawnlistDisplayMode)
-    {
-    default:
-    case Tree:
-        if (ImGui::TreeNode("models/"))
-        {
-            DrawModelsDirectory(&m_ModelsList->BaseDir);
-            ImGui::TreePop();
-        }
-        break;
-    case Browser:
-        ImGui::Columns(NumColumns, nullptr, false);
-        ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.0f, 0.7f, 0.7f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor::HSV(0.0f, 0.8f, 0.8f));
-        if (ImGui::Button("Root", ImVec2(ButtonSize, ButtonSize)))
-        {
-            m_ViewingDirectory = &m_ModelsList->BaseDir;
-        }
-        ImGui::PopStyleColor(3);
-        ImGui::NextColumn();
+	ImGui::InputText( "Search", m_SearchInput, IM_ARRAYSIZE( m_SearchInput ) );
+	if( SearchInputLength() )
+	{
+		ImGui::SameLine();
+		if( ImGui::Button( "Clear Search" ) )
+		{
+			ClearSearch();
+		}
+	}
 
-        if (m_ViewingDirectory)
-        {
-            for (std::pair<const std::string, ModelsDirectory> & Directories : m_ViewingDirectory->SubDirectories)
-            {
-                ModelsDirectory & subDir = Directories.second;
+	if( SearchInputLength() > 0 )
+	{
+		UpdateSearchResults();
+		DrawSearchResults();
+	}
+	else
+	{
+		switch( m_SpawnlistDisplayMode )
+		{
+			default:
+			case Tree:
+				if( ImGui::TreeNode( "models/" ) )
+				{
+					DrawModelsDirectory( &m_ModelsList->BaseDir );
+					ImGui::TreePop();
+				}
+				break;
+			case Browser:
+				ImGui::Columns( NumColumns, nullptr, false );
+				ImGui::PushStyleColor( ImGuiCol_Button, (ImVec4) ImColor::HSV( 0.0f, 0.6f, 0.6f ) );
+				ImGui::PushStyleColor( ImGuiCol_ButtonHovered, (ImVec4) ImColor::HSV( 0.0f, 0.7f, 0.7f ) );
+				ImGui::PushStyleColor( ImGuiCol_ButtonActive, (ImVec4) ImColor::HSV( 0.0f, 0.8f, 0.8f ) );
+				if( ImGui::Button( "Root", ImVec2( ButtonSize, ButtonSize ) ) )
+				{
+					m_ViewingDirectory = &m_ModelsList->BaseDir;
+				}
+				ImGui::PopStyleColor( 3 );
+				ImGui::NextColumn();
 
-                // Color directory buttons differently
-                ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.3f, 0.6f, 0.3f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.3f, 0.7f, 0.4f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor::HSV(0.3f, 0.8f, 0.4f));
+				if( m_ViewingDirectory )
+				{
+					for( std::pair<const std::string, ModelsDirectory> & Directories : m_ViewingDirectory->SubDirectories )
+					{
+						ModelsDirectory & subDir = Directories.second;
 
-                if (ImGui::Button(subDir.Path.c_str(), ImVec2(ButtonSize, ButtonSize)))
-                {
-                    m_ViewingDirectory = &subDir;
-                }
-                ImGui::PopStyleColor(3);
-                ImGui::NextColumn();
-            }
-            DrawDirectoryModels(m_ViewingDirectory);
-        }
-        break;
-    }
+						// Color directory buttons differently
+						ImGui::PushStyleColor( ImGuiCol_Button, (ImVec4) ImColor::HSV( 0.3f, 0.6f, 0.3f ) );
+						ImGui::PushStyleColor( ImGuiCol_ButtonHovered, (ImVec4) ImColor::HSV( 0.3f, 0.7f, 0.4f ) );
+						ImGui::PushStyleColor( ImGuiCol_ButtonActive, (ImVec4) ImColor::HSV( 0.3f, 0.8f, 0.4f ) );
+
+						if( ImGui::Button( subDir.Path.c_str(), ImVec2( ButtonSize, ButtonSize ) ) )
+						{
+							m_ViewingDirectory = &subDir;
+						}
+						ImGui::PopStyleColor( 3 );
+						ImGui::NextColumn();
+					}
+					DrawDirectoryModels( m_ViewingDirectory );
+				}
+				break;
+		}
+	}
+}
+
+void IcepickMenu::DrawSearchResults()
+{
+	std::string searchText = "Searching for \"replaceme\"";
+	searchText = std::regex_replace( searchText, std::regex( "replaceme" ), m_SearchInput );
+	ImGui::Text( searchText.c_str() );
+
+	if( m_SearchResults.size() > 0 )
+	{
+		for( std::string * model : m_SearchResults )
+		{
+			if( ImGui::Button( model->c_str() ) )
+			{
+				DoSpawnModel( *model );
+			}
+		}
+	}
+	else
+	{
+		ImGui::Text( "No results." );
+	}
 }
 
 void IcepickMenu::DrawModelsDirectory(ModelsDirectory * dir)
@@ -320,33 +397,33 @@ void IcepickMenu::DrawModelsDirectory(ModelsDirectory * dir)
 
 void IcepickMenu::DrawDirectoryModels(struct ModelsDirectory * dir)
 {
-    switch (m_ModelsDisplayMode)
-    {
-    default:
-    case List:
-        for (int i = 0; i < dir->ModelNames.size(); ++i)
-        {
-            if (ImGui::Button(dir->ModelNames[i].c_str()))
-            {
-                DoSpawnModel(dir->Models[i]);
-            }
-        }
-        break;
-    case Grid:
-        const float ButtonSize = m_SpawnmenuButtonSize > 0 ? m_SpawnmenuButtonSize : 200.0f;
-        const int NumColumns = (int)(ImGui::GetWindowContentRegionWidth() / ButtonSize);
-        ImGui::Columns(NumColumns, nullptr, false);
-        for (int i = 0; i < dir->ModelNames.size(); ++i)
-        {
-            if (ImGui::Button(dir->ModelNames[i].c_str(), ImVec2(m_SpawnmenuButtonSize, m_SpawnmenuButtonSize)))
-            {
-                DoSpawnModel(dir->Models[i]);
-            }
-            ImGui::NextColumn();
-        }
-        ImGui::Columns(1);
-        break;
-    }
+	switch( m_ModelsDisplayMode )
+	{
+		default:
+		case List:
+			for( int i = 0; i < dir->ModelNames.size(); ++i )
+			{
+				if( ImGui::Button( dir->ModelNames[i].c_str() ) )
+				{
+					DoSpawnModel( dir->Models[i] );
+				}
+			}
+			break;
+		case Grid:
+			const float ButtonSize = m_SpawnmenuButtonSize > 0 ? m_SpawnmenuButtonSize : 200.0f;
+			const int NumColumns = (int) (ImGui::GetWindowContentRegionWidth() / ButtonSize);
+			ImGui::Columns( NumColumns, nullptr, false );
+			for( int i = 0; i < dir->ModelNames.size(); ++i )
+			{
+				if( ImGui::Button( dir->ModelNames[i].c_str(), ImVec2( m_SpawnmenuButtonSize, m_SpawnmenuButtonSize ) ) )
+				{
+					DoSpawnModel( dir->Models[i] );
+				}
+				ImGui::NextColumn();
+			}
+			ImGui::Columns( 1 );
+			break;
+	}
 }
 
 void IcepickMenu::DrawToolsGui(float ToolsPanelWidth)
@@ -520,6 +597,11 @@ void IcepickMenu::DrawCallback()
                     }
                     ImGui::EndMenu();
                 }
+				ImGui::Separator();
+				if( ImGui::MenuItem( "Save Game" ) )
+				{
+					SDK().GetSQManager().ExecuteServerCode( "Spawnmenu_SaveGame();" );
+				}
                 ImGui::EndMenu();
             }
             ImGui::EndMenuBar();

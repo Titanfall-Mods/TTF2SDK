@@ -16,7 +16,7 @@ class ModelsList
 
 public:
 
-	static std::string Models[];
+	static std::vector<std::string> Models;
 
 	ModelsList();
 
