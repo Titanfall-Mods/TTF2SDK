@@ -139,6 +139,10 @@ public:
 	SQInteger RegisterPageCategory( HSQUIRRELVM v );
 	SQInteger RegisterCategoryItem( HSQUIRRELVM v );
 
+	SQInteger EnableEditMode( HSQUIRRELVM v );
+	SQInteger DisableEditMode( HSQUIRRELVM v );
+	SQInteger IsEditModeEnabled( HSQUIRRELVM v );
+
     Tool * GetToolFromId(const char * toolId);
     ToolOption * GetOptionFromId(Tool * tool, const char * optionId);
 	SpawnmenuPage * GetPageFromId( const char * pageId );
@@ -159,6 +163,7 @@ private:
 	int m_DisplayingPage = 0;
 	std::vector<SpawnmenuPage> m_Pages;
     bool m_IcepickMenuOpen = false;
+	bool m_EditModeEnabled = true;
 
     int m_SpawnmenuButtonSizes[7] = { 0, 32, 48, 64, 96, 128, 256 };
     int m_SpawnmenuButtonSize = 96;

@@ -14,6 +14,11 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
     conCommandManager.RegisterCommand("show_icepick_menu", WRAPPED_MEMBER(ShowMenuCommand), "Shows the Icepick Menu", 0);
     conCommandManager.RegisterCommand("hide_icepick_menu", WRAPPED_MEMBER(HideMenuCommand), "Hides the Icepick Menu", 0);
 
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "EnableEditMode", "", "Help text", WRAPPED_MEMBER( EnableEditMode ) );
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "DisableEditMode", "", "Help text", WRAPPED_MEMBER( DisableEditMode ) );
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "int", "IsEditModeEnabled", "", "Help text", WRAPPED_MEMBER( IsEditModeEnabled ) );
+	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "int", "IsEditModeEnabled", "", "Help text", WRAPPED_MEMBER( IsEditModeEnabled ) );
+
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "ClearTools", "", "Help text", WRAPPED_MEMBER( ClearTools ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "RegisterTool", "string id, string friendlyName, string tooltip", "Help text", WRAPPED_MEMBER( RegisterTool ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddDividerOption", "string toolId", "Help text", WRAPPED_MEMBER( AddToolOption_Divider ) );
@@ -195,6 +200,26 @@ SQInteger IcepickMenu::RegisterCategoryItem( HSQUIRRELVM v )
 	}
 
 	return 0;
+}
+
+SQInteger IcepickMenu::EnableEditMode( HSQUIRRELVM v )
+{
+	m_EditModeEnabled = true;
+	spdlog::get( "logger" )->info( "Enabled edit mode" );
+	return 0;
+}
+
+SQInteger IcepickMenu::DisableEditMode( HSQUIRRELVM v )
+{
+	m_EditModeEnabled = false;
+	spdlog::get( "logger" )->info( "Disabled edit mode" );
+	return 0;
+}
+
+SQInteger IcepickMenu::IsEditModeEnabled( HSQUIRRELVM v )
+{
+	sq_pushinteger.CallServer( v, (int) m_EditModeEnabled );
+	return 1;
 }
 
 Tool * IcepickMenu::GetToolFromId(const char * toolId)
@@ -598,6 +623,10 @@ void IcepickMenu::DrawCallback()
                     ImGui::EndMenu();
                 }
 				ImGui::Separator();
+				if( ImGui::MenuItem( "Edit Mode", nullptr, m_EditModeEnabled ) )
+				{
+					SDK().GetSQManager().ExecuteClientCode( "Spawnmenu_ToggleEditMode();" );
+				}
 				if( ImGui::MenuItem( "Save Game" ) )
 				{
 					SDK().GetSQManager().ExecuteServerCode( "Spawnmenu_SaveGame();" );
