@@ -202,7 +202,7 @@ SQInteger PakManager::EnableExternalSpawnMode(HSQUIRRELVM v)
         return 0;
     }
 
-    m_logger->info("Pak state set to PAK_STATE_SPAWN_EXTERNAL");
+    SPDLOG_DEBUG(m_logger, "Pak state set to PAK_STATE_SPAWN_EXTERNAL");
     m_state = PAK_STATE_SPAWN_EXTERNAL;
     return 0;
 }
@@ -215,7 +215,7 @@ SQInteger PakManager::DisableExternalSpawnMode(HSQUIRRELVM v)
         return 0;
     }
 
-    m_logger->info("Pak state set to PAK_STATE_NONE");
+    SPDLOG_DEBUG(m_logger, "Pak state set to PAK_STATE_NONE");
     m_state = PAK_STATE_NONE;
     return 0;
 }
@@ -317,10 +317,12 @@ void PakManager::PreloadPak(const char* name)
 
     // Set state to preload
     m_state = PAK_STATE_PRELOAD;
+    SPDLOG_DEBUG(m_logger, "Pak state set to PAK_STATE_PRELOAD");
 
     // Load
     int64_t result = PakFunc9(pakRef, &doNothing, &doNothing);
     m_state = PAK_STATE_NONE;
+    SPDLOG_DEBUG(m_logger, "Pak state set to PAK_STATE_NONE");
     if (result != 1)
     {
         m_logger->error("Failed to preload pak {}, PakFunc9 failed ({})", name, result);
@@ -334,8 +336,10 @@ void PakManager::PreloadPak(const char* name)
 
     // Free pak
     m_state = PAK_STATE_PRELOAD;
+    SPDLOG_DEBUG(m_logger, "Pak state set to PAK_STATE_PRELOAD");
     PakFunc6(pakRef, &doNothing);
     m_state = PAK_STATE_NONE;
+    SPDLOG_DEBUG(m_logger, "Pak state set to PAK_STATE_NONE");
 
     m_logger->info("Finished preloading pak: {}", name);
 }
@@ -434,11 +438,13 @@ void PakManager::ReloadExternalPak(const std::string& pakFile, std::unordered_se
         // Unload the actual pak
         PakState origState = m_state;
         m_state = PAK_STATE_UNLOAD_EXTERNAL;
+        SPDLOG_DEBUG(m_logger, "Pak state set to PAK_STATE_UNLOAD_EXTERNAL");
         int32_t pakRef = m_loadedExternalPaks[pakFile];
         PakFunc6(pakRef, &doNothing);
         m_loadedExternalPaks.erase(pakFile);
         m_logger->info("Pak {} unloaded", pakFile);
         m_state = origState;
+        SPDLOG_DEBUG(m_logger, "Pak state restored");
     }
 
     m_logger->info("Loading {} materials, {} textures, {} shaders from {}", newMaterialsToLoad.size(), newTexturesToLoad.size(), newShadersToLoad.size(), pakFile);
@@ -482,8 +488,10 @@ void PakManager::ReloadExternalPak(const std::string& pakFile, std::unordered_se
         // TODO: This leaks some memory in lodData(ppMaterials and flags).Will need to manually free these.
         PakState origState = m_state;
         m_state = PAK_STATE_RESETTING_MATERIALS;
+        SPDLOG_DEBUG(m_logger, "Pak state set to PAK_STATE_RESETTING_MATERIALS");
         CStudioRenderContext_LoadMaterials((int64_t)m_studioRenderContext, args.phdr, args.a3, args.lodData, args.a5);
         m_state = origState;
+        SPDLOG_DEBUG(m_logger, "Pak state restored");
     }
 }
 
@@ -529,6 +537,7 @@ void PakManager::UnloadAllPaks()
 {
     PakState origState = m_state;
     m_state = PAK_STATE_UNLOAD_EXTERNAL;
+    SPDLOG_DEBUG(m_logger, "Pak state set to PAK_STATE_UNLOAD_EXTERNAL");
     for (const auto& entry : m_loadedExternalPaks)
     {
         PakFunc6(entry.second, &doNothing);
@@ -550,6 +559,7 @@ void PakManager::UnloadAllPaks()
     
     m_logger->info("Finished unloading models");
     m_state = origState;
+    SPDLOG_DEBUG(m_logger, "Pak state restored");
 }
 
 void PakManager::WriteCacheToFile(const std::string& filename)
@@ -993,8 +1003,10 @@ bool PakManager::LoadMapPakHook(const char* name)
 
     m_savedPakRef2 = m_pakRefs[2];
     m_state = PAK_STATE_IN_LOAD_MAP_PAK;
+    SPDLOG_DEBUG(m_logger, "Pak state set to PAK_STATE_IN_LOAD_MAP_PAK");
     bool ret = LoadMapPak(name);
     m_state = PAK_STATE_NONE;
+    SPDLOG_DEBUG(m_logger, "Pak state set to PAK_STATE_NONE");
     m_savedPakRef2 = -1;
 
     return ret;
