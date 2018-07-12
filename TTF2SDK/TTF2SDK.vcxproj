@@ -139,6 +139,7 @@
     <ClInclude Include="IcepickMenu.h" />
     <ClInclude Include="ICvar.h" />
     <ClInclude Include="IFrameTask.h" />
+    <ClInclude Include="IInputSystem.h" />
     <ClInclude Include="ISurface.h" />
     <ClInclude Include="IVEngineClient.h" />
     <ClInclude Include="IVEngineServer.h" />

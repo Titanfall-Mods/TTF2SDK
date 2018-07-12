@@ -70,6 +70,7 @@ private:
 
     SourceInterface<IVEngineServer> m_engineServer;
     SourceInterface<IVEngineClient> m_engineClient;
+    SourceInterface<IInputSystem> m_inputSystem;
 
     ID3D11Device** m_ppD3D11Device;
 
@@ -88,13 +89,15 @@ public:
 
     SourceInterface<IVEngineServer>& GetEngineServer();
     SourceInterface<IVEngineClient>& GetEngineClient();
+    SourceInterface<IInputSystem>& GetInputSystem();
 
     void RunFrameHook(double absTime, float frameTime);
 
     void AddFrameTask(std::shared_ptr<IFrameTask> task);
     void AddDelayedFunc(std::function<void()> func, int frames);
 
-    void compileShaders();
+    SQInteger SQGetMouseDeltaX(HSQUIRRELVM v);
+    SQInteger SQGetMouseDeltaY(HSQUIRRELVM v);
 };
 
 TTF2SDK& SDK();

@@ -19,7 +19,6 @@ TTF2SDK& SDK()
 
 HookedFunc<void, double, float> _Host_RunFrame("engine.dll", "\x48\x8B\xC4\x48\x89\x58\x00\xF3\x0F\x11\x48\x00\xF2\x0F\x11\x40\x00", "xxxxxx?xxxx?xxxx?");
 HookedVTableFunc<decltype(&IVEngineServer::VTable::SpewFunc), &IVEngineServer::VTable::SpewFunc> IVEngineServer_SpewFunc;
-HookedFunc<bool, char*> LoadPakForLevel("engine.dll", "\x48\x81\xEC\x00\x00\x00\x00\x48\x8D\x54\x24\x00\x41\xB8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8D\x4C\x24\x00", "xxx????xxxx?xx????x????xxxx?");
 SigScanFunc<void> d3d11DeviceFinder("materialsystem_dx11.dll", "\x48\x83\xEC\x00\x33\xC0\x89\x54\x24\x00\x4C\x8B\xC9\x48\x8B\x0D\x00\x00\x00\x00\xC7\x44\x24\x00\x00\x00\x00\x00", "xxx?xxxxx?xxxxxx????xxx?????");
 SigScanFunc<void> mpJumpPatchFinder("engine.dll", "\x75\x00\x44\x8D\x40\x00\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00", "x?xxx?xxx????xxx????x????");
 HookedFunc<int64_t, const char*, const char*, int64_t> engineCompareFunc("engine.dll", "\x4D\x8B\xD0\x4D\x85\xC0", "xxxxxx");
@@ -67,7 +66,8 @@ int64_t compareFuncHook(const char* first, const char* second, int64_t count)
 
 TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     m_engineServer("engine.dll", "VEngineServer022"),
-    m_engineClient("engine.dll", "VEngineClient013")
+    m_engineClient("engine.dll", "VEngineClient013"),
+    m_inputSystem("inputsystem.dll", "InputSystemVersion001")
 {
     m_logger = spdlog::get("logger");
 
@@ -119,6 +119,10 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     // Add delayed func task
     m_delayedFuncTask = std::make_shared<DelayedFuncTask>();
     AddFrameTask(m_delayedFuncTask);
+
+    // Add squirrel functions for mouse deltas
+    m_sqManager->AddFuncRegistration(CONTEXT_CLIENT, "int", "GetMouseDeltaX", "", "", WRAPPED_MEMBER(SQGetMouseDeltaX));
+    m_sqManager->AddFuncRegistration(CONTEXT_CLIENT, "int", "GetMouseDeltaY", "", "", WRAPPED_MEMBER(SQGetMouseDeltaY));
 }
 
 FileSystemManager& TTF2SDK::GetFSManager()
@@ -166,6 +170,11 @@ SourceInterface<IVEngineClient>& TTF2SDK::GetEngineClient()
     return m_engineClient;
 }
 
+SourceInterface<IInputSystem>& TTF2SDK::GetInputSystem()
+{
+    return m_inputSystem;
+}
+
 void TTF2SDK::RunFrameHook(double absTime, float frameTime)
 {
     for (const auto& frameTask : m_frameTasks)
@@ -197,6 +206,18 @@ void TTF2SDK::AddFrameTask(std::shared_ptr<IFrameTask> task)
 void TTF2SDK::AddDelayedFunc(std::function<void()> func, int frames)
 {
     m_delayedFuncTask->AddFunc(func, frames);
+}
+
+SQInteger TTF2SDK::SQGetMouseDeltaX(HSQUIRRELVM v)
+{
+    sq_pushinteger.CallClient(v, m_inputSystem->m_analogDeltaX);
+    return 1;
+}
+
+SQInteger TTF2SDK::SQGetMouseDeltaY(HSQUIRRELVM v)
+{
+    sq_pushinteger.CallClient(v, m_inputSystem->m_analogDeltaY);
+    return 1;
 }
 
 TTF2SDK::~TTF2SDK()

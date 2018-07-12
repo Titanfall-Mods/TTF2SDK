@@ -139,6 +139,8 @@ void UIManager::DrawGUI()
         ImGui::Text("IsCursorVisible: %d", m_surface->m_vtable->IsCursorVisible(m_surface));
         ImGui::Text("WantCaptureMouse: %d", ImGui::GetIO().WantCaptureMouse);
         ImGui::Text("WantCaptureKeyboard: %d", ImGui::GetIO().WantCaptureKeyboard);
+        ImGui::Text("Mouse Delta X: %d", SDK().GetInputSystem()->m_analogDeltaX);
+        ImGui::Text("Mouse Delta Y: %d", SDK().GetInputSystem()->m_analogDeltaY);
         ImGui::End();
     }
 }

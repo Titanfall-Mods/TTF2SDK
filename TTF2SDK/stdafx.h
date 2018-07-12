@@ -61,6 +61,7 @@ namespace fs = std::experimental::filesystem;
 #include "IVEngineClient.h"
 #include "IVModelInfo.h"
 #include "ICvar.h"
+#include "IInputSystem.h"
 #include "VTableHooking.h"
 #include "ConCommandManager.h"
 #include "SquirrelManager.h"
