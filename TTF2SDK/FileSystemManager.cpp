@@ -106,7 +106,7 @@ FileHandle_t FileSystemManager::ReadFileFromVPKHook(VPKData* vpkInfo, __int32* b
     // It can't be done in a frame hook because scripts.rson has already been loaded by the time
     // the first tick happens.
     static bool scriptsLoadedOnce = false;
-    if (!scriptsLoadedOnce && strcmp(filename, "scripts\\vscripts\\scripts.rson") == 0)
+    if (!scriptsLoadedOnce)
     {
         scriptsLoadedOnce = true;
         try
@@ -117,6 +117,8 @@ FileHandle_t FileSystemManager::ReadFileFromVPKHook(VPKData* vpkInfo, __int32* b
         {
             m_logger->error("Failed to compile mods: {}", e.what());
         }
+
+        IFileSystem_AddSearchPath(m_engineFileSystem, m_compiledPath.string().c_str(), "GAME", PATH_ADD_TO_HEAD);
     }
 
     // If the path is one of our replacements, we will not allow the read from the VPK to happen
