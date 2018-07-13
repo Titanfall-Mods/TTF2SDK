@@ -155,6 +155,11 @@ UIManager& TTF2SDK::GetUIManager()
     return *m_uiManager;
 }
 
+ID3D11Device** TTF2SDK::GetD3D11DevicePtr()
+{
+    return m_ppD3D11Device;
+}
+
 IcepickMenu& TTF2SDK::GetIcepickMenu()
 {
     return *m_icepickMenu;

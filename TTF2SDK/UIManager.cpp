@@ -82,9 +82,6 @@ void UIManager::InitImGui(const fs::path& modsPath, ID3D11Device** ppD3DDevice)
     {
         ImGui::GetIO().Fonts->AddFontFromFileTTF(fontPath.string().c_str(), 16.0f);
     }
-    
-    ImGui_ImplDX11_CreateDeviceObjects();
-    SPDLOG_TRACE(m_logger, "ImGui_ImplDX11_CreateDeviceObjects complete");
 }
 
 void UIManager::ShowCursorCommand(const CCommand& args)
@@ -268,6 +265,14 @@ void UIManager::LockCursorHook(ISurface* surface)
 
 HRESULT UIManager::PresentHook(IDXGISwapChain* SwapChain, UINT SyncInterval, UINT Flags)
 {
+    static bool deviceObjectsInitialised = false;
+    if (!deviceObjectsInitialised)
+    {
+        ImGui_ImplDX11_CreateDeviceObjects();
+        SPDLOG_TRACE(m_logger, "ImGui_ImplDX11_CreateDeviceObjects complete");
+        deviceObjectsInitialised = true;
+    }
+
     ImGui_ImplDX11_NewFrame();
     //DrawGUI();
     for (const auto& entry : m_drawCallbacks)

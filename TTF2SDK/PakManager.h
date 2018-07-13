@@ -235,6 +235,7 @@ private:
 
     std::mutex m_dummyShaderMutex;
     bool m_loadingExtranousShader = false;
+    bool m_shaderObjectsCreated = false;
 
     model_t* m_savedModelPtr;
     int32_t m_savedPakRef2;

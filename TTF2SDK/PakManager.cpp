@@ -62,8 +62,6 @@ PakManager::PakManager(
     m_logger = spdlog::get("logger");
     m_state = PAK_STATE_NONE;
 
-    CreateDummyShaders(ppD3DDevice);
-
     int64_t base = (int64_t)PakFunc1.GetFuncPtr() + 33;
     int32_t offset = *((int32_t*)(base - 4));
     m_typeRegistrations = (TypeRegistration*)(base + offset);
@@ -721,6 +719,11 @@ void PakManager::ShaderFunc1Hook(ShaderInfo* info, int64_t a2)
     {
         SPDLOG_TRACE(m_logger, "Blocking shader {} from loading", info->name);
         std::lock_guard<std::mutex> lock(m_dummyShaderMutex);
+        if (!m_shaderObjectsCreated)
+        {
+            CreateDummyShaders(SDK().GetD3D11DevicePtr());
+            m_shaderObjectsCreated = true;
+        }
         m_loadingExtranousShader = true;
         m_shaderFunc1(info, a2);
         m_loadingExtranousShader = false;

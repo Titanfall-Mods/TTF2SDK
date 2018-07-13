@@ -85,6 +85,8 @@ public:
     ModManager& GetModManager();
     UIManager& GetUIManager();
 
+    ID3D11Device** GetD3D11DevicePtr();
+
     IcepickMenu& GetIcepickMenu();
 
     SourceInterface<IVEngineServer>& GetEngineServer();
