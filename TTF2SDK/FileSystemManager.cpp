@@ -21,8 +21,16 @@ FileSystemManager::FileSystemManager(const std::string& basePath, ConCommandMana
     m_engineFileSystem("filesystem_stdio.dll", "VFileSystem017")
 {
     m_logger = spdlog::get("logger");
+    if (basePath[basePath.size()] == '\\' || basePath[basePath.size()] == '/')
+    {
+        m_basePath = basePath.substr(0, basePath.size() - 1);
+    }
+    else
+    {
+        m_basePath = basePath;
+    }
 
-    m_basePath = basePath;
+    m_logger->info("Base SDK path: {}", m_basePath);
     m_compiledPath = m_basePath / "compiled_assets";
     m_dumpPath = m_basePath / "assets_dump";
     m_modsPath = m_basePath / "mods";

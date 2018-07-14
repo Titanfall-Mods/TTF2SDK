@@ -237,7 +237,7 @@ Mod::Mod(const fs::path& modFolder)
     std::string mpLevelsFolder = (m_folder / "scripts/vscripts/mp/levels").string();
     for (auto& dirIter : fs::recursive_directory_iterator(m_folder))
     {
-        if (dirIter.status().type() == std::experimental::filesystem::file_type::directory)
+        if (dirIter.status().type() == fs::file_type::directory)
         {
             continue;
         }
@@ -266,7 +266,7 @@ Mod::Mod(const fs::path& modFolder)
             // Add the file as a patch
             m_filesToPatch.emplace_back(relative);
         }
-        else if (path.filename() != "mod.json")
+        else if (path.parent_path() != m_folder) // Don't add assets in the root folder
         {
             // Add the file as a custom asset
             m_customAssets.emplace_back(relative);
@@ -333,7 +333,13 @@ void ModManager::CompileMods()
             for (auto& customPath : mod.m_customAssets)
             {
                 SPDLOG_TRACE(m_logger, "Copying custom asset {} from {}", customPath, mod.m_folder);
-                fs::path destFolder = (compilePath / customPath).remove_filename();
+                fs::path destFile = compilePath / customPath;
+                if (fs::exists(destFile))
+                {
+                    throw std::runtime_error(fmt::format("{} already exists as a custom asset in another mod", customPath));
+                }
+
+                fs::path destFolder = destFile.remove_filename();
                 fs::create_directories(destFolder);
                 fs::copy(mod.m_folder / customPath, destFolder);
             }
