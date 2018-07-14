@@ -143,6 +143,9 @@ public:
 	SQInteger AddSaveItem( HSQUIRRELVM v );
 	SQInteger WriteSaveBufferToFile( HSQUIRRELVM v );
 
+	SQInteger GetSaveFiles( HSQUIRRELVM v );
+	SQInteger LoadSaveFileContents( HSQUIRRELVM v );
+
 	SQInteger EnableEditMode( HSQUIRRELVM v );
 	SQInteger DisableEditMode( HSQUIRRELVM v );
 	SQInteger IsEditModeEnabled( HSQUIRRELVM v );

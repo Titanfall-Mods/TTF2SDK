@@ -34,6 +34,9 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddSaveItem", "string data", "Help text", WRAPPED_MEMBER( AddSaveItem ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "WriteSaveBufferToFile", "string fileName", "Help text", WRAPPED_MEMBER( WriteSaveBufferToFile ) );
 
+	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "array", "GetSaveFiles", "", "Help text", WRAPPED_MEMBER( GetSaveFiles ) );
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "string", "LoadSaveFileContents", "string fileName", "Help text", WRAPPED_MEMBER( LoadSaveFileContents ) );
+
 	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "ClearSpawnmenu", "", "Help text", WRAPPED_MEMBER( ClearSpawnmenu ) );
 	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "RegisterSpawnmenuPage", "string id, string friendlyName", "Help text", WRAPPED_MEMBER( RegisterSpawnmenuPage ) );
 	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "RegisterPageCategory", "string pageId, string id, string friendlyName, string callbackName", "Help text", WRAPPED_MEMBER( RegisterPageCategory ) );
@@ -240,6 +243,37 @@ SQInteger IcepickMenu::WriteSaveBufferToFile( HSQUIRRELVM v )
 	saveFile.close();
 
 	return 0;
+}
+
+SQInteger IcepickMenu::GetSaveFiles( HSQUIRRELVM v )
+{
+	sq_newarray.CallClient( v, 0 );
+	for( auto & dirIter : fs::recursive_directory_iterator( SDK().GetFSManager().GetSavesPath() ) )
+	{
+		if( dirIter.status().type() == fs::file_type::directory )
+		{
+			continue;
+		}
+
+		fs::path path = dirIter.path();
+		std::string pathString = path.string();
+		sq_pushstring.CallClient( v, pathString.c_str(), -1 );
+		sq_arrayappend.CallClient( v, -2 );
+	}
+
+	return 1;
+}
+
+SQInteger IcepickMenu::LoadSaveFileContents( HSQUIRRELVM v )
+{
+	const SQChar * fileName = sq_getstring.CallClient( v, 1 );
+	std::string filePath = ( SDK().GetFSManager().GetSavesPath() / fileName ).string();
+
+	std::ifstream saveFile( filePath );
+	std::string saveData = Util::ReadFileToString( saveFile );
+	sq_pushstring.CallServer( v, saveData.c_str(), -1 );
+
+	return 1;
 }
 
 SQInteger IcepickMenu::EnableEditMode( HSQUIRRELVM v )
