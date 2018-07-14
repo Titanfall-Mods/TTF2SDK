@@ -100,8 +100,6 @@ public:
 
     SQInteger SQGetMouseDeltaX(HSQUIRRELVM v);
     SQInteger SQGetMouseDeltaY(HSQUIRRELVM v);
-
-	const SDKSettings * Settings = nullptr;
 };
 
 TTF2SDK& SDK();

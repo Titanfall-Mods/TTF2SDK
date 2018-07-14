@@ -161,6 +161,8 @@ protected:
 	void UpdateSearchResults();
 
 private:
+    std::shared_ptr<spdlog::logger> m_logger;
+
     std::vector<Tool> m_Tools;
     Tool * m_ViewingTool = nullptr;
 

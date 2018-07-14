@@ -26,6 +26,7 @@ FileSystemManager::FileSystemManager(const std::string& basePath, ConCommandMana
     m_compiledPath = m_basePath / "compiled_assets";
     m_dumpPath = m_basePath / "assets_dump";
     m_modsPath = m_basePath / "mods";
+    m_savesPath = m_basePath / "saves";
 
     m_requestingOriginalFile = false;
     CacheMapVPKs();
@@ -70,6 +71,7 @@ void FileSystemManager::EnsurePathsCreated()
     fs::create_directories(m_dumpPath);
     fs::create_directories(m_compiledPath);
     fs::create_directories(m_modsPath);
+    fs::create_directories(m_savesPath);
 }
 
 // TODO: Do we maybe need to add the search path in a frame hook or will this do?
@@ -307,4 +309,9 @@ const fs::path& FileSystemManager::GetModsPath()
 const fs::path& FileSystemManager::GetCompilePath()
 {
     return m_compiledPath;
+}
+
+const fs::path& FileSystemManager::GetSavesPath()
+{
+    return m_savesPath;
 }

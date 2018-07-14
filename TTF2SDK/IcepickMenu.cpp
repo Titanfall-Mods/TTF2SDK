@@ -11,6 +11,8 @@ IcepickMenu& Menu()
 
 IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiManager, SquirrelManager& sqManager)
 {
+    m_logger = spdlog::get("logger");
+
     // Commands
     conCommandManager.RegisterCommand("show_icepick_menu", WRAPPED_MEMBER(ShowMenuCommand), "Shows the Icepick Menu", 0);
     conCommandManager.RegisterCommand("hide_icepick_menu", WRAPPED_MEMBER(HideMenuCommand), "Hides the Icepick Menu", 0);
@@ -182,7 +184,7 @@ SQInteger IcepickMenu::RegisterPageCategory( HSQUIRRELVM v )
 	}
 	else
 	{
-		spdlog::get( "logger" )->error( "Could not register category! No page found with id {}", pageId );
+		m_logger->error( "Could not register category! No page found with id {}", pageId );
 	}
 
 	return 0;
@@ -201,7 +203,7 @@ SQInteger IcepickMenu::RegisterCategoryItem( HSQUIRRELVM v )
 	}
 	else
 	{
-		spdlog::get( "logger" )->error( "Could not register item! No category found with id {}", categoryId );
+		m_logger->error( "Could not register item! No category found with id {}", categoryId );
 	}
 
 	return 0;
@@ -224,16 +226,15 @@ SQInteger IcepickMenu::WriteSaveBufferToFile( HSQUIRRELVM v )
 {
 	const SQChar * fileName = sq_getstring.CallClient( v, 1 );
 
-	fs::path basePath( SDK().Settings->BasePath );
-	std::string filePath = ( basePath / "saves/" / fileName ).string();
+	std::string filePath = ( SDK().GetFSManager().GetSavesPath() / fileName ).string();
 
 	std::ofstream saveFile;
 	saveFile.open( filePath );
 
-	spdlog::get( "logger" )->info( "Saving to {}", filePath );
+	m_logger->info( "Saving to {}", filePath );
 	for( std::string & entry : m_SaveBuffer )
 	{
-		spdlog::get( "logger" )->info( "{}", entry );
+		m_logger->info( "{}", entry );
 		saveFile << entry << "\n";
 	}
 	saveFile.close();
@@ -244,14 +245,14 @@ SQInteger IcepickMenu::WriteSaveBufferToFile( HSQUIRRELVM v )
 SQInteger IcepickMenu::EnableEditMode( HSQUIRRELVM v )
 {
 	m_EditModeEnabled = true;
-	spdlog::get( "logger" )->info( "Enabled edit mode" );
+	m_logger->info( "Enabled edit mode" );
 	return 0;
 }
 
 SQInteger IcepickMenu::DisableEditMode( HSQUIRRELVM v )
 {
 	m_EditModeEnabled = false;
-	spdlog::get( "logger" )->info( "Disabled edit mode" );
+	m_logger->info( "Disabled edit mode" );
 	return 0;
 }
 
