@@ -65,6 +65,7 @@ int64_t compareFuncHook(const char* first, const char* second, int64_t count)
 }
 
 TTF2SDK::TTF2SDK(const SDKSettings& settings) :
+	Settings( &settings ),
     m_engineServer("engine.dll", "VEngineServer022"),
     m_engineClient("engine.dll", "VEngineClient013"),
     m_inputSystem("inputsystem.dll", "InputSystemVersion001")

@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "ModelsList.h"
+#include <iosfwd>
 
 IcepickMenu& Menu()
 {
@@ -26,6 +27,10 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddButtonOption", "string toolId, string id, string buttonText", "Help text", WRAPPED_MEMBER( AddToolOption_Button ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddSliderOption", "string toolId, string id, string name, float default, float min, float max", "Help text", WRAPPED_MEMBER( AddToolOption_Slider ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddIntSliderOption", "string toolId, string id, string name, int default, int min, int max", "Help text", WRAPPED_MEMBER( AddToolOption_IntSlider ) );
+
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "ClearSaveBuffer", "", "Help text", WRAPPED_MEMBER( ClearSaveBuffer ) );
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddSaveItem", "string data", "Help text", WRAPPED_MEMBER( AddSaveItem ) );
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "WriteSaveBufferToFile", "string fileName", "Help text", WRAPPED_MEMBER( WriteSaveBufferToFile ) );
 
 	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "ClearSpawnmenu", "", "Help text", WRAPPED_MEMBER( ClearSpawnmenu ) );
 	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "RegisterSpawnmenuPage", "string id, string friendlyName", "Help text", WRAPPED_MEMBER( RegisterSpawnmenuPage ) );
@@ -198,6 +203,40 @@ SQInteger IcepickMenu::RegisterCategoryItem( HSQUIRRELVM v )
 	{
 		spdlog::get( "logger" )->error( "Could not register item! No category found with id {}", categoryId );
 	}
+
+	return 0;
+}
+
+SQInteger IcepickMenu::ClearSaveBuffer( HSQUIRRELVM v )
+{
+	m_SaveBuffer.clear();
+	return 0;
+}
+
+SQInteger IcepickMenu::AddSaveItem( HSQUIRRELVM v )
+{
+	const SQChar * itemData = sq_getstring.CallServer( v, 1 );
+	m_SaveBuffer.push_back( std::string( itemData ) );
+	return 0;
+}
+
+SQInteger IcepickMenu::WriteSaveBufferToFile( HSQUIRRELVM v )
+{
+	const SQChar * fileName = sq_getstring.CallClient( v, 1 );
+
+	fs::path basePath( SDK().Settings->BasePath );
+	std::string filePath = ( basePath / "saves/" / fileName ).string();
+
+	std::ofstream saveFile;
+	saveFile.open( filePath );
+
+	spdlog::get( "logger" )->info( "Saving to {}", filePath );
+	for( std::string & entry : m_SaveBuffer )
+	{
+		spdlog::get( "logger" )->info( "{}", entry );
+		saveFile << entry << "\n";
+	}
+	saveFile.close();
 
 	return 0;
 }
@@ -630,6 +669,10 @@ void IcepickMenu::DrawCallback()
 				if( ImGui::MenuItem( "Save Game" ) )
 				{
 					SDK().GetSQManager().ExecuteServerCode( "Spawnmenu_SaveGame();" );
+				}
+				if( ImGui::MenuItem( "Checkpoint" ) )
+				{
+					SDK().GetSQManager().ExecuteServerCode( "Spawnmenu_SaveCheckpoint();" );
 				}
                 ImGui::EndMenu();
             }

@@ -139,6 +139,10 @@ public:
 	SQInteger RegisterPageCategory( HSQUIRRELVM v );
 	SQInteger RegisterCategoryItem( HSQUIRRELVM v );
 
+	SQInteger ClearSaveBuffer( HSQUIRRELVM v );
+	SQInteger AddSaveItem( HSQUIRRELVM v );
+	SQInteger WriteSaveBufferToFile( HSQUIRRELVM v );
+
 	SQInteger EnableEditMode( HSQUIRRELVM v );
 	SQInteger DisableEditMode( HSQUIRRELVM v );
 	SQInteger IsEditModeEnabled( HSQUIRRELVM v );
@@ -176,4 +180,6 @@ private:
     struct ModelsDirectory * m_ViewingDirectory = nullptr;
     SpawnlistDisplayMode m_SpawnlistDisplayMode = SpawnlistDisplayMode::Tree;
     ModelsDisplayMode m_ModelsDisplayMode = ModelsDisplayMode::List;
+
+	std::vector<std::string> m_SaveBuffer;
 };
