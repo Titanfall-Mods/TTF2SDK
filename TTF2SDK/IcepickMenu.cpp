@@ -17,6 +17,9 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
     conCommandManager.RegisterCommand("show_icepick_menu", WRAPPED_MEMBER(ShowMenuCommand), "Shows the Icepick Menu", 0);
     conCommandManager.RegisterCommand("hide_icepick_menu", WRAPPED_MEMBER(HideMenuCommand), "Hides the Icepick Menu", 0);
 
+	conCommandManager.RegisterCommand( "toggle_toolgun", WRAPPED_MEMBER( ToggleToolgunCommand ), "Toggle the toolgun", 0 );
+	conCommandManager.RegisterCommand( "undo", WRAPPED_MEMBER( DummyConCommand ), "Dummy function for scripted undo functionality", 0 );
+
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "EnableEditMode", "", "Help text", WRAPPED_MEMBER( EnableEditMode ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "DisableEditMode", "", "Help text", WRAPPED_MEMBER( DisableEditMode ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "int", "IsEditModeEnabled", "", "Help text", WRAPPED_MEMBER( IsEditModeEnabled ) );
@@ -770,6 +773,16 @@ void IcepickMenu::HideMenuCommand(const CCommand& args)
 {
     m_IcepickMenuOpen = false;
     SDK().GetUIManager().SQHideCursor(0);
+}
+
+void IcepickMenu::ToggleToolgunCommand( const CCommand& args )
+{
+	m_EditModeEnabled = !m_EditModeEnabled;
+}
+
+void IcepickMenu::DummyConCommand( const CCommand& args )
+{
+	// Dummy function, do nothing
 }
 
 SQInteger IcepickMenu::ClearTools( HSQUIRRELVM v )
