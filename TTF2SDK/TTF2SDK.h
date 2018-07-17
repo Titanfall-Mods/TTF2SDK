@@ -100,6 +100,9 @@ public:
 
     SQInteger SQGetMouseDeltaX(HSQUIRRELVM v);
     SQInteger SQGetMouseDeltaY(HSQUIRRELVM v);
+
+    void EnableNoclipCommand(const CCommand& args);
+    void DisableNoclipCommand(const CCommand& args);
 };
 
 TTF2SDK& SDK();

@@ -23,6 +23,9 @@ SigScanFunc<void> d3d11DeviceFinder("materialsystem_dx11.dll", "\x48\x83\xEC\x00
 SigScanFunc<void> mpJumpPatchFinder("engine.dll", "\x75\x00\x44\x8D\x40\x00\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00", "x?xxx?xxx????xxx????x????");
 HookedFunc<int64_t, const char*, const char*, int64_t> engineCompareFunc("engine.dll", "\x4D\x8B\xD0\x4D\x85\xC0", "xxxxxx");
 SigScanFunc<void> secondMpJumpPatchFinder("engine.dll", "\x0F\x84\x00\x00\x00\x00\x84\xDB\x74\x00\x48\x8B\x0D\x00\x00\x00\x00", "xx????xxx?xxx????");
+SigScanFunc<int64_t, void*> EnableNoclip("server.dll", "\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x00\x48\x8B\x01\x41\x83\xC8\x00\x33\xD2\x48\x8B\xF9", "xxxx?xxxx?xxxxxx?xxxxx");
+SigScanFunc<int64_t, void*> DisableNoclip("server.dll", "\x48\x89\x5C\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x33\xC0", "xxxx?xxxx????xx");
+SigScanFunc<void*, int> UTIL_EntityByIndex("server.dll", "\x66\x83\xF9\xFF\x75\x03\x33\xC0\xC3", "xxxxxxxxx");
 
 __int64 SpewFuncHook(IVEngineServer* engineServer, SpewType_t type, const char* format, va_list args)
 {
@@ -123,6 +126,9 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     // Add squirrel functions for mouse deltas
     m_sqManager->AddFuncRegistration(CONTEXT_CLIENT, "int", "GetMouseDeltaX", "", "", WRAPPED_MEMBER(SQGetMouseDeltaX));
     m_sqManager->AddFuncRegistration(CONTEXT_CLIENT, "int", "GetMouseDeltaY", "", "", WRAPPED_MEMBER(SQGetMouseDeltaY));
+
+    m_conCommandManager->RegisterCommand("noclip_enable", WRAPPED_MEMBER(EnableNoclipCommand), "Enable noclip", 0);
+    m_conCommandManager->RegisterCommand("noclip_disable", WRAPPED_MEMBER(DisableNoclipCommand), "Disable noclip", 0);
 }
 
 FileSystemManager& TTF2SDK::GetFSManager()
@@ -223,6 +229,32 @@ SQInteger TTF2SDK::SQGetMouseDeltaY(HSQUIRRELVM v)
 {
     sq_pushinteger.CallClient(v, m_inputSystem->m_analogDeltaY);
     return 1;
+}
+
+void TTF2SDK::EnableNoclipCommand(const CCommand& args)
+{
+    void* player = UTIL_EntityByIndex(1);
+    if (player != nullptr)
+    {
+        EnableNoclip(player);
+    }
+    else
+    {
+        m_logger->error("Failed to find player entity");
+    }
+}
+
+void TTF2SDK::DisableNoclipCommand(const CCommand& args)
+{
+    void* player = UTIL_EntityByIndex(1);
+    if (player != nullptr)
+    {
+        DisableNoclip(player);
+    }
+    else
+    {
+        m_logger->error("Failed to find player entity");
+    }
 }
 
 TTF2SDK::~TTF2SDK()
