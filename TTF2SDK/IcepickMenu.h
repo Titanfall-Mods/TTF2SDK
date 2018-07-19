@@ -125,6 +125,8 @@ public:
 
     void ShowMenuCommand(const CCommand& args);
     void HideMenuCommand(const CCommand& args);
+	void ToggleToolgunCommand( const CCommand& args );
+	void DummyConCommand( const CCommand& args );
 
 	SQInteger ClearTools( HSQUIRRELVM v );
 	SQInteger RegisterTool( HSQUIRRELVM v );
