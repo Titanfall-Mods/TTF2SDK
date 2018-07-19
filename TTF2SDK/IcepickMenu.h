@@ -1,5 +1,6 @@
 #pragma once
 
+#define SaveMaxChars 255
 #define SearchMaxChars 255
 
 enum SpawnlistDisplayMode
@@ -118,6 +119,8 @@ public:
     void DrawToolsGui(float ToolsPanelWidth);
     void DrawOptionsGui();
     void DrawPage( int idx );
+	void DrawSaveAs();
+	void RefreshSaveFilesList();
 
     void DrawCallback();
 
@@ -175,6 +178,10 @@ private:
 	std::vector<SpawnmenuPage> m_Pages;
     bool m_IcepickMenuOpen = false;
 	bool m_EditModeEnabled = true;
+
+	bool m_SaveAsOpen = false;
+	char m_SaveInput[SaveMaxChars] = "";
+	std::vector<std::string> m_CachedSaveFileNames;
 
     int m_SpawnmenuButtonSizes[7] = { 0, 32, 48, 64, 96, 128, 256 };
     int m_SpawnmenuButtonSize = 96;

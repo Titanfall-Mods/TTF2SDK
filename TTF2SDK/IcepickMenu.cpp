@@ -269,7 +269,7 @@ SQInteger IcepickMenu::GetSaveFiles( HSQUIRRELVM v )
 
 SQInteger IcepickMenu::LoadSaveFileContents( HSQUIRRELVM v )
 {
-	const SQChar * fileName = sq_getstring.CallClient( v, 1 );
+	const SQChar * fileName = sq_getstring.CallServer( v, 1 );
 	std::string filePath = ( SDK().GetFSManager().GetSavesPath() / fileName ).string();
 
 	std::ifstream saveFile( filePath );
@@ -638,6 +638,68 @@ void IcepickMenu::DrawPage( int idx )
 	}
 }
 
+void IcepickMenu::DrawSaveAs()
+{
+	if( !m_SaveAsOpen )
+	{
+		return;
+	}
+
+	ImGui::SetNextWindowSize( ImVec2( 400, 480 ), ImGuiCond_FirstUseEver );
+	ImGui::Begin( "Save As", nullptr, ImGuiWindowFlags_NoCollapse );
+	{
+		ImGui::Text( "Create new save" );
+		ImGui::InputText( "File name", m_SaveInput, IM_ARRAYSIZE( m_SaveInput ) );
+
+		ImGui::Separator();
+		ImGui::Text( "or overwrite an existing save" );
+
+		ImGui::BeginGroup();
+		{
+			ImGui::BeginChild( "OverwritePane", ImVec2( 0, ImGui::GetWindowHeight() - 140 ) );
+			for( std::string & fileName : m_CachedSaveFileNames )
+			{
+				if( ImGui::Button( fileName.c_str(), ImVec2( ImGui::GetWindowContentRegionWidth(), 0 ) ) )
+				{
+					strcpy_s( m_SaveInput, fileName.c_str() );
+				}
+			}
+			ImGui::EndChild();
+		}
+		ImGui::EndGroup();
+
+		if( ImGui::Button( "Save", ImVec2( ImGui::GetWindowContentRegionWidth() * 0.5f - 5, 0 ) ) )
+		{
+			std::string saveFileName = m_SaveInput;
+			SDK().GetSQManager().ExecuteServerCode( ( "Spawnmenu_SaveGameToFile(\"" + saveFileName + "\");" ).c_str() );
+			SDK().GetSQManager().ExecuteClientCode( ( "Spawnmenu_OnSavedGameToFile(\"" + saveFileName + "\");" ).c_str() );
+			m_SaveAsOpen = false;
+		}
+		ImGui::SameLine();
+		if( ImGui::Button( "Cancel", ImVec2( ImGui::GetWindowContentRegionWidth() * 0.5f - 5, 0 ) ) )
+		{
+			m_SaveAsOpen = false;
+		}
+
+	}
+	ImGui::End();
+}
+
+void IcepickMenu::RefreshSaveFilesList()
+{
+	m_CachedSaveFileNames.clear();
+
+	for( auto & dirIter : fs::recursive_directory_iterator( SDK().GetFSManager().GetSavesPath() ) )
+	{
+		if( dirIter.status().type() != fs::file_type::directory )
+		{
+			fs::path path = dirIter.path();
+			std::string fileString = path.filename().string();
+			m_CachedSaveFileNames.push_back( fileString );
+		}
+	}
+}
+
 void IcepickMenu::DrawCallback()
 {
     if (!m_IcepickMenuOpen)
@@ -648,7 +710,7 @@ void IcepickMenu::DrawCallback()
 	float Padding = 10.0f;
 	ImGui::SetNextWindowSize( ImVec2( ImGui::GetIO().DisplaySize.x - Padding * 2.0f, ImGui::GetIO().DisplaySize.y - Padding * 2.0f ) );
 	ImGui::SetNextWindowPos( ImVec2( Padding, Padding ) );
-    ImGui::Begin( "Icepick", nullptr, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse );
+    ImGui::Begin( "Icepick", nullptr, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus );
     {
         if (ImGui::BeginMenuBar())
         {
@@ -706,7 +768,8 @@ void IcepickMenu::DrawCallback()
 				}
 				if( ImGui::MenuItem( "Save Game" ) )
 				{
-					SDK().GetSQManager().ExecuteServerCode( "Spawnmenu_SaveGame();" );
+					RefreshSaveFilesList();
+					m_SaveAsOpen = true;
 				}
 				if( ImGui::MenuItem( "Checkpoint" ) )
 				{
@@ -755,6 +818,8 @@ void IcepickMenu::DrawCallback()
         ImGui::SameLine();
     }
     ImGui::End();
+
+	DrawSaveAs();
 }
 
 void IcepickMenu::DoSpawnModel(std::string & model)
