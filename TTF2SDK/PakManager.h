@@ -6,7 +6,13 @@ struct TypeRegistration
     unsigned int unk;
     const char* niceName;
     void* funcs[3];
-    unsigned char unk2[56];
+    int64_t field28;
+    int64_t field30;
+    int64_t field38;
+    int64_t field40;
+    int64_t field48;
+    int64_t field50;
+    int64_t field58;
 
     bool IsValid()
     {
@@ -221,6 +227,9 @@ public:
     HRESULT STDMETHODCALLTYPE CreatePixelShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11PixelShader** ppPixelShader);
     HRESULT STDMETHODCALLTYPE CreateComputeShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11ComputeShader** ppComputeShader);
 
+    int* RegistrationUpdater1Hook(int64_t a1, int a2);
+    int64_t RegistrationUpdater2Hook(int* a1);
+
 private:
     std::shared_ptr<spdlog::logger> m_logger;
 
@@ -270,6 +279,9 @@ private:
     std::unordered_set<std::string> m_texturesToLoad;
     std::unordered_set<std::string> m_shadersToLoad;
     std::unordered_map<std::string, int32_t> m_loadedExternalPaks;
+
+    TypeRegistration m_savedUimgRegistration;
+    std::atomic_bool m_lockUimgRegistration = false;
 
     HookedRegistrationFunc<decltype(&MaterialFunc1Hook)> m_matFunc1;
     HookedRegistrationFunc<decltype(&TextureFunc1Hook)> m_texFunc1;

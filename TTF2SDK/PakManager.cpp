@@ -26,7 +26,7 @@ PakAllocFuncs g_SDKAllocFuncs = {
 
 SigScanFunc<void> PakRefFinder("engine.dll", "\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x00\x83\x3D\x00\x00\x00\x00\x00\x44\x8B\x0D\x00\x00\x00\x00", "xxxx?xxxx?xxxx?xx?????xxx????");
 HookedFunc<bool, const char*> LoadMapPak("engine.dll", "\x48\x81\xEC\x00\x00\x00\x00\x48\x8D\x54\x24\x00\x41\xB8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8D\x4C\x24\x00", "xxx????xxxx?xx????x????xxxx?");
-SigScanFunc<void> PakFunc1("rtech_game.dll", "\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x41\x56\x41\x57\x48\x83\xEC\x00\x8B\x01", "xxxx?xxxx?xxxx?xxxxxxxx?xx");
+SigScanFunc<void, TypeRegistration*, int64_t, int64_t> PakFunc1("rtech_game.dll", "\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x41\x56\x41\x57\x48\x83\xEC\x00\x8B\x01", "xxxx?xxxx?xxxx?xxxxxxxx?xx");
 HookedFunc<int32_t, const char*, PakAllocFuncs*, int> PakFunc3("rtech_game.dll", "\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x00\x48\x8B\xF1\x48\x8D\x0D\x00\x00\x00\x00", "xxxx?xxxx?xxxx?xxxxxx????");
 HookedFunc<int64_t, int32_t, void*> PakFunc6("rtech_game.dll", "\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x00\x48\x8B\xDA\x8B\xF9", "xxxx?xxxx?xxxxx");
 HookedFunc<int64_t, int32_t, void*, void*> PakFunc9("rtech_game.dll", "\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x00\x8B\xD9", "xxxx?xxxx?xxxx?xxxx?xx");
@@ -47,9 +47,13 @@ HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreatePixelShader), &ID3D11DeviceVt
 HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateVertexShader), &ID3D11DeviceVtbl::CreateVertexShader> ID3D11Device_CreateVertexShader;
 HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateComputeShader), &ID3D11DeviceVtbl::CreateComputeShader> ID3D11Device_CreateComputeShader;
 
+HookedFunc<int*, int64_t, int> RegistrationUpdater1("rtech_game.dll", "\x48\x89\x5C\x24\x00\x44\x8B\x59\x00\x4C\x8B\xC1", "xxxx?xxx?xxx");
+HookedFunc<int64_t, int*> RegistrationUpdater2("rtech_game.dll", "\x44\x8B\x51\x00", "xxx?");
+
 const int MAT_REG_INDEX = 4;
 const int TEX_REG_INDEX = 12;
 const int SHADER_REG_INDEX = 13;
+const int UI_IMG_INDEX = 15;
 
 PakManager::PakManager(
     ConCommandManager& conCommandManager, 
@@ -81,6 +85,11 @@ PakManager::PakManager(
     if (!m_typeRegistrations[SHADER_REG_INDEX].IsTypeEqual("shdr"))
     {
         throw std::exception("registration 13 is not shdr");
+    }
+
+    if (!m_typeRegistrations[UI_IMG_INDEX].IsTypeEqual("uimg"))
+    {
+        throw std::exception("registration 15 is not uimg");
     }
 
     // Get the pak refs array from the engine
@@ -129,6 +138,9 @@ PakManager::PakManager(
     ID3D11Device_CreateComputeShader.Hook((*ppD3DDevice)->lpVtbl, WRAPPED_MEMBER(CreateComputeShader_Hook));
     ID3D11Device_CreateVertexShader.Hook((*ppD3DDevice)->lpVtbl, WRAPPED_MEMBER(CreateVertexShader_Hook));
 
+    RegistrationUpdater1.Hook(WRAPPED_MEMBER(RegistrationUpdater1Hook));
+    RegistrationUpdater2.Hook(WRAPPED_MEMBER(RegistrationUpdater2Hook));
+
     conCommandManager.RegisterCommand("print_registrations", WRAPPED_MEMBER(PrintRegistrations), "Print type registrations for pak system", 0);
     conCommandManager.RegisterCommand("print_pak_refs", WRAPPED_MEMBER(PrintPakRefs), "Print engine pak references", 0);
     conCommandManager.RegisterCommand("print_cached_materials", WRAPPED_MEMBER(PrintCachedMaterialData), "Print cached material data", 0);
@@ -142,6 +154,8 @@ PakManager::PakManager(
 
 void PakManager::PrintRegistrations(const CCommand& args)
 {
+    m_logger->info("Registrations: {}", (void*)m_typeRegistrations);
+
     for (int i = 0; i < 16; i++)
     {
         TypeRegistration* reg = &m_typeRegistrations[i];
@@ -495,6 +509,12 @@ void PakManager::ReloadExternalPak(const std::string& pakFile, std::unordered_se
 
 void PakManager::LoadExternalPak(const std::string& pakFile)
 {
+    if (!m_lockUimgRegistration)
+    {
+        memcpy(&m_savedUimgRegistration, &m_typeRegistrations[UI_IMG_INDEX], sizeof(TypeRegistration));
+        m_lockUimgRegistration = true;
+    }
+
     if (m_state != PAK_STATE_SPAWN_EXTERNAL)
     {
         m_logger->error("Cannot load external pak unless in state PAK_STATE_SPAWN_EXTERNAL");
@@ -1250,4 +1270,24 @@ HRESULT STDMETHODCALLTYPE PakManager::CreateComputeShader_Hook(ID3D11Device* Thi
     {
         return ID3D11Device_CreateComputeShader(This, pShaderBytecode, BytecodeLength, pClassLinkage, ppComputeShader);
     }
+}
+
+int* PakManager::RegistrationUpdater1Hook(int64_t a1, int a2)
+{
+    int* ret = RegistrationUpdater1(a1, a2);
+    if (m_lockUimgRegistration)
+    {
+        memcpy(&m_typeRegistrations[UI_IMG_INDEX], &m_savedUimgRegistration, sizeof(TypeRegistration));
+    }
+    return ret;
+}
+
+int64_t PakManager::RegistrationUpdater2Hook(int* a1)
+{
+    int64_t ret = RegistrationUpdater2(a1);
+    if (m_lockUimgRegistration)
+    {
+        memcpy(&m_typeRegistrations[UI_IMG_INDEX], &m_savedUimgRegistration, sizeof(TypeRegistration));
+    }
+    return ret;
 }
