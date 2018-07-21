@@ -188,6 +188,13 @@ SourceInterface<IInputSystem>& TTF2SDK::GetInputSystem()
 
 void TTF2SDK::RunFrameHook(double absTime, float frameTime)
 {
+    static bool translatorUpdated = false;
+    if (!translatorUpdated)
+    {
+        UpdateSETranslator();
+        translatorUpdated = true;
+    }
+    
     for (const auto& frameTask : m_frameTasks)
     {
         frameTask->RunFrame();
@@ -333,7 +340,19 @@ bool SetupSDK(const SDKSettings& settings)
         Util::WaitForModuleHandle("materialsystem_dx11.dll");
 
         Util::ThreadSuspender suspender;
+
+        bool breakpadSuccess = SetupBreakpad(settings);
+        if (breakpadSuccess)
+        {
+            spdlog::get("logger")->info("Breakpad initialised");
+        }
+        else
+        {
+            spdlog::get("logger")->info("Breakpad was not initialised");
+        }
+
         g_SDK = std::make_unique<TTF2SDK>(settings);
+
         return true;
     }
     catch (std::exception& ex)

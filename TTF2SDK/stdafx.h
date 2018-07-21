@@ -71,5 +71,6 @@ namespace fs = std::experimental::filesystem;
 #include "Preloader.h"
 #include "UIManager.h"
 #include "IcepickMenu.h"
+#include "CrashReporting.h"
 #include "TTF2SDK.h"
 
