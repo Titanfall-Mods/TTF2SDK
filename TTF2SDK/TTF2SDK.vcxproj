@@ -153,6 +153,7 @@
     <ClInclude Include="PakManager.h" />
     <ClInclude Include="Preloader.h" />
     <ClInclude Include="proto\pak_cache.pb.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="SDKSettings.h" />
     <ClInclude Include="SigScanning.h" />
     <ClInclude Include="SourceInterface.h" />
@@ -213,6 +214,9 @@
     <ProjectReference Include="..\thirdparty\protobuf_build\libprotobuf.vcxproj">
       <Project>{de263872-a991-3378-95fb-97d626fcaa17}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="TTF2SDK.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
