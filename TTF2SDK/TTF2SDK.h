@@ -110,3 +110,4 @@ public:
 TTF2SDK& SDK();
 bool SetupSDK(const SDKSettings& settings);
 void FreeSDK();
+extern std::unique_ptr<Console> g_console;

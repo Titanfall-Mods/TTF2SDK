@@ -30,7 +30,7 @@ void SourceConsole::ToggleConsoleCommand(const CCommand& args)
 {
     if (!m_gameConsole->m_bInitialized)
     {
-        InitialiseSource();
+        return;
     }
 
     if (!m_gameConsole->IsConsoleVisible())

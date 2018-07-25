@@ -12,30 +12,23 @@ DWORD WINAPI OnAttach(LPVOID lpThreadParameter)
     // Setup the SDK or unload the DLL if we can't
     if (!SetupSDK(g_settings))
     {
-        FreeLibraryAndExitThread((HMODULE)lpThreadParameter, 0);
+        TerminateProcess(GetCurrentProcess(), 100);
         return 0;
     }
 
     auto logger = spdlog::get("logger");
     logger->info("Titanfall 2 SDK loaded");
 
-    // Process input
-    std::string input;
-    while (std::getline(std::cin, input))
+    if (g_console)
     {
-        if (input == "unload")
-        {
-            logger->info("Unloading SDK");
-            break;
-        }
-        else
+        // Process console input
+        std::string input;
+        while (std::getline(std::cin, input))
         {
             SDK().GetConCommandManager().ExecuteCommand(input);
         }
     }
 
-    FreeSDK();
-    FreeLibraryAndExitThread((HMODULE)lpThreadParameter, 0);
     return 0;
 }
 

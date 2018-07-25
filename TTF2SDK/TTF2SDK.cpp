@@ -10,10 +10,6 @@ TTF2SDK& SDK()
 
 // TODO: Add a hook for the script error function (not just compile error)
 // TODO: Hook CoreMsgV
-// g_pakLoadApi[9] <--- gets called with the pointer to the pak struct, the qword thing, and a function. i'm guessing the function is a callback for when it's done or progress or something?
-// g_pakLoadApi[6] <--- i reckon it's probably a thing to release it or something
-// g_pakLoadApi[3] <--- return pointer to initialised pak data structure (const char* name, void* allocatorFunctionTable, int someInt)
-// g_pakLoadApi[4] <-- do 3 and 9 in the same step.
 
 #define WRAPPED_MEMBER(name) MemberWrapper<decltype(&TTF2SDK::##name), &TTF2SDK::##name, decltype(&SDK), &SDK>::Call
 
@@ -215,6 +211,7 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
     if (!called)
     {
         m_logger->info("RunFrame called for the first time");
+        m_sourceConsole->InitialiseSource();
         m_pakManager->PreloadAllPaks();
         called = true;
     }
@@ -285,30 +282,67 @@ TTF2SDK::~TTF2SDK()
     MH_Uninitialize();
 }
 
-void SetupLogger(const std::string& filename)
+class flushed_file_sink_mt : public spdlog::sinks::sink
+{
+public:
+    explicit flushed_file_sink_mt(const spdlog::filename_t &filename, bool truncate = false) : file_sink_(filename, truncate)
+    {
+
+    }
+
+    void log(const spdlog::details::log_msg &msg) override
+    {
+        file_sink_.log(msg);
+    }
+
+    void flush() override
+    {
+        file_sink_.flush();
+    }
+
+    void set_pattern(const std::string &pattern) override
+    {
+        file_sink_.set_pattern(pattern);
+    }
+
+    void set_formatter(std::unique_ptr<spdlog::formatter> sink_formatter) override
+    {
+        file_sink_.set_formatter(std::move(sink_formatter));
+    }
+
+private:
+    spdlog::sinks::basic_file_sink_mt file_sink_;
+};
+
+void SetupLogger(const std::string& filename, bool enableConsole, spdlog::level::level_enum level)
 {
     // Create sinks to file and console
     std::vector<spdlog::sink_ptr> sinks;
-    sinks.push_back(std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>());
+    
+    if (enableConsole)
+    {
+        g_console = std::make_unique<Console>();
+        sinks.push_back(std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>());
+    }
 
     // The file sink could fail so capture the error if so
     std::unique_ptr<std::string> fileError;
     try
     {
-        sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(filename, true));
+        sinks.push_back(std::make_shared<flushed_file_sink_mt>(filename, true));
     }
     catch (spdlog::spdlog_ex& ex)
     {
         fileError = std::make_unique<std::string>(ex.what());
     }
 
-    // Create logger from sink
+    // Create logger from sinks
     auto logger = std::make_shared<spdlog::logger>("logger", begin(sinks), end(sinks));
     logger->set_pattern("[%T] [thread %t] [%l] %^%v%$");
 #ifdef _DEBUG
     logger->set_level(spdlog::level::trace);
 #else
-    logger->set_level(spdlog::level::debug);
+    logger->set_level(level);
 #endif
 
     if (fileError)
@@ -324,12 +358,13 @@ bool SetupSDK(const SDKSettings& settings)
     // Separate try catch because these are required for logging to work
     try
     {
-        g_console = std::make_unique<Console>();
         fs::path basePath(settings.BasePath);
-        SetupLogger((basePath / "TTF2SDK.log").string());
+        SetupLogger((basePath / "TTF2SDK.log").string(), settings.DeveloperMode, settings.DeveloperMode ? spdlog::level::debug : spdlog::level::info);
     }
-    catch (std::exception)
+    catch (std::exception& ex)
     {
+        std::string message = fmt::format("Failed to initialise Icepick: {}", ex.what());
+        MessageBox(NULL, Util::Widen(message).c_str(), L"Error", MB_OK | MB_ICONERROR);
         return false;
     }
 
@@ -363,7 +398,9 @@ bool SetupSDK(const SDKSettings& settings)
     }
     catch (std::exception& ex)
     {
-        spdlog::get("logger")->critical("Failed to initialise SDK: {}", ex.what());
+        std::string message = fmt::format("Failed to initialise Icepick: {}", ex.what());
+        spdlog::get("logger")->critical(message);
+        MessageBox(NULL, Util::Widen(message).c_str(), L"Error", MB_OK | MB_ICONERROR);
         return false;
     }
 }
