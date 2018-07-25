@@ -293,6 +293,7 @@ public:
     void log(const spdlog::details::log_msg &msg) override
     {
         file_sink_.log(msg);
+        flush();
     }
 
     void flush() override
