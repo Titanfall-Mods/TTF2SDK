@@ -156,6 +156,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="SDKSettings.h" />
     <ClInclude Include="SigScanning.h" />
+    <ClInclude Include="SourceConsole.h" />
     <ClInclude Include="SourceInterface.h" />
     <ClInclude Include="SquirrelManager.h" />
     <ClInclude Include="stdafx.h" />
@@ -196,6 +197,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="SigScanning.cpp" />
+    <ClCompile Include="SourceConsole.cpp" />
     <ClCompile Include="SquirrelManager.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

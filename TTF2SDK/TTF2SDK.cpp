@@ -96,6 +96,7 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     m_uiManager.reset(new UIManager(*m_conCommandManager, *m_sqManager, *m_fsManager, m_ppD3D11Device));
     m_pakManager.reset(new PakManager(*m_conCommandManager, m_engineServer, *m_sqManager, m_ppD3D11Device));
     m_modManager.reset(new ModManager(*m_conCommandManager));
+    m_sourceConsole.reset(new SourceConsole(*m_conCommandManager));
 
     m_icepickMenu.reset(new IcepickMenu(*m_conCommandManager, *m_uiManager, *m_sqManager));
 
@@ -159,6 +160,11 @@ ConCommandManager& TTF2SDK::GetConCommandManager()
 UIManager& TTF2SDK::GetUIManager()
 {
     return *m_uiManager;
+}
+
+SourceConsole& TTF2SDK::GetSourceConsole()
+{
+    return *m_sourceConsole;
 }
 
 ID3D11Device** TTF2SDK::GetD3D11DevicePtr()
@@ -273,6 +279,8 @@ TTF2SDK::~TTF2SDK()
     m_pakManager.reset();
     m_modManager.reset();
     m_uiManager.reset();
+    m_sourceConsole.reset();
+    // TODO: Add anything i've missed here
     
     MH_Uninitialize();
 }
