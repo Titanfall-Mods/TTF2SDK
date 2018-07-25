@@ -287,9 +287,7 @@ void SetupLogger(const std::string& filename)
     std::unique_ptr<std::string> fileError;
     try
     {
-        auto fileSink = std::make_shared<spdlog::sinks::simple_file_sink_mt>(filename, true);
-        fileSink->set_force_flush(true);
-        sinks.push_back(fileSink);
+        sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(filename, true));
     }
     catch (spdlog::spdlog_ex& ex)
     {
@@ -298,7 +296,7 @@ void SetupLogger(const std::string& filename)
 
     // Create logger from sink
     auto logger = std::make_shared<spdlog::logger>("logger", begin(sinks), end(sinks));
-    logger->set_pattern("[%T] [%l] [thread %t] %v");
+    logger->set_pattern("[%T] [thread %t] [%l] %^%v%$");
 #ifdef _DEBUG
     logger->set_level(spdlog::level::trace);
 #else

@@ -13,6 +13,8 @@
 #include <TlHelp32.h>
 
 #include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/wincolor_sink.h>
 #include <spdlog/fmt/bundled/printf.h>
 
 #define D3D11_NO_HELPERS

@@ -71,9 +71,7 @@ void UIManager::InitImGui(const fs::path& modsPath, ID3D11Device** ppD3DDevice)
     m_logger->info("Game window = {}", (void*)wnd);
 
     ImGui_ImplDX11_Init(wnd, *ppD3DDevice, *m_ppD3D11DeviceContext);
-    SPDLOG_TRACE(m_logger, "ImGui_ImplDX11_Init complete");
     ImGui::StyleColorsDark();
-    SPDLOG_TRACE(m_logger, "ImGui::StyleColorsDark complete");
     ImGui::GetIO().IniFilename = nullptr;
 
     // Check if the font file exists in the icepick mod
@@ -269,7 +267,6 @@ HRESULT UIManager::PresentHook(IDXGISwapChain* SwapChain, UINT SyncInterval, UIN
     if (!deviceObjectsInitialised)
     {
         ImGui_ImplDX11_CreateDeviceObjects();
-        SPDLOG_TRACE(m_logger, "ImGui_ImplDX11_CreateDeviceObjects complete");
         deviceObjectsInitialised = true;
     }
 
