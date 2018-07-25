@@ -7,13 +7,14 @@ SourceConsole& SourceCon()
 
 #define WRAPPED_MEMBER(name) MemberWrapper<decltype(&SourceConsole::##name), &SourceConsole::##name, decltype(&SourceCon), &SourceCon>::Call
 
-SourceConsole::SourceConsole(ConCommandManager& conCommandManager) :
+SourceConsole::SourceConsole(ConCommandManager& conCommandManager, spdlog::level::level_enum level) :
     m_gameConsole("client.dll", "GameConsole004")
 {
     m_logger = spdlog::get("logger");
 
     m_sink = std::make_shared<SourceConsoleSink>(this);
     m_sink->set_pattern("[%l] %v");
+    m_sink->set_level(level);
     m_logger->sinks().push_back(m_sink);
 
     conCommandManager.RegisterCommand("toggleconsole", WRAPPED_MEMBER(ToggleConsoleCommand), "Show/hide the console", 0);

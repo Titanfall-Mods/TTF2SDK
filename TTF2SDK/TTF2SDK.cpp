@@ -92,7 +92,7 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     m_uiManager.reset(new UIManager(*m_conCommandManager, *m_sqManager, *m_fsManager, m_ppD3D11Device));
     m_pakManager.reset(new PakManager(*m_conCommandManager, m_engineServer, *m_sqManager, m_ppD3D11Device));
     m_modManager.reset(new ModManager(*m_conCommandManager));
-    m_sourceConsole.reset(new SourceConsole(*m_conCommandManager));
+    m_sourceConsole.reset(new SourceConsole(*m_conCommandManager, settings.DeveloperMode ? spdlog::level::debug : spdlog::level::info));
 
     m_icepickMenu.reset(new IcepickMenu(*m_conCommandManager, *m_uiManager, *m_sqManager));
 
@@ -314,12 +314,12 @@ private:
     spdlog::sinks::basic_file_sink_mt file_sink_;
 };
 
-void SetupLogger(const std::string& filename, bool enableConsole, spdlog::level::level_enum level)
+void SetupLogger(const std::string& filename, bool enableWindowsConsole)
 {
     // Create sinks to file and console
     std::vector<spdlog::sink_ptr> sinks;
     
-    if (enableConsole)
+    if (enableWindowsConsole)
     {
         g_console = std::make_unique<Console>();
         sinks.push_back(std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>());
@@ -342,7 +342,7 @@ void SetupLogger(const std::string& filename, bool enableConsole, spdlog::level:
 #ifdef _DEBUG
     logger->set_level(spdlog::level::trace);
 #else
-    logger->set_level(level);
+    logger->set_level(spdlog::level::debug);
 #endif
 
     if (fileError)
@@ -359,7 +359,7 @@ bool SetupSDK(const SDKSettings& settings)
     try
     {
         fs::path basePath(settings.BasePath);
-        SetupLogger((basePath / "TTF2SDK.log").string(), settings.DeveloperMode, settings.DeveloperMode ? spdlog::level::debug : spdlog::level::info);
+        SetupLogger((basePath / "TTF2SDK.log").string(), settings.DeveloperMode);
     }
     catch (std::exception& ex)
     {
