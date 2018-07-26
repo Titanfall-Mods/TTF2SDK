@@ -39,6 +39,8 @@ public:
 
     bool IsACursorVisible();
 
+    void UpdateImGuiKeyStates();
+
     int WindowProcHook(void* game, HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     void SetCursorHook(ISurface* surface, unsigned int cursor);
     void LockCursorHook(ISurface* surface);

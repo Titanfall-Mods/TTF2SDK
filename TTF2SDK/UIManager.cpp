@@ -101,7 +101,8 @@ void UIManager::ShowCursorCommand(const CCommand& args)
 SQInteger UIManager::SQShowCursor(HSQUIRRELVM v)
 {
     m_enableCursor = true;
-    m_logger->info("Showing cursor");
+    SPDLOG_DEBUG(m_logger, "Showing cursor");
+    UpdateImGuiKeyStates();
     m_surface->m_vtable->UnlockCursor(m_surface);
     ISurface_SetCursor(m_surface, dc_arrow);
     return 0;
@@ -110,7 +111,8 @@ SQInteger UIManager::SQShowCursor(HSQUIRRELVM v)
 SQInteger UIManager::SQHideCursor(HSQUIRRELVM v)
 {
     m_enableCursor = false;
-    m_logger->info("Hiding cursor");
+    SPDLOG_DEBUG(m_logger, "Hiding cursor");
+    UpdateImGuiKeyStates();
     return 0;
 }
 
@@ -136,6 +138,13 @@ void UIManager::DrawGUI()
         ImGui::Text("WantCaptureKeyboard: %d", ImGui::GetIO().WantCaptureKeyboard);
         ImGui::Text("Mouse Delta X: %d", SDK().GetInputSystem()->m_analogDeltaX);
         ImGui::Text("Mouse Delta Y: %d", SDK().GetInputSystem()->m_analogDeltaY);
+        for (int i = 0; i < 256; i++)
+        {
+            if (ImGui::GetIO().KeysDown[i] == 1)
+            {
+                ImGui::Text("Key Down: %d", i);
+            }
+        }
         ImGui::End();
     }
 }
@@ -163,6 +172,14 @@ bool IsMouseMsg(UINT uMsg)
 bool UIManager::IsACursorVisible()
 {
     return m_enableCursor || m_engineCursorSet;
+}
+
+void UIManager::UpdateImGuiKeyStates()
+{
+    for (int i = 0; i < 256; i++)
+    {
+        ImGui::GetIO().KeysDown[i] = (GetKeyState(i) & 0x8000) != 0 ? 1 : 0;
+    }
 }
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -226,7 +243,13 @@ static bool ImGui_UpdateMouseCursor(ISurface* surface)
 
 void UIManager::SetCursorHook(ISurface* surface, unsigned int cursor)
 {
-    m_engineCursorSet = (cursor != dc_user && cursor != dc_none && cursor != dc_blank);
+    bool cursorSet = (cursor != dc_user && cursor != dc_none && cursor != dc_blank);
+    if (!IsACursorVisible() && cursorSet != m_engineCursorSet)
+    {
+        UpdateImGuiKeyStates();
+    }
+
+    m_engineCursorSet = cursorSet;
 
     // If no cursors, let the engine deal with it
     if (!IsACursorVisible())
