@@ -358,32 +358,41 @@ void IcepickMenu::ClearSearch()
 	}
 }
 
-int IcepickMenu::SearchInputLength()
-{
-	for( int i = 0; i < SearchMaxChars; ++i )
-	{
-		if( m_SearchInput[i] == '\0' )
-		{
-			return i;
-		}
-	}
-	return SearchMaxChars;
-}
-
 void IcepickMenu::UpdateSearchResults()
 {
-	if( m_CachedSearchInputLength != SearchInputLength() )
+	int searchInputLength = strlen( m_SearchInput );
+	if( m_CachedSearchInputLength != searchInputLength )
 	{
+		std::vector<std::string *> tempResults;
+
 		m_SearchResults.clear();
 		for( std::string & model : ModelsList::Models )
 		{
-			if( model.find( m_SearchInput ) != std::string::npos )
+			m_SearchResults.push_back( &model );
+		}
+
+		std::vector<std::string> searchTokens = Util::Split( m_SearchInput, ' ' );
+		for( std::string searchToken : searchTokens )
+		{
+			// Find all results that match the current token
+			tempResults.clear();
+			for( std::string * model : m_SearchResults )
 			{
-				m_SearchResults.push_back( &model );
+				if( model->find( searchToken ) != std::string::npos )
+				{
+					tempResults.push_back( model );
+				}
+			}
+
+			// Save the current results for the next token
+			m_SearchResults.clear();
+			for( std::string * model : tempResults )
+			{
+				m_SearchResults.push_back( model );
 			}
 		}
 
-		m_CachedSearchInputLength = SearchInputLength();
+		m_CachedSearchInputLength = searchInputLength;
 	}
 }
 
@@ -397,8 +406,9 @@ void IcepickMenu::DrawPropsGui()
         ButtonSize = 0;
     }
 
+	int searchInputLength = strlen( m_SearchInput );
 	ImGui::InputText( "Search", m_SearchInput, IM_ARRAYSIZE( m_SearchInput ) );
-	if( SearchInputLength() )
+	if( searchInputLength > 0 )
 	{
 		ImGui::SameLine();
 		if( ImGui::Button( "Clear Search" ) )
@@ -407,7 +417,7 @@ void IcepickMenu::DrawPropsGui()
 		}
 	}
 
-	if( SearchInputLength() > 0 )
+	if( searchInputLength > 0 )
 	{
 		UpdateSearchResults();
 		DrawSearchResults();

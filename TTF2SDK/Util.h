@@ -51,4 +51,5 @@ namespace Util
     std::string ConcatStrings(const std::vector<std::string>& strings, const char* delim);
     HMODULE WaitForModuleHandle(const std::string& moduleName);
     std::string ReadFileToString(std::ifstream& f);
+	std::vector<std::string> Split( const std::string & s, char delim );
 }

@@ -164,8 +164,6 @@ protected:
 
 	void ClearSearch();
 
-	int SearchInputLength();
-
 	void UpdateSearchResults();
 
 private:
