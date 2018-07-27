@@ -25,13 +25,13 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "int", "IsEditModeEnabled", "", "Help text", WRAPPED_MEMBER( IsEditModeEnabled ) );
 	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "int", "IsEditModeEnabled", "", "Help text", WRAPPED_MEMBER( IsEditModeEnabled ) );
 
-	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "ClearTools", "", "Help text", WRAPPED_MEMBER( ClearTools ) );
-	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "RegisterTool", "string id, string friendlyName, string tooltip", "Help text", WRAPPED_MEMBER( RegisterTool ) );
-	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddDividerOption", "string toolId", "Help text", WRAPPED_MEMBER( AddToolOption_Divider ) );
-	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddTextOption", "string toolId, string text", "Help text", WRAPPED_MEMBER( AddToolOption_Text ) );
-	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddButtonOption", "string toolId, string id, string buttonText", "Help text", WRAPPED_MEMBER( AddToolOption_Button ) );
-	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddSliderOption", "string toolId, string id, string name, float default, float min, float max", "Help text", WRAPPED_MEMBER( AddToolOption_Slider ) );
-	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddIntSliderOption", "string toolId, string id, string name, int default, int min, int max", "Help text", WRAPPED_MEMBER( AddToolOption_IntSlider ) );
+	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "ClearTools", "", "Help text", WRAPPED_MEMBER( ClearTools ) );
+	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "RegisterTool", "string id, string friendlyName, string tooltip", "Help text", WRAPPED_MEMBER( RegisterTool ) );
+	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "AddDividerOption", "string toolId", "Help text", WRAPPED_MEMBER( AddToolOption_Divider ) );
+	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "AddTextOption", "string toolId, string text", "Help text", WRAPPED_MEMBER( AddToolOption_Text ) );
+	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "AddButtonOption", "string toolId, string id, string buttonText", "Help text", WRAPPED_MEMBER( AddToolOption_Button ) );
+	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "AddSliderOption", "string toolId, string id, string name, float default, float min, float max", "Help text", WRAPPED_MEMBER( AddToolOption_Slider ) );
+	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "AddIntSliderOption", "string toolId, string id, string name, int default, int min, int max", "Help text", WRAPPED_MEMBER( AddToolOption_IntSlider ) );
 
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "ClearSaveBuffer", "", "Help text", WRAPPED_MEMBER( ClearSaveBuffer ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "AddSaveItem", "string data", "Help text", WRAPPED_MEMBER( AddSaveItem ) );
