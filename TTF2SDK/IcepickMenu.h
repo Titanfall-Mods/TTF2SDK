@@ -157,6 +157,8 @@ public:
 	SQInteger DisableEditMode( HSQUIRRELVM v );
 	SQInteger IsEditModeEnabled( HSQUIRRELVM v );
 
+	SQInteger IsInvincibilityEnabled( HSQUIRRELVM v );
+
     Tool * GetToolFromId(const char * toolId);
     ToolOption * GetOptionFromId(Tool * tool, const char * optionId);
 	SpawnmenuPage * GetPageFromId( const char * pageId );
@@ -178,6 +180,7 @@ private:
 	std::vector<SpawnmenuPage> m_Pages;
     bool m_IcepickMenuOpen = false;
 	bool m_EditModeEnabled = true;
+	bool m_IsInvincibilityEnabled = false;
 
 	bool m_SaveAsOpen = false;
 	char m_SaveInput[SaveMaxChars] = "";

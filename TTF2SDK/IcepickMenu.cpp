@@ -21,7 +21,8 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
 	conCommandManager.RegisterCommand( "undo", WRAPPED_MEMBER( DummyConCommand ), "Dummy function for scripted undo functionality", 0 );
 
 	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "int", "IsSpawnMenuOpen", "", "Help text", WRAPPED_MEMBER( IsMenuShowing ) );
-
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "int", "IsInvincibilityEnabled", "", "Help text", WRAPPED_MEMBER( IsInvincibilityEnabled ) );
+	
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "EnableEditMode", "", "Help text", WRAPPED_MEMBER( EnableEditMode ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "DisableEditMode", "", "Help text", WRAPPED_MEMBER( DisableEditMode ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "int", "IsEditModeEnabled", "", "Help text", WRAPPED_MEMBER( IsEditModeEnabled ) );
@@ -298,6 +299,12 @@ SQInteger IcepickMenu::DisableEditMode( HSQUIRRELVM v )
 SQInteger IcepickMenu::IsEditModeEnabled( HSQUIRRELVM v )
 {
 	sq_pushinteger.CallServer( v, (int) m_EditModeEnabled );
+	return 1;
+}
+
+SQInteger IcepickMenu::IsInvincibilityEnabled( HSQUIRRELVM v )
+{
+	sq_pushinteger.CallServer( v, (int) m_IsInvincibilityEnabled );
 	return 1;
 }
 
@@ -777,6 +784,11 @@ void IcepickMenu::DrawCallback()
 				if( ImGui::MenuItem( "Edit Mode", nullptr, m_EditModeEnabled ) )
 				{
 					SDK().GetSQManager().ExecuteClientCode( "Spawnmenu_ToggleEditMode();" );
+				}
+				if( ImGui::MenuItem( "Invincibility", nullptr, m_IsInvincibilityEnabled ) )
+				{
+					m_IsInvincibilityEnabled = !m_IsInvincibilityEnabled;
+					SDK().GetSQManager().ExecuteServerCode( m_IsInvincibilityEnabled ? "Spawnmenu_ChangePlayerInvincibility( true );" : "Spawnmenu_ChangePlayerInvincibility( false );" );
 				}
 				if( ImGui::MenuItem( "Save Game" ) )
 				{
