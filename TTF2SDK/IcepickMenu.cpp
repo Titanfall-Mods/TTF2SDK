@@ -42,6 +42,8 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
 
 	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "array", "GetSaveFiles", "", "Help text", WRAPPED_MEMBER( GetSaveFiles ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "string", "LoadSaveFileContents", "string fileName", "Help text", WRAPPED_MEMBER( LoadSaveFileContents ) );
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "ShowLoadingModal", "", "Help text", WRAPPED_MEMBER( ShowLoadingModal ) );
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "HideLoadingModal", "", "Help text", WRAPPED_MEMBER( HideLoadingModal ) );
 
 	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "ClearSpawnmenu", "", "Help text", WRAPPED_MEMBER( ClearSpawnmenu ) );
 	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "RegisterSpawnmenuPage", "string id, string friendlyName", "Help text", WRAPPED_MEMBER( RegisterSpawnmenuPage ) );
@@ -280,6 +282,20 @@ SQInteger IcepickMenu::LoadSaveFileContents( HSQUIRRELVM v )
 	sq_pushstring.CallServer( v, saveData.c_str(), -1 );
 
 	return 1;
+}
+
+SQInteger IcepickMenu::ShowLoadingModal( HSQUIRRELVM v )
+{
+	m_ShowLoadingModal = true;
+	m_logger->info( "Showing loading modal" );
+	return 0;
+}
+
+SQInteger IcepickMenu::HideLoadingModal( HSQUIRRELVM v )
+{
+	m_ShowLoadingModal = false;
+	m_logger->info( "Hiding loading modal" );
+	return 0;
 }
 
 SQInteger IcepickMenu::EnableEditMode( HSQUIRRELVM v )
@@ -846,6 +862,25 @@ void IcepickMenu::DrawCallback()
     ImGui::End();
 
 	DrawSaveAs();
+
+	// HACK: calling OpenPopup from a squirrel function crashes the game, so we'll fake it using a flag
+	if( m_ShowLoadingModal )
+	{
+		ImGuiIO& io = ImGui::GetIO();
+
+		ImGui::SetNextWindowSize( ImVec2( ImGui::GetIO().DisplaySize.x - Padding * 2.0f, ImGui::GetIO().DisplaySize.y - Padding * 2.0f ) );
+		ImGui::SetNextWindowPos( ImVec2( Padding, Padding ) );
+		ImGui::Begin( "Loading", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse );
+		ImGui::End();
+
+		ImGui::SetNextWindowPos( ImVec2( io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f ), ImGuiCond_Appearing, ImVec2( 0.5f, 0.5f ) );
+		ImGui::Begin( "Loading save...", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse );
+		{
+			ImGui::Text( "Please wait while the save file is loaded..." );
+		}
+		ImGui::End();
+	}
+	
 }
 
 void IcepickMenu::DoSpawnModel(std::string & model)

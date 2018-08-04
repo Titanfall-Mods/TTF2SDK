@@ -152,6 +152,8 @@ public:
 
 	SQInteger GetSaveFiles( HSQUIRRELVM v );
 	SQInteger LoadSaveFileContents( HSQUIRRELVM v );
+	SQInteger ShowLoadingModal( HSQUIRRELVM v );
+	SQInteger HideLoadingModal( HSQUIRRELVM v );
 
 	SQInteger EnableEditMode( HSQUIRRELVM v );
 	SQInteger DisableEditMode( HSQUIRRELVM v );
@@ -185,6 +187,7 @@ private:
 	bool m_SaveAsOpen = false;
 	char m_SaveInput[SaveMaxChars] = "";
 	std::vector<std::string> m_CachedSaveFileNames;
+	bool m_ShowLoadingModal = false;
 
     int m_SpawnmenuButtonSizes[7] = { 0, 32, 48, 64, 96, 128, 256 };
     int m_SpawnmenuButtonSize = 96;
