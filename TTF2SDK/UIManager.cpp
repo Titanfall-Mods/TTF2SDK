@@ -72,6 +72,12 @@ void UIManager::InitImGui(const fs::path& modsPath, ID3D11Device** ppD3DDevice)
 
     ImGui_ImplDX11_Init(wnd, *ppD3DDevice, *m_ppD3D11DeviceContext);
     ImGui::StyleColorsDark();
+	ImGuiStyle* style = &ImGui::GetStyle();
+	ImVec4* colors = style->Colors;
+	colors[ImGuiCol_Header] = ImVec4( 0.06f, 0.39f, 0.79f, 0.41f );
+	colors[ImGuiCol_HeaderHovered] = ImVec4( 0.06f, 0.39f, 0.79f, 0.80f );
+	colors[ImGuiCol_HeaderActive] = ImVec4( 0.06f, 0.39f, 0.79f, 1.00f );
+
     ImGui::GetIO().IniFilename = nullptr;
 
     // Check if the font file exists in the icepick mod

@@ -437,6 +437,7 @@ void IcepickMenu::DrawPropsGui()
 		{
 			default:
 			case Tree:
+				ImGui::SetNextTreeNodeOpen( true, ImGuiCond_FirstUseEver );
 				if( ImGui::TreeNode( "models/" ) )
 				{
 					DrawModelsDirectory( &m_ModelsList->BaseDir );
@@ -630,6 +631,7 @@ void IcepickMenu::DrawPage( int idx )
 	{
 		for( EntityCategory & entCategory : currentPage->Categories )
 		{
+			ImGui::SetNextTreeNodeOpen( true, ImGuiCond_FirstUseEver );
 			if( ImGui::CollapsingHeader( entCategory.Title.c_str() ) )
 			{
 				ImGui::Columns( NumColumns, nullptr, false );
