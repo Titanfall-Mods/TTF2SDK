@@ -128,6 +128,8 @@ public:
 
     void ShowMenuCommand(const CCommand& args);
     void HideMenuCommand(const CCommand& args);
+	SQInteger IsMenuShowing( HSQUIRRELVM v );
+
 	void ToggleToolgunCommand( const CCommand& args );
 	void DummyConCommand( const CCommand& args );
 

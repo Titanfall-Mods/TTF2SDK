@@ -20,6 +20,8 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
 	conCommandManager.RegisterCommand( "toggle_toolgun", WRAPPED_MEMBER( ToggleToolgunCommand ), "Toggle the toolgun", 0 );
 	conCommandManager.RegisterCommand( "undo", WRAPPED_MEMBER( DummyConCommand ), "Dummy function for scripted undo functionality", 0 );
 
+	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "int", "IsSpawnMenuOpen", "", "Help text", WRAPPED_MEMBER( IsMenuShowing ) );
+
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "EnableEditMode", "", "Help text", WRAPPED_MEMBER( EnableEditMode ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "void", "DisableEditMode", "", "Help text", WRAPPED_MEMBER( DisableEditMode ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "int", "IsEditModeEnabled", "", "Help text", WRAPPED_MEMBER( IsEditModeEnabled ) );
@@ -848,6 +850,12 @@ void IcepickMenu::HideMenuCommand(const CCommand& args)
 {
     m_IcepickMenuOpen = false;
     SDK().GetUIManager().SQHideCursor(0);
+}
+
+SQInteger IcepickMenu::IsMenuShowing( HSQUIRRELVM v )
+{
+	sq_pushinteger.CallClient( v, (int) m_IcepickMenuOpen );
+	return 1;
 }
 
 void IcepickMenu::ToggleToolgunCommand( const CCommand& args )
