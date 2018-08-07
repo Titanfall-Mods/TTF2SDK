@@ -9,7 +9,7 @@ IcepickMenu& Menu()
 
 #define WRAPPED_MEMBER(name) MemberWrapper<decltype(&IcepickMenu::##name), &IcepickMenu::##name, decltype(&Menu), &Menu>::Call
 
-IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiManager, SquirrelManager& sqManager)
+IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiManager, SquirrelManager& sqManager, FileSystemManager & fsManager )
 {
     m_logger = spdlog::get("logger");
 
@@ -51,7 +51,7 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
 	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "void", "RegisterCategoryItem", "string categoryId, string itemId, string friendlyName", "Help text", WRAPPED_MEMBER( RegisterCategoryItem ) );
 
     // Add models
-    m_ModelsList = new ModelsList();
+    m_ModelsList = new ModelsList( fsManager );
     m_ViewingDirectory = &m_ModelsList->BaseDir;
 
     uiManager.AddDrawCallback("IcepickMenu", std::bind(&IcepickMenu::DrawCallback, this));
@@ -391,9 +391,12 @@ void IcepickMenu::UpdateSearchResults()
 		std::vector<std::string *> tempResults;
 
 		m_SearchResults.clear();
-		for( std::string & model : ModelsList::Models )
+		if( m_ModelsList->CurrentSpawnlist != nullptr )
 		{
-			m_SearchResults.push_back( &model );
+			for( std::string & model : m_ModelsList->CurrentSpawnlist->Props )
+			{
+				m_SearchResults.push_back( &model );
+			}
 		}
 
 		std::vector<std::string> searchTokens = Util::Split( m_SearchInput, ' ' );
@@ -541,10 +544,7 @@ void IcepickMenu::DrawDirectoryModels(struct ModelsDirectory * dir)
 		case List:
 			for( int i = 0; i < dir->ModelNames.size(); ++i )
 			{
-				if( ImGui::Button( dir->ModelNames[i].c_str() ) )
-				{
-					DoSpawnModel( dir->Models[i] );
-				}
+				DrawModelButton( dir->Models[i], dir->ModelNames[i], ImVec2() );
 			}
 			break;
 		case Grid:
@@ -553,14 +553,34 @@ void IcepickMenu::DrawDirectoryModels(struct ModelsDirectory * dir)
 			ImGui::Columns( NumColumns, nullptr, false );
 			for( int i = 0; i < dir->ModelNames.size(); ++i )
 			{
-				if( ImGui::Button( dir->ModelNames[i].c_str(), ImVec2( m_SpawnmenuButtonSize, m_SpawnmenuButtonSize ) ) )
-				{
-					DoSpawnModel( dir->Models[i] );
-				}
+				DrawModelButton( dir->Models[i], dir->ModelNames[i], ImVec2( m_SpawnmenuButtonSize, m_SpawnmenuButtonSize ) );
 				ImGui::NextColumn();
 			}
 			ImGui::Columns( 1 );
 			break;
+	}
+}
+
+void IcepickMenu::DrawModelButton( std::string & modelName, std::string & displayName, ImVec2 size )
+{
+	if( ImGui::Button( displayName.c_str() ) )
+	{
+		DoSpawnModel( modelName );
+	}
+	if( ImGui::BeginPopupContextItem( modelName.c_str() ) )
+	{
+		if( ImGui::BeginMenu( "Add to Spawnlist" ) )
+		{
+			for( Spawnlist & spawnlist : m_ModelsList->Spawnlists )
+			{
+				if( spawnlist.CanWriteTo && ImGui::MenuItem( spawnlist.Name.c_str() ) )
+				{
+					m_ModelsList->AppendToSpawnlist( spawnlist, modelName );
+				}
+			}
+			ImGui::EndMenu();
+		}
+		ImGui::EndPopup();
 	}
 }
 
@@ -737,6 +757,45 @@ void IcepickMenu::RefreshSaveFilesList()
 	}
 }
 
+void IcepickMenu::DrawCreateSpawnlist()
+{
+	if( !m_CreateSpawnlistOpen )
+	{
+		return;
+	}
+
+	ImGui::SetNextWindowSize( ImVec2( 400, 120 ), ImGuiCond_FirstUseEver );
+	ImGui::SetNextWindowPosCenter();
+	ImGui::Begin( "Create Spawnlist", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize );
+	{
+		ImGui::Text( "Create new spawnlist" );
+		ImGui::InputText( "File name", m_SpawnlistInput, IM_ARRAYSIZE( m_SpawnlistInput ) );
+		ImGui::Separator();
+
+		if( ImGui::Button( "Create", ImVec2( ImGui::GetWindowContentRegionWidth() * 0.5f - 5, 0 ) ) )
+		{
+			std::string fileName = std::string(m_SpawnlistInput) + ".txt";
+			std::string filePath = ( SDK().GetFSManager().GetSpawnlistsPath() / fileName ).string();
+			m_logger->info( "create spawnlist at {}", filePath );
+
+			std::ofstream spawnlistFile;
+			spawnlistFile.open( filePath );
+			spawnlistFile << "";
+			spawnlistFile.close();
+
+			m_ModelsList->LoadSpawnlists();
+
+			m_CreateSpawnlistOpen = false;
+		}
+		ImGui::SameLine();
+		if( ImGui::Button( "Cancel", ImVec2( ImGui::GetWindowContentRegionWidth() * 0.5f - 5, 0 ) ) )
+		{
+			m_CreateSpawnlistOpen = false;
+		}
+	}
+	ImGui::End();
+}
+
 void IcepickMenu::DrawCallback()
 {
     if (!m_IcepickMenuOpen)
@@ -763,42 +822,61 @@ void IcepickMenu::DrawCallback()
 				}
 			}
 
+			if( ImGui::BeginMenu( "Spawnlists" ) )
+			{
+				if( ImGui::BeginMenu( "Spawnlist Style" ) )
+				{
+					if( ImGui::MenuItem( "Tree Style", nullptr, m_SpawnlistDisplayMode == SpawnlistDisplayMode::Tree ) )
+					{
+						m_SpawnlistDisplayMode = SpawnlistDisplayMode::Tree;
+					}
+					if( ImGui::MenuItem( "Browser Style", nullptr, m_SpawnlistDisplayMode == SpawnlistDisplayMode::Browser ) )
+					{
+						m_SpawnlistDisplayMode = SpawnlistDisplayMode::Browser;
+					}
+					ImGui::Separator();
+					if( ImGui::MenuItem( "Grid", nullptr, m_ModelsDisplayMode == ModelsDisplayMode::Grid ) )
+					{
+						m_ModelsDisplayMode = ModelsDisplayMode::Grid;
+					}
+					if( ImGui::MenuItem( "List", nullptr, m_ModelsDisplayMode == ModelsDisplayMode::List ) )
+					{
+						m_ModelsDisplayMode = ModelsDisplayMode::List;
+					}
+					ImGui::EndMenu();
+				}
+				if( ImGui::BeginMenu( "Icon Size" ) )
+				{
+					for( int size : m_SpawnmenuButtonSizes )
+					{
+						std::string Label = size > 0 ? std::to_string( size ) : "Fitted";
+						if( ImGui::MenuItem( Label.c_str(), nullptr, m_SpawnmenuButtonSize == size ) )
+						{
+							m_SpawnmenuButtonSize = size;
+						}
+					}
+					ImGui::EndMenu();
+				}
+				ImGui::Separator();
+
+				for( Spawnlist & spawnlist : m_ModelsList->Spawnlists )
+				{
+					if( ImGui::MenuItem( spawnlist.Name.c_str() ) )
+					{
+						m_ModelsList->ChangeSpawnlist( spawnlist.Name );
+					}
+				}
+
+				ImGui::Separator();
+				if( ImGui::MenuItem( "Create New Spawnlist" ) )
+				{
+					m_CreateSpawnlistOpen = true;
+				}
+				ImGui::EndMenu();
+			}
+
             if (ImGui::BeginMenu("Options"))
             {
-                if (ImGui::BeginMenu("Spawnlist"))
-                {
-                    if (ImGui::MenuItem("Tree Style", nullptr, m_SpawnlistDisplayMode == SpawnlistDisplayMode::Tree))
-                    {
-                        m_SpawnlistDisplayMode = SpawnlistDisplayMode::Tree;
-                    }
-                    if (ImGui::MenuItem("Browser Style", nullptr, m_SpawnlistDisplayMode == SpawnlistDisplayMode::Browser))
-                    {
-                        m_SpawnlistDisplayMode = SpawnlistDisplayMode::Browser;
-                    }
-                    ImGui::Separator();
-                    if (ImGui::MenuItem("Grid", nullptr, m_ModelsDisplayMode == ModelsDisplayMode::Grid))
-                    {
-                        m_ModelsDisplayMode = ModelsDisplayMode::Grid;
-                    }
-                    if (ImGui::MenuItem("List", nullptr, m_ModelsDisplayMode == ModelsDisplayMode::List))
-                    {
-                        m_ModelsDisplayMode = ModelsDisplayMode::List;
-                    }
-                    ImGui::EndMenu();
-                }
-                if (ImGui::BeginMenu("Icon Size"))
-                {
-                    for (int size : m_SpawnmenuButtonSizes)
-                    {
-                        std::string Label = size > 0 ? std::to_string(size) : "Fitted";
-                        if (ImGui::MenuItem(Label.c_str(), nullptr, m_SpawnmenuButtonSize == size))
-                        {
-                            m_SpawnmenuButtonSize = size;
-                        }
-                    }
-                    ImGui::EndMenu();
-                }
-				ImGui::Separator();
 				if( ImGui::MenuItem( "Edit Mode", nullptr, m_EditModeEnabled ) )
 				{
 					SDK().GetSQManager().ExecuteClientCode( "Spawnmenu_ToggleEditMode();" );
@@ -862,6 +940,7 @@ void IcepickMenu::DrawCallback()
     ImGui::End();
 
 	DrawSaveAs();
+	DrawCreateSpawnlist();
 
 	// HACK: calling OpenPopup from a squirrel function crashes the game, so we'll fake it using a flag
 	if( m_ShowLoadingModal )

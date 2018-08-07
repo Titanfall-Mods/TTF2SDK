@@ -11,15 +11,41 @@ struct ModelsDirectory
 	std::vector<std::string> ModelNames;
 };
 
+struct Spawnlist
+{
+	std::string Name;
+	std::string Path;
+	bool CanWriteTo;
+	std::vector<std::string> Props;
+};
+
 class ModelsList
 {
 
 public:
 
-	static std::vector<std::string> Models;
+	ModelsList( FileSystemManager & fsManager );
 
-	ModelsList();
+	void LoadSpawnlists();
+
+	void ChangeSpawnlist( std::string target );
+
+	void AppendToSpawnlist( Spawnlist & appendTarget, std::string newModel );
+
+	std::vector<Spawnlist> Spawnlists;
+
+	Spawnlist * CurrentSpawnlist;
 
 	ModelsDirectory BaseDir;
+
+protected:
+
+	static std::string DefaultSpawnlist;
+
+	void UpdateSpawnlist( Spawnlist & newSpawnlist );
+
+	FileSystemManager * m_fsManager;
+
+	std::unordered_map< std::string, std::string > SpawnlistsFileMap;
 
 };

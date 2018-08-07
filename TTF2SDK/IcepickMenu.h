@@ -109,18 +109,20 @@ public:
 class IcepickMenu
 {
 public:
-    IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiManager, SquirrelManager& sqManager);
+    IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiManager, SquirrelManager& sqManager, FileSystemManager & fsManager);
     ~IcepickMenu();
 
     void DrawPropsGui();
 	void DrawSearchResults();
     void DrawModelsDirectory(struct ModelsDirectory * dir);
     void DrawDirectoryModels(struct ModelsDirectory * dir);
+	void DrawModelButton( std::string & modelName, std::string & displayName, ImVec2 size );
     void DrawToolsGui(float ToolsPanelWidth);
     void DrawOptionsGui();
     void DrawPage( int idx );
 	void DrawSaveAs();
 	void RefreshSaveFilesList();
+	void DrawCreateSpawnlist();
 
     void DrawCallback();
 
@@ -188,6 +190,9 @@ private:
 	char m_SaveInput[SaveMaxChars] = "";
 	std::vector<std::string> m_CachedSaveFileNames;
 	bool m_ShowLoadingModal = false;
+
+	bool m_CreateSpawnlistOpen = false;
+	char m_SpawnlistInput[SaveMaxChars] = "";
 
     int m_SpawnmenuButtonSizes[7] = { 0, 32, 48, 64, 96, 128, 256 };
     int m_SpawnmenuButtonSize = 96;
