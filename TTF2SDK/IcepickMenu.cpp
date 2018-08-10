@@ -19,6 +19,7 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
 
 	conCommandManager.RegisterCommand( "toggle_toolgun", WRAPPED_MEMBER( ToggleToolgunCommand ), "Toggle the toolgun", 0 );
 	conCommandManager.RegisterCommand( "undo", WRAPPED_MEMBER( DummyConCommand ), "Dummy function for scripted undo functionality", 0 );
+	conCommandManager.RegisterCommand( "instant_respawn", WRAPPED_MEMBER( DummyConCommand ), "Dummy function for scripted instant respawn", 0 );
 
 	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "int", "IsSpawnMenuOpen", "", "Help text", WRAPPED_MEMBER( IsMenuShowing ) );
 	sqManager.AddFuncRegistration( CONTEXT_SERVER, "int", "IsInvincibilityEnabled", "", "Help text", WRAPPED_MEMBER( IsInvincibilityEnabled ) );
