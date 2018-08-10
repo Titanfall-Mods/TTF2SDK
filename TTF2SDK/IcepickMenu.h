@@ -121,6 +121,7 @@ public:
     void DrawOptionsGui();
     void DrawPage( int idx );
 	void DrawSaveAs();
+	bool IsSaveInputNameValid();
 	void RefreshSaveFilesList();
 	void DrawCreateSpawnlist();
 
@@ -187,6 +188,7 @@ private:
 	bool m_IsInvincibilityEnabled = false;
 
 	bool m_SaveAsOpen = false;
+	bool m_ShowInvalidSave = false;
 	char m_SaveInput[SaveMaxChars] = "";
 	std::vector<std::string> m_CachedSaveFileNames;
 	bool m_ShowLoadingModal = false;

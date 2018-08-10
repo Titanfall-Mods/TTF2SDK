@@ -706,6 +706,10 @@ void IcepickMenu::DrawSaveAs()
 	ImGui::Begin( "Save As", nullptr, ImGuiWindowFlags_NoCollapse );
 	{
 		ImGui::Text( "Create new save" );
+		if( m_ShowInvalidSave )
+		{
+			ImGui::TextColored( ImVec4( 1.0f, 0.0f, 0.0f, 1.0f ), "Please enter a valid file name." );
+		}
 		ImGui::InputText( "File name", m_SaveInput, IM_ARRAYSIZE( m_SaveInput ) );
 
 		ImGui::Separator();
@@ -727,19 +731,44 @@ void IcepickMenu::DrawSaveAs()
 
 		if( ImGui::Button( "Save", ImVec2( ImGui::GetWindowContentRegionWidth() * 0.5f - 5, 0 ) ) )
 		{
-			std::string saveFileName = m_SaveInput;
-			SDK().GetSQManager().ExecuteServerCode( ( "Spawnmenu_SaveGameToFile(\"" + saveFileName + "\");" ).c_str() );
-			SDK().GetSQManager().ExecuteClientCode( ( "Spawnmenu_OnSavedGameToFile(\"" + saveFileName + "\");" ).c_str() );
-			m_SaveAsOpen = false;
+			if( IsSaveInputNameValid() )
+			{
+				std::string saveFileName = m_SaveInput;
+				SDK().GetSQManager().ExecuteServerCode( ( "Spawnmenu_SaveGameToFile(\"" + saveFileName + "\");" ).c_str() );
+				SDK().GetSQManager().ExecuteClientCode( ( "Spawnmenu_OnSavedGameToFile(\"" + saveFileName + "\");" ).c_str() );
+				m_SaveAsOpen = false;
+				m_ShowInvalidSave = false;
+			}
+			else
+			{
+				m_ShowInvalidSave = true;
+			}
 		}
 		ImGui::SameLine();
 		if( ImGui::Button( "Cancel", ImVec2( ImGui::GetWindowContentRegionWidth() * 0.5f - 5, 0 ) ) )
 		{
 			m_SaveAsOpen = false;
+			m_ShowInvalidSave = false;
 		}
 
 	}
 	ImGui::End();
+}
+
+bool IcepickMenu::IsSaveInputNameValid()
+{
+	std::vector<char> invalidCharacters = { '/', '\\', '<', '>', '?', ':', '*', '"', '|' };
+	std::string input = m_SaveInput;
+
+	for( char invalidCharacter : invalidCharacters )
+	{
+		if( input.find( invalidCharacter ) != std::string::npos )
+		{
+			m_logger->warn( "Save name '{}' is invalid, found disallowed character {}", input, invalidCharacter );
+			return false;
+		}
+	}
+	return true;
 }
 
 void IcepickMenu::RefreshSaveFilesList()
