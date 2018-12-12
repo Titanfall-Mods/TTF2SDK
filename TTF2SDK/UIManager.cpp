@@ -300,7 +300,7 @@ HRESULT UIManager::PresentHook(IDXGISwapChain* SwapChain, UINT SyncInterval, UIN
     }
 
     ImGui_ImplDX11_NewFrame();
-    //DrawGUI();
+    // DrawGUI();
     for (const auto& entry : m_drawCallbacks)
     {
         entry.second();

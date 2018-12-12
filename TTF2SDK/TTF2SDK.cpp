@@ -126,6 +126,8 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
 
     m_conCommandManager->RegisterCommand("noclip_enable", WRAPPED_MEMBER(EnableNoclipCommand), "Enable noclip", 0);
     m_conCommandManager->RegisterCommand("noclip_disable", WRAPPED_MEMBER(DisableNoclipCommand), "Disable noclip", 0);
+
+    StartIPC();
 }
 
 FileSystemManager& TTF2SDK::GetFSManager()
@@ -267,8 +269,176 @@ void TTF2SDK::DisableNoclipCommand(const CCommand& args)
     }
 }
 
+void TTF2SDK::StartIPC()
+{
+    m_stopIpcThread.reset(CreateEvent(NULL, TRUE, FALSE, NULL));
+    if (m_stopIpcThread.get() == NULL)
+    {
+        m_logger->error("Failed to IPC cancellation event - remote commands will not be available");
+        return;
+    }
+
+    m_ipcPipe.reset(CreateNamedPipe(TEXT("\\\\.\\pipe\\TTF2SDK"),
+        PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED,
+        PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
+        1,
+        16 * 1024,
+        16 * 1024,
+        NMPWAIT_USE_DEFAULT_WAIT,
+        NULL));
+
+    if (m_ipcPipe.get() == INVALID_HANDLE_VALUE)
+    {
+        m_logger->error("Failed to create named pipe - remote commands will not be available");
+        return;
+    }
+
+    m_ipcThread = std::thread(&TTF2SDK::NamedPipeThread, this);
+}
+
+bool TTF2SDK::ConnectToIPCClient()
+{
+    SafeHandle hEvent(CreateEvent(NULL, TRUE, FALSE, NULL));
+    if (hEvent.get() == NULL)
+    {
+        m_logger->error("Failed to create event in ConnectToIPCClient");
+        return false;
+    }
+
+    OVERLAPPED ol = { 0 };
+    ol.hEvent = hEvent.get();
+    BOOL connected = ConnectNamedPipe(m_ipcPipe.get(), &ol);
+
+    // Overlapped ConnectNamedPipe should return zero.
+    if (connected)
+    {
+        m_logger->error("ConnectNamedPipe failed with {}", GetLastError());
+        return false;
+    }
+
+    HANDLE waitHandles[] = { m_stopIpcThread.get(), ol.hEvent };
+
+    DWORD error = GetLastError();
+    if (error == ERROR_IO_PENDING)
+    {
+        DWORD waitResult = WaitForMultipleObjects(2, waitHandles, FALSE, INFINITE);
+        if (waitResult == WAIT_OBJECT_0) // Thread cancelled
+        {
+            CancelIo(m_ipcPipe.get());
+            return false;
+        }
+        else if (waitResult == (WAIT_OBJECT_0 + 1)) // Client connected
+        {
+            DWORD dwDummy;
+            return GetOverlappedResult(m_ipcPipe.get(), &ol, &dwDummy, FALSE);
+        }
+        else // Something went wrong
+        {
+            return false;
+        }
+    }
+    else if (error == ERROR_PIPE_CONNECTED)
+    {
+        return true;
+    }
+    else
+    {
+        m_logger->error("ConnectNamedPipe failed with {}", GetLastError());
+        return false;
+    }
+}
+
+void TTF2SDK::HandleIPCData(char* buffer, DWORD bytesRead)
+{
+    buffer[bytesRead] = 0;
+    if (buffer[0] == 'C')
+    {
+        GetSQManager().ExecuteClientCode(buffer + 1);
+    }
+    else if (buffer[0] == 'S')
+    {
+        GetSQManager().ExecuteServerCode(buffer + 1);
+    }
+    else
+    {
+        m_logger->error("Received malformed IPC message: must start with either S or C.");
+    }
+}
+
+void TTF2SDK::NamedPipeThread()
+{
+    const size_t BUFFER_SIZE = 16 * 1024;
+    std::unique_ptr<char[]> buffer(new char[BUFFER_SIZE]);
+    DWORD bytesRead;
+
+    while (true)
+    {
+        bool connected = ConnectToIPCClient();
+        if (!connected)
+        {
+            SPDLOG_DEBUG(m_logger, "ConnectToIPCClient returned false - ending IPC thread");
+            return;
+        }
+
+        while (true)
+        {
+            SafeHandle hEvent(CreateEvent(NULL, TRUE, FALSE, NULL));
+            if (hEvent.get() == NULL)
+            {
+                m_logger->error("Failed to create event for ReadFile in IPC");
+                return;
+            }
+
+            OVERLAPPED ol = { 0 };
+            ol.hEvent = hEvent.get();
+            BOOL result = ReadFile(m_ipcPipe.get(), buffer.get(), BUFFER_SIZE - 1, &bytesRead, &ol);
+            DWORD error = GetLastError();
+            if (result)
+            {
+                if (bytesRead > 1)
+                {
+                    HandleIPCData(buffer.get(), bytesRead);
+                }
+            }
+            else if (error == ERROR_IO_PENDING)
+            {
+                HANDLE waitHandles[] = { m_stopIpcThread.get(), ol.hEvent };
+                DWORD waitResult = WaitForMultipleObjects(2, waitHandles, FALSE, INFINITE);
+                if (waitResult == WAIT_OBJECT_0) // Thread cancelled
+                {
+                    CancelIo(m_ipcPipe.get());
+                    return;
+                }
+                else if (waitResult == (WAIT_OBJECT_0 + 1)) // Read completed
+                {
+                    if (GetOverlappedResult(m_ipcPipe.get(), &ol, &bytesRead, FALSE))
+                    {
+                        if (bytesRead > 1)
+                        {
+                            HandleIPCData(buffer.get(), bytesRead);
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                break;
+            }
+        }
+        
+        DisconnectNamedPipe(m_ipcPipe.get());
+    }
+}
+
 TTF2SDK::~TTF2SDK()
 {
+    SetEvent(m_stopIpcThread.get());
+    m_ipcThread.join();
+
     // TODO: Reorder these
     m_sqManager.reset();
     m_conCommandManager.reset();

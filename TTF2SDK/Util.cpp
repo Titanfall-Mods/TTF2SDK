@@ -153,7 +153,7 @@ namespace Util
         HMODULE module = nullptr;
         do
         {
-            module = GetModuleHandle(Util::Widen(moduleName).c_str());;
+            module = GetModuleHandle(Util::Widen(moduleName).c_str());
         }
         while (module == nullptr);
         return module;

@@ -51,6 +51,17 @@ private:
     std::list<DelayedFunc> m_delayedFuncs;
 };
 
+struct HandleDeleter
+{
+    typedef HANDLE pointer;
+    void operator()(HANDLE h)
+    {
+        CloseHandle(h);
+    }
+};
+
+typedef std::unique_ptr<HANDLE, HandleDeleter> SafeHandle;
+
 class TTF2SDK
 {
 private:
@@ -74,6 +85,10 @@ private:
     SourceInterface<IInputSystem> m_inputSystem;
 
     ID3D11Device** m_ppD3D11Device;
+
+    SafeHandle m_ipcPipe;
+    SafeHandle m_stopIpcThread;
+    std::thread m_ipcThread;
 
 public:
     TTF2SDK(const SDKSettings& settings);
@@ -105,6 +120,11 @@ public:
 
     void EnableNoclipCommand(const CCommand& args);
     void DisableNoclipCommand(const CCommand& args);
+
+    void StartIPC();
+    bool ConnectToIPCClient();
+    void HandleIPCData(char* buffer, DWORD bytesRead);
+    void NamedPipeThread();
 };
 
 TTF2SDK& SDK();

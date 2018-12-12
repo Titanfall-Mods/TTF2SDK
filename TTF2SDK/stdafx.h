@@ -48,6 +48,7 @@ namespace fs = std::experimental::filesystem;
 #include <fstream>
 #include <regex>
 #include <mutex>
+#include <thread>
 #include <MinHook/MinHook.h>
 #include <sstream>
 #include "SDKSettings.h"
