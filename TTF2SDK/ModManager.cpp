@@ -43,6 +43,21 @@ const char* MOD_INFO_SCHEMA = R"END(
         "Version": {
             "type": "string"
         },
+        "Gamemode": {
+            "type": "object",
+            "properties": {
+                "Id": {
+                    "type": "string"
+                },
+                "Name": {
+                    "type": "string"
+                },
+                "Description": {
+                    "type": "string"
+                }
+            },
+            "required": ["Id"]
+        },
         "CustomScripts": {
             "type": "array",
             "items": {
@@ -65,6 +80,9 @@ const char* MOD_INFO_SCHEMA = R"END(
                     },
                     "ClientCallback": {
                         "type": "string"
+                    },
+                    "IgnoreGamemode": {
+                        "type": "bool"
                     }
                 },
                 "oneOf": [{
@@ -216,19 +234,37 @@ Mod::Mod(const fs::path& modFolder)
 
     m_version = d.HasMember("Version") ? d["Version"].GetString() : "";
 
+	if( d.HasMember( "Gamemode" ) )
+	{
+		const rapidjson::Value& modGamemode = d["Gamemode"];
+
+		m_gamemode = GamemodeInfo();
+		m_gamemode.HasGamemode = true;
+		m_gamemode.Id = modGamemode["Id"].GetString();
+		m_gamemode.Name = modGamemode["Name"].GetString();
+		m_gamemode.Description = modGamemode["Description"].GetString();
+	}
+
+	const bool bIsCorrectGamemode = !m_gamemode.HasGamemode || m_gamemode.Id == SDK().GetModManager().GetCurrentGamemode();
+
     // Fill in all of the specified custom scripts
     // TODO: Check that the user hasn't specified a custom script twice
     std::unordered_set<std::string> customPaths;
     if (d.HasMember("CustomScripts"))
     {
         const rapidjson::Value& customScripts = d["CustomScripts"];
-        m_customScripts.resize(customScripts.Size());
-        customPaths.reserve(customScripts.Size());
         fs::path basePath = m_folder / "scripts/vscripts";
         for (rapidjson::SizeType i = 0; i < customScripts.Size(); i++)
         {
-            CreateCustomScriptInfo(m_customScripts[i], m_folder, customScripts[i]);
-            customPaths.insert((basePath / m_customScripts[i].Path).string());
+			const rapidjson::Value& Info = customScripts[i];
+			const bool bIgnoreGamemode = Info.HasMember( "IgnoreGamemode" ) ? Info["IgnoreGamemode"].GetBool() : false;
+			if( bIsCorrectGamemode || bIgnoreGamemode )
+			{
+				m_customScripts.resize( m_customScripts.size() + 1 );
+
+				CreateCustomScriptInfo( m_customScripts[i], m_folder, customScripts[i] );
+				customPaths.insert( ( basePath / m_customScripts[i].Path ).string() );
+			}
         }
     }
 
@@ -256,6 +292,12 @@ Mod::Mod(const fs::path& modFolder)
                 continue;
             }
 
+			// Only load if the gamemode is correct for this mod
+			if( !bIsCorrectGamemode )
+			{
+				continue;
+			}
+
             // Check if the path exists in the engine
             if (!SDK().GetFSManager().FileExists(relative.c_str(), "GAME"))
             {
@@ -274,10 +316,16 @@ Mod::Mod(const fs::path& modFolder)
     }
 }
 
-ModManager::ModManager(ConCommandManager& conCommandManager)
+ModManager::ModManager(ConCommandManager& conCommandManager, SquirrelManager& sqManager)
 {
     m_logger = spdlog::get("logger");
+
     conCommandManager.RegisterCommand("reload_mods", WRAPPED_MEMBER(ReloadModsCommand), "Reload all mods", 0);
+	conCommandManager.RegisterCommand( "icepick_gamemode", WRAPPED_MEMBER( SetGamemodeCommand ), "Set the gamemode using its id", 0 );
+	
+	sqManager.AddFuncRegistration( CONTEXT_CLIENT, "array", "GetIcepickGamemodes", "", "Returns an array of Icepick gamemodes", WRAPPED_MEMBER( GetIcepickGamemodes_Client ) );
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "array", "GetIcepickGamemodes", "", "Returns an array of Icepick gamemodes", WRAPPED_MEMBER( GetIcepickGamemodes_Server ) );
+	sqManager.AddFuncRegistration( CONTEXT_SERVER, "string", "GetIcepickGamemode", "", "Returns the current Icepick gamemode", WRAPPED_MEMBER( SqGetCurrentGamemode ) );
 }
 
 void ModManager::ReloadModsCommand(const CCommand& args)
@@ -482,4 +530,73 @@ void ModManager::PatchFile(const std::string& gamePath, const std::vector<fs::pa
     // Write the data out
     std::ofstream f(compilePath / gamePath, std::ios::binary);
     f << currentData;
+}
+
+SQInteger ModManager::GetIcepickGamemodes_Client( HSQUIRRELVM v )
+{
+	// create gamemodes array
+	sq_newarray.CallClient( v, 0 );
+
+	for( auto & mod : m_mods )
+	{
+		if( mod.m_gamemode.HasGamemode )
+		{
+			// create array for this gamemode
+			sq_newarray.CallClient( v, 0 );
+
+			// add data to the gamemode array
+			sq_pushstring.CallClient( v, mod.m_gamemode.Id.c_str(), -1 );
+			sq_arrayappend.CallClient( v, -2 );
+
+			sq_pushstring.CallClient( v, mod.m_gamemode.Name.c_str(), -1 );
+			sq_arrayappend.CallClient( v, -2 );
+
+			sq_pushstring.CallClient( v, mod.m_gamemode.Description.c_str(), -1 );
+			sq_arrayappend.CallClient( v, -2 );
+
+			// add the gamemode to our array of gamemodes
+			sq_arrayappend.CallClient( v, -2 );
+		}
+	}
+	return 1;
+}
+
+SQInteger ModManager::GetIcepickGamemodes_Server( HSQUIRRELVM v )
+{
+	// create gamemodes array
+	sq_newarray.CallServer( v, 0 );
+
+	for( auto & mod : m_mods )
+	{
+		if( mod.m_gamemode.HasGamemode )
+		{
+			// create array for this gamemode
+			sq_newarray.CallServer( v, 0 );
+
+			// add data to the gamemode array
+			sq_pushstring.CallServer( v, mod.m_gamemode.Id.c_str(), -1 );
+			sq_arrayappend.CallServer( v, -2 );
+
+			sq_pushstring.CallServer( v, mod.m_gamemode.Name.c_str(), -1 );
+			sq_arrayappend.CallServer( v, -2 );
+
+			sq_pushstring.CallServer( v, mod.m_gamemode.Description.c_str(), -1 );
+			sq_arrayappend.CallServer( v, -2 );
+
+			// add the gamemode to our array of gamemodes
+			sq_arrayappend.CallServer( v, -2 );
+		}
+	}
+	return 1;
+}
+
+SQInteger ModManager::SqGetCurrentGamemode( HSQUIRRELVM v )
+{
+	sq_pushstring.CallServer( v, m_gamemode.c_str(), -1 );
+	return 1;
+}
+
+void ModManager::SetGamemodeCommand( const CCommand& args )
+{
+	m_gamemode = args.ArgS();
 }
