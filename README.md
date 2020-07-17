@@ -4,7 +4,7 @@ TTF2SDK is a DLL, injected by Icepick into Titanfall 2, which modifies the behav
 
 ## Requirements
 
-* Visual Studio 2017 - latest version
+* Visual Studio 2019
 * cmake
 
 ## Build Instructions
@@ -30,7 +30,7 @@ The solution expects that protobuf project files are generated and placed in `th
 ```
 mkdir thirdparty\protobuf_build
 cd thirdparty\protobuf_build
-cmake -G "Visual Studio 15 2017 Win64" -Dprotobuf_BUILD_TESTS=OFF ../protobuf/cmake
+cmake -G "Visual Studio 16 2019" -Dprotobuf_BUILD_TESTS=OFF ..\protobuf\cmake
 ```
 
 ### Building TTF2SDK

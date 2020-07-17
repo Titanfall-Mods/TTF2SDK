@@ -1,5 +1,7 @@
 #pragma once
 
+#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+
 #include "targetver.h"
 
 #ifndef NOMINMAX
@@ -40,7 +42,7 @@
 #include <shared_mutex>
 #include <unordered_set>
 #include <filesystem>
-namespace fs = std::experimental::filesystem;
+namespace fs = std::filesystem;
 #include <locale>
 #include <codecvt>
 #include <numeric>

@@ -1,8 +1,6 @@
 #include "stdafx.h"
 #include "FileSystemManager.h"
 
-namespace fs = std::experimental::filesystem;
-
 FileSystemManager& FSManager()
 {
     return SDK().GetFSManager();

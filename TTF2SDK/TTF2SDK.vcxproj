@@ -15,19 +15,19 @@
     <ProjectGuid>{F07D9B2C-F871-495F-95A8-1A266ED9684E}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>TTF2SDK</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -66,12 +66,13 @@
       <AdditionalIncludeDirectories>..\thirdparty\;..\thirdparty\protobuf\src;..\thirdparty\imgui;..\thirdparty\rapidjson\include</AdditionalIncludeDirectories>
       <EnablePREfast>false</EnablePREfast>
       <DisableSpecificWarnings>4146</DisableSpecificWarnings>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\thirdparty\MinHook;..\thirdparty\tier0</AdditionalLibraryDirectories>
-      <AdditionalDependencies>tier0.lib;D3DCompiler.lib;libMinHook-x64-v141-md.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>tier0.lib;D3DCompiler.lib;libMinHook-x64-v142-md.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CustomBuildStep>
       <Command>$(SolutionDir)thirdparty\protobuf_build\$(Configuration)\protoc.exe --proto_path=$(ProjectDir)proto --cpp_out=$(ProjectDir)proto $(ProjectDir)proto\pak_cache.proto</Command>
@@ -91,6 +92,7 @@
       <AdditionalIncludeDirectories>..\thirdparty\;..\thirdparty\protobuf\src;..\thirdparty\imgui;..\thirdparty\rapidjson\include;..\thirdparty\breakpad</AdditionalIncludeDirectories>
       <EnablePREfast>true</EnablePREfast>
       <DisableSpecificWarnings>4146</DisableSpecificWarnings>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -98,7 +100,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\thirdparty\MinHook;..\thirdparty\tier0;..\thirdparty\breakpad</AdditionalLibraryDirectories>
-      <AdditionalDependencies>common.lib;crash_generation_client.lib;exception_handler.lib;tier0.lib;D3DCompiler.lib;libMinHook-x64-v141-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>common.lib;crash_generation_client.lib;exception_handler.lib;tier0.lib;D3DCompiler.lib;libMinHook-x64-v142-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CustomBuildStep>
       <Command>$(SolutionDir)thirdparty\protobuf_build\$(Configuration)\protoc.exe --proto_path=$(ProjectDir)proto --cpp_out=$(ProjectDir)proto $(ProjectDir)proto\pak_cache.proto</Command>
