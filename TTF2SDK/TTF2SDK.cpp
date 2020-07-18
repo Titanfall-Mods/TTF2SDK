@@ -54,7 +54,7 @@ int64_t compareFuncHook(const char* first, const char* second, int64_t count)
 {
     if (strcmp(second, "mp_") == 0 && strncmp(first, "mp_", 3) == 0)
     {
-        SPDLOG_TRACE(spdlog::get("logger"), "Overwriting result of compareFunc for {}", first);
+        SPDLOG_LOGGER_TRACE(spdlog::get("logger"), "Overwriting result of compareFunc for {}", first);
         return 1;
     }
     else
@@ -82,8 +82,8 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     int offset = *(int*)(funcBase + 16);
     m_ppD3D11Device = (ID3D11Device**)(funcBase + 20 + offset);
 
-    SPDLOG_DEBUG(m_logger, "m_ppD3D11Device = {}", (void*)m_ppD3D11Device);
-    SPDLOG_DEBUG(m_logger, "pD3D11Device = {}", (void*)*m_ppD3D11Device);
+    SPDLOG_LOGGER_DEBUG(m_logger, "m_ppD3D11Device = {}", (void*)m_ppD3D11Device);
+    SPDLOG_LOGGER_DEBUG(m_logger, "pD3D11Device = {}", (void*)*m_ppD3D11Device);
 
     m_conCommandManager.reset(new ConCommandManager());
 
@@ -103,7 +103,7 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     // Patch jump for loading MP maps in single player
     {
         void* ptr = mpJumpPatchFinder.GetFuncPtr();
-        SPDLOG_DEBUG(m_logger, "mpJumpPatchFinder = {}", ptr);
+        SPDLOG_LOGGER_DEBUG(m_logger, "mpJumpPatchFinder = {}", ptr);
         TempReadWrite rw(ptr);
         *(unsigned char*)ptr = 0xEB;
     }
@@ -111,7 +111,7 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     // Second patch, changing jz to jnz
     {
         void* ptr = secondMpJumpPatchFinder.GetFuncPtr();
-        SPDLOG_DEBUG(m_logger, "secondMpJumpPatchFinder = {}", ptr);
+        SPDLOG_LOGGER_DEBUG(m_logger, "secondMpJumpPatchFinder = {}", ptr);
         TempReadWrite rw(ptr);
         *((unsigned char*)ptr + 1) = 0x85;
     }
@@ -376,7 +376,7 @@ void TTF2SDK::NamedPipeThread()
         bool connected = ConnectToIPCClient();
         if (!connected)
         {
-            SPDLOG_DEBUG(m_logger, "ConnectToIPCClient returned false - ending IPC thread");
+            SPDLOG_LOGGER_DEBUG(m_logger, "ConnectToIPCClient returned false - ending IPC thread");
             return;
         }
 

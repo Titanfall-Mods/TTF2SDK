@@ -171,10 +171,10 @@ void SquirrelManager::AddFuncRegistration(
 int64_t SquirrelManager::RunClientInitCallbacksHook()
 {
     int64_t result = RunClientInitCallbacks();
-    SPDLOG_DEBUG(m_logger, "RunClientInitCallbacks called ({})", result);
+    SPDLOG_LOGGER_DEBUG(m_logger, "RunClientInitCallbacks called ({})", result);
     for (const auto& cb : m_clientCallbacks)
     {
-        SPDLOG_DEBUG(m_logger, "Executing client callback {}", cb);
+        SPDLOG_LOGGER_DEBUG(m_logger, "Executing client callback {}", cb);
         RunCallback.CallClient(*m_ppClientVM, cb.c_str());
     }
     return result;
@@ -183,10 +183,10 @@ int64_t SquirrelManager::RunClientInitCallbacksHook()
 int64_t SquirrelManager::RunServerInitCallbacksHook()
 {
     int64_t result = RunServerInitCallbacks();
-    SPDLOG_DEBUG(m_logger, "RunServerInitCallbacks called ({})", result);
+    SPDLOG_LOGGER_DEBUG(m_logger, "RunServerInitCallbacks called ({})", result);
     for (const auto& cb : m_serverCallbacks)
     {
-        SPDLOG_DEBUG(m_logger, "Executing server callback {}", cb);
+        SPDLOG_LOGGER_DEBUG(m_logger, "Executing server callback {}", cb);
         RunCallback.CallServer(*m_ppServerVM, cb.c_str());
     }
     return result;
@@ -213,7 +213,7 @@ void SquirrelManager::ExecuteCode(const char* code)
 {
     if (!ThreadInMainThread())
     {
-        SPDLOG_DEBUG(m_logger, "Delaying execution into main thread: {}", code);
+        SPDLOG_LOGGER_DEBUG(m_logger, "Delaying execution into main thread: {}", code);
         std::string strCode(code);
         SDK().AddDelayedFunc([this, strCode]() {
             this->ExecuteCode<context>(strCode.c_str());
@@ -237,12 +237,12 @@ void SquirrelManager::ExecuteCode(const char* code)
         m_logger->info("Executing {} code: {}", Util::GetContextName(context), strCode);
         CompileBufferState s(strCode);
         SQRESULT compileRes = sq_compilebuffer.Call<context>(v, &s, "console", -1, 1);
-        SPDLOG_DEBUG(m_logger, "sq_compilebuffer returned {}", compileRes);
+        SPDLOG_LOGGER_DEBUG(m_logger, "sq_compilebuffer returned {}", compileRes);
         if (SQ_SUCCEEDED(compileRes))
         {
             sq_pushroottable.Call<context>(v);
             SQRESULT callRes = sq_call.Call<context>(v, 1, SQFalse, SQFalse);
-            SPDLOG_DEBUG(m_logger, "sq_call returned {}", callRes);
+            SPDLOG_LOGGER_DEBUG(m_logger, "sq_call returned {}", callRes);
         }
     }
     else
@@ -267,13 +267,13 @@ template<ExecutionContext context>
 R2SquirrelVM* SquirrelManager::CreateNewVMHook(int64_t a1, int a2, float a3)
 {
     R2SquirrelVM* vm = CreateNewVM.Call<context>(a2, a2, a3);
-    SPDLOG_TRACE(m_logger, "CreateNewVM ({}): {}", Util::GetContextName(context), (void*)vm);
+    SPDLOG_LOGGER_TRACE(m_logger, "CreateNewVM ({}): {}", Util::GetContextName(context), (void*)vm);
     for (auto& reg : m_funcsToRegister)
     {
         if (reg.GetContext() == context)
         {
             RegisterFunction(vm, reg);
-            SPDLOG_DEBUG(m_logger, "Registered {} in {} context", reg.GetName(), Util::GetContextName(context));
+            SPDLOG_LOGGER_DEBUG(m_logger, "Registered {} in {} context", reg.GetName(), Util::GetContextName(context));
         }
     }
     return vm;

@@ -86,7 +86,7 @@ void FileSystemManager::EnsurePathsCreated()
 // TODO: If the search path has been added and this class is destroyed, should remove the search path
 void FileSystemManager::AddSearchPathHook(IFileSystem* fileSystem, const char* pPath, const char* pathID, SearchPathAdd_t addType)
 {
-    SPDLOG_TRACE(m_logger, "IFileSystem::AddSearchPath: path = {}, pathID = {}, addType = {}", pPath, pathID != nullptr ? pathID : "", addType);
+    SPDLOG_LOGGER_TRACE(m_logger, "IFileSystem::AddSearchPath: path = {}, pathID = {}, addType = {}", pPath, pathID != nullptr ? pathID : "", addType);
 
     // Add the path as intended
     IFileSystem_AddSearchPath(fileSystem, pPath, pathID, addType);
@@ -100,12 +100,12 @@ bool FileSystemManager::ReadFromCacheHook(IFileSystem* fileSystem, const char* p
     // If the path is one of our replacements, we will not allow the cache to respond
     if (ShouldReplaceFile(path))
     {
-        SPDLOG_TRACE(m_logger, "IFileSystem::ReadFromCache: blocking cache response for {}", path);
+        SPDLOG_LOGGER_TRACE(m_logger, "IFileSystem::ReadFromCache: blocking cache response for {}", path);
         return false;
     }
 
     bool res = IFileSystem_ReadFromCache(fileSystem, path, result);
-    SPDLOG_TRACE(m_logger, "IFileSystem::ReadFromCache: path = {}, res = {}", path, res);
+    SPDLOG_LOGGER_TRACE(m_logger, "IFileSystem::ReadFromCache: path = {}, res = {}", path, res);
 
     return res;
 }
@@ -134,13 +134,13 @@ FileHandle_t FileSystemManager::ReadFileFromVPKHook(VPKData* vpkInfo, __int32* b
     // If the path is one of our replacements, we will not allow the read from the VPK to happen
     if (ShouldReplaceFile(filename))
     {
-        SPDLOG_TRACE(m_logger, "ReadFileFromVPK: blocking response for {} from {}", filename, vpkInfo->path);
+        SPDLOG_LOGGER_TRACE(m_logger, "ReadFileFromVPK: blocking response for {} from {}", filename, vpkInfo->path);
         *b = -1;
         return b;
     }
 
     FileHandle_t result = ReadFileFromVPK(vpkInfo, b, filename);
-    SPDLOG_TRACE(m_logger, "ReadFileFromVPK: vpk = {}, file = {}, result = {}", vpkInfo->path, filename, *b);
+    SPDLOG_LOGGER_TRACE(m_logger, "ReadFileFromVPK: vpk = {}, file = {}, result = {}", vpkInfo->path, filename, *b);
 
     if (*b != -1)
     {
@@ -159,7 +159,7 @@ FileHandle_t FileSystemManager::ReadFileFromVPKHook(VPKData* vpkInfo, __int32* b
 // TODO: If we have mounted other VPKs and we unload the DLL, should we unmount them?
 VPKData* FileSystemManager::MountVPKHook(IFileSystem* fileSystem, const char* vpkPath)
 {
-    SPDLOG_DEBUG(m_logger, "IFileSystem::MountVPK: vpkPath = {}", vpkPath);
+    SPDLOG_LOGGER_DEBUG(m_logger, "IFileSystem::MountVPK: vpkPath = {}", vpkPath);
     // When a level is loaded, the VPK for the map is mounted, so we'll mount every
     // other map's VPK at the same time.
     // TODO: This might be better moved to a hook on the function that actually loads up the map?
@@ -183,7 +183,7 @@ void FileSystemManager::MountAllVPKs()
 {
     for (const auto& otherMapVPK : m_mapVPKs)
     {
-        SPDLOG_DEBUG(m_logger, "Mounting VPK: {}", otherMapVPK);
+        SPDLOG_LOGGER_DEBUG(m_logger, "Mounting VPK: {}", otherMapVPK);
         VPKData* injectedRes = IFileSystem_MountVPK(m_engineFileSystem, otherMapVPK.c_str());
         if (injectedRes == nullptr)
         {
@@ -260,7 +260,7 @@ void FileSystemManager::DumpFile(FileHandle_t handle, const std::string& dir, co
     }
     while (readBytes == std::size(data));
 
-    SPDLOG_TRACE(m_logger, "Wrote {} bytes to {}", totalBytes, path);
+    SPDLOG_LOGGER_TRACE(m_logger, "Wrote {} bytes to {}", totalBytes, path);
 }
 
 void FileSystemManager::DumpVPKScripts(const std::string& vpkPath)
@@ -285,9 +285,9 @@ void FileSystemManager::DumpVPKScripts(const std::string& vpkPath)
         m_requestingOriginalFile = true;
         std::string path = fmt::format("{}/{}.{}", result->entries[i].directory, result->entries[i].filename, result->entries[i].extension);
         Util::FindAndReplaceAll(path, "\\", "/");
-        SPDLOG_TRACE(m_logger, "Dumping {}", path);
+        SPDLOG_LOGGER_TRACE(m_logger, "Dumping {}", path);
         FileHandle_t handle = m_engineFileSystem->m_vtable2->Open(&m_engineFileSystem->m_vtable2, path.c_str(), "rb", "GAME", 0);
-        SPDLOG_TRACE(m_logger, "Handle = {}", handle);
+        SPDLOG_LOGGER_TRACE(m_logger, "Handle = {}", handle);
         DumpFile(handle, result->entries[i].directory, path); // TODO: Refactor this
         m_engineFileSystem->m_vtable2->Close(m_engineFileSystem, handle);
         m_requestingOriginalFile = false;

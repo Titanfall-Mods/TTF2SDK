@@ -35,11 +35,11 @@ UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqMa
     offset = *(int*)(funcBase + 13);
     m_ppSwapChain = (IDXGISwapChain**)(funcBase + 18 + offset);
 
-    SPDLOG_DEBUG(m_logger, "m_ppD3D11DeviceContext = {}", (void*)m_ppD3D11DeviceContext);
-    SPDLOG_DEBUG(m_logger, "pD3D11DeviceContext = {}", (void*)*m_ppD3D11DeviceContext);
+    SPDLOG_LOGGER_DEBUG(m_logger, "m_ppD3D11DeviceContext = {}", (void*)m_ppD3D11DeviceContext);
+    SPDLOG_LOGGER_DEBUG(m_logger, "pD3D11DeviceContext = {}", (void*)*m_ppD3D11DeviceContext);
 
-    SPDLOG_DEBUG(m_logger, "m_ppSwapChain = {}", (void*)m_ppSwapChain);
-    SPDLOG_DEBUG(m_logger, "pSwapChain = {}", (void*)*m_ppSwapChain);
+    SPDLOG_LOGGER_DEBUG(m_logger, "m_ppSwapChain = {}", (void*)m_ppSwapChain);
+    SPDLOG_LOGGER_DEBUG(m_logger, "pSwapChain = {}", (void*)*m_ppSwapChain);
 
     InitImGui(fsManager.GetModsPath(), ppD3DDevice);
 
@@ -107,7 +107,7 @@ void UIManager::ShowCursorCommand(const CCommand& args)
 SQInteger UIManager::SQShowCursor(HSQUIRRELVM v)
 {
     m_enableCursor = true;
-    SPDLOG_DEBUG(m_logger, "Showing cursor");
+    SPDLOG_LOGGER_DEBUG(m_logger, "Showing cursor");
     UpdateImGuiKeyStates();
     m_surface->m_vtable->UnlockCursor(m_surface);
     ISurface_SetCursor(m_surface, dc_arrow);
@@ -117,7 +117,7 @@ SQInteger UIManager::SQShowCursor(HSQUIRRELVM v)
 SQInteger UIManager::SQHideCursor(HSQUIRRELVM v)
 {
     m_enableCursor = false;
-    SPDLOG_DEBUG(m_logger, "Hiding cursor");
+    SPDLOG_LOGGER_DEBUG(m_logger, "Hiding cursor");
     UpdateImGuiKeyStates();
     return 0;
 }

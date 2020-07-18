@@ -4,6 +4,12 @@
 
 #include "targetver.h"
 
+#ifdef _DEBUG
+#define SPDLOG_ACTIVE_LEVEL 0
+#else
+#define SPDLOG_ACTIVE_LEVEL 1
+#endif
+
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif

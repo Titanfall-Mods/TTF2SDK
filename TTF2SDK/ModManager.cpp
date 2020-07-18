@@ -380,7 +380,7 @@ void ModManager::CompileMods()
             // Copy the custom assets to the compiled directory
             for (auto& customPath : mod.m_customAssets)
             {
-                SPDLOG_TRACE(m_logger, "Copying custom asset {} from {}", customPath, mod.m_folder);
+                SPDLOG_LOGGER_TRACE(m_logger, "Copying custom asset {} from {}", customPath, mod.m_folder);
                 fs::path destFile = compilePath / customPath;
                 if (fs::exists(destFile))
                 {
@@ -398,7 +398,7 @@ void ModManager::CompileMods()
             for (const auto& customScript : mod.m_customScripts)
             {
                 std::string customPath = "scripts/vscripts/" + customScript.Path;
-                SPDLOG_TRACE(m_logger, "Copying custom script {} from {}", customPath, mod.m_folder);
+                SPDLOG_LOGGER_TRACE(m_logger, "Copying custom script {} from {}", customPath, mod.m_folder);
                 fs::path destFolder = (compilePath / customPath).remove_filename();
                 fs::create_directories(destFolder);
                 fs::copy(mod.m_folder / customPath, destFolder);
@@ -518,7 +518,7 @@ void ModManager::PatchFile(const std::string& gamePath, const std::vector<fs::pa
     {
         try
         {
-            SPDLOG_DEBUG(m_logger, "Merging {} into {}", patchFile, gamePath);
+            SPDLOG_LOGGER_DEBUG(m_logger, "Merging {} into {}", patchFile, gamePath);
             currentData = std::move(MergeFile(currentData, baseData, patchFile));
         }
         catch (std::exception& e)
