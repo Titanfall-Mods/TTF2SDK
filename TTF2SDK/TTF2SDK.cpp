@@ -23,14 +23,31 @@ SigScanFunc<int64_t, void*> EnableNoclip("server.dll", "\x48\x89\x5C\x24\x00\x57
 SigScanFunc<int64_t, void*> DisableNoclip("server.dll", "\x48\x89\x5C\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x33\xC0", "xxxx?xxxx????xx");
 SigScanFunc<void*, int> UTIL_EntityByIndex("server.dll", "\x66\x83\xF9\xFF\x75\x03\x33\xC0\xC3", "xxxxxxxxx");
 
+
+void InvalidParameterHandler(
+    const wchar_t* expression,
+    const wchar_t* function,
+    const wchar_t* file,
+    unsigned int line,
+    uintptr_t pReserved
+)
+{
+    // Do nothing so that _vsnprintf_s returns an error instead of aborting
+}
+
 __int64 SpewFuncHook(IVEngineServer* engineServer, SpewType_t type, const char* format, va_list args)
 {
     char pTempBuffer[5020];
 
-    int val = _vsnprintf_s(pTempBuffer, sizeof(pTempBuffer) - 1, format, args); // TODO: maybe use something else
+    // There are some cases where Titanfall will pass an invalid format string to this function, causing a crash.
+    // To avoid this, we setup a temporary invalid parameter handler which will just continue execution.
+    _invalid_parameter_handler oldHandler = _set_thread_local_invalid_parameter_handler(InvalidParameterHandler);
+    int val = _vsnprintf_s(pTempBuffer, sizeof(pTempBuffer) - 1, format, args);
+    _set_thread_local_invalid_parameter_handler(oldHandler);
+
     if (val == -1)
     {
-        spdlog::get("logger")->warn("Failed to call _vsnprintf for SpewFunc");
+        spdlog::get("logger")->warn("Failed to call _vsnprintf_s for SpewFunc (format = {})", format);
         return IVEngineServer_SpewFunc(engineServer, type, format, args);
     }
 
