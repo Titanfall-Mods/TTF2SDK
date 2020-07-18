@@ -263,8 +263,6 @@ private:
 
     std::unordered_map<std::string, CachedMaterialData> m_cachedMaterialData;
 
-    std::unordered_set<model_t*> m_levelModels;
-
     ID3D11GeometryShader* m_dummyGeometryShader;
     ID3D11PixelShader* m_dummyPixelShader;
     ID3D11ComputeShader* m_dummyComputeShader;
