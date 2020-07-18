@@ -440,7 +440,7 @@ void PakManager::SortCachedMaterialData()
     }
 }
 
-void PakManager::ReloadExternalPak(const std::string& pakFile, std::unordered_set<std::string>& newMaterialsToLoad, std::unordered_set<std::string>& newTexturesToLoad, std::unordered_set<std::string>& newShadersToLoad)
+void PakManager::ReloadExternalPak(const std::string& pakFile, std::unordered_set<std::string>&& newMaterialsToLoad, std::unordered_set<std::string>&& newTexturesToLoad, std::unordered_set<std::string>&& newShadersToLoad)
 {
     std::vector<std::string> modelsToReload;
     if (IsExternalPakLoaded(pakFile))
@@ -462,20 +462,9 @@ void PakManager::ReloadExternalPak(const std::string& pakFile, std::unordered_se
     m_logger->info("Loading {} materials, {} textures, {} shaders from {}", newMaterialsToLoad.size(), newTexturesToLoad.size(), newShadersToLoad.size(), pakFile);
    
     // Update the actual lists with new items to load
-    for (auto& mat : newMaterialsToLoad)
-    {
-        m_materialsToLoad.emplace(std::move(mat));
-    }
-
-    for (auto& tex : newTexturesToLoad)
-    {
-        m_texturesToLoad.emplace(std::move(tex));
-    }
-
-    for (auto& shader : newShadersToLoad)
-    {
-        m_shadersToLoad.emplace(std::move(shader));
-    }
+    m_materialsToLoad.merge(std::move(newMaterialsToLoad));
+    m_texturesToLoad.merge(std::move(newTexturesToLoad));
+    m_shadersToLoad.merge(std::move(newShadersToLoad));
 
     // Load the pak
     LoadExternalPak(pakFile);
@@ -974,7 +963,7 @@ uint64_t PakManager::LoadMaterialsHook(int64_t a1, int32_t* phdr, int64_t a3, st
                 }
                 else
                 {
-                    ReloadExternalPak(pakName, newMaterialsToLoad, newTexturesToLoad, newShadersToLoad);
+                    ReloadExternalPak(pakName, std::move(newMaterialsToLoad), std::move(newTexturesToLoad), std::move(newShadersToLoad));
 
                     // Capture all the models that we spawn in extenal mode to free them later
                     m_loadedExternalModels[pakName].insert(m_savedModelPtr);
