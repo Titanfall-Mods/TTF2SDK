@@ -51,7 +51,7 @@ bool Preloader::IsFinished()
 
 void Preloader::DrawUI()
 {
-    std::call_once(m_popupFlag, ImGui::OpenPopup, "Preloading Assets");
+    std::call_once(m_popupFlag, ImGui::OpenPopup, "Preloading Assets", 0);
     if (ImGui::BeginPopupModal("Preloading Assets", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse))
     {
         ImGui::Text("Please wait while all game assets are enumerated.");

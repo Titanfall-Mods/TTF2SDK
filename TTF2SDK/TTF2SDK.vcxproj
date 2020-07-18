@@ -108,12 +108,13 @@
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\thirdparty\imgui\examples\directx11_example\imgui_impl_dx11.h" />
+    <ClInclude Include="..\thirdparty\imgui\examples\imgui_impl_dx11.h" />
+    <ClInclude Include="..\thirdparty\imgui\examples\imgui_impl_win32.h" />
     <ClInclude Include="..\thirdparty\imgui\imgui.h" />
     <ClInclude Include="..\thirdparty\imgui\imgui_internal.h" />
-    <ClInclude Include="..\thirdparty\imgui\stb_rect_pack.h" />
-    <ClInclude Include="..\thirdparty\imgui\stb_textedit.h" />
-    <ClInclude Include="..\thirdparty\imgui\stb_truetype.h" />
+    <ClInclude Include="..\thirdparty\imgui\imstb_rectpack.h" />
+    <ClInclude Include="..\thirdparty\imgui\imstb_textedit.h" />
+    <ClInclude Include="..\thirdparty\imgui\imstb_truetype.h" />
     <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\allocators.h" />
     <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\cursorstreamwrapper.h" />
     <ClInclude Include="..\thirdparty\rapidjson\include\rapidjson\document.h" />
@@ -170,7 +171,11 @@
     <ClInclude Include="VTableHooking.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\thirdparty\imgui\examples\directx11_example\imgui_impl_dx11.cpp">
+    <ClCompile Include="..\thirdparty\imgui\examples\imgui_impl_dx11.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\imgui\examples\imgui_impl_win32.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -179,6 +184,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\thirdparty\imgui\imgui_draw.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\imgui\imgui_widgets.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>

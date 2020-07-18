@@ -795,7 +795,8 @@ void IcepickMenu::DrawCreateSpawnlist()
 	}
 
 	ImGui::SetNextWindowSize( ImVec2( 400, 120 ), ImGuiCond_FirstUseEver );
-	ImGui::SetNextWindowPosCenter();
+	ImGuiIO& io = ImGui::GetIO();
+	ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f), 0, ImVec2(0.5f, 0.5f));
 	ImGui::Begin( "Create Spawnlist", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize );
 	{
 		ImGui::Text( "Create new spawnlist" );

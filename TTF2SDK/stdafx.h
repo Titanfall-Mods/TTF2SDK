@@ -38,7 +38,8 @@
 
 // imgui
 #include <imgui/imgui.h>
-#include <imgui/examples/directx11_example/imgui_impl_dx11.h>
+#include <imgui/examples/imgui_impl_dx11.h>
+#include <imgui/examples/imgui_impl_win32.h>
 
 // TODO: clean these up
 #include "Memory.h"

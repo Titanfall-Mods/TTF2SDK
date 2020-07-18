@@ -58,19 +58,20 @@ UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqMa
 UIManager::~UIManager()
 {
     ImGui_ImplDX11_Shutdown();
+    ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
 }
 
 void UIManager::InitImGui(const fs::path& modsPath, ID3D11Device** ppD3DDevice)
 {
+    // TODO: Make this a bit more reliable
+    HWND hwnd = FindWindow(NULL, L"Titanfall 2");
+    m_logger->info("Game window = {}", (void*)hwnd);
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-
-    // TODO: Make this a bit more reliable
-    HWND wnd = FindWindow(NULL, L"Titanfall 2");
-    m_logger->info("Game window = {}", (void*)wnd);
-
-    ImGui_ImplDX11_Init(wnd, *ppD3DDevice, *m_ppD3D11DeviceContext);
+    ImGui_ImplWin32_Init(hwnd);
+    ImGui_ImplDX11_Init(*ppD3DDevice, *m_ppD3D11DeviceContext);
     ImGui::StyleColorsDark();
 	ImGuiStyle* style = &ImGui::GetStyle();
 	ImVec4* colors = style->Colors;
@@ -241,6 +242,8 @@ static bool ImGui_UpdateMouseCursor(ISurface* surface)
         case ImGuiMouseCursor_ResizeNS:     cursor = dc_sizens; break;
         case ImGuiMouseCursor_ResizeNESW:   cursor = dc_sizenesw; break;
         case ImGuiMouseCursor_ResizeNWSE:   cursor = dc_sizenwse; break;
+        case ImGuiMouseCursor_Hand:         cursor = dc_hand; break;
+        case ImGuiMouseCursor_NotAllowed:   cursor = dc_no; break;
         }
         ISurface_SetCursor(surface, cursor);
     }
@@ -299,8 +302,15 @@ HRESULT UIManager::PresentHook(IDXGISwapChain* SwapChain, UINT SyncInterval, UIN
         deviceObjectsInitialised = true;
     }
 
+    // Start the imgui frame
     ImGui_ImplDX11_NewFrame();
-    // DrawGUI();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+
+#ifdef _DEBUG
+    DrawGUI();
+#endif
+
     for (const auto& entry : m_drawCallbacks)
     {
         entry.second();
