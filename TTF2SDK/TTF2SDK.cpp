@@ -95,6 +95,7 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     m_sourceConsole.reset(new SourceConsole(*m_conCommandManager, settings.DeveloperMode ? spdlog::level::debug : spdlog::level::info));
 
     m_icepickMenu.reset(new IcepickMenu(*m_conCommandManager, *m_uiManager, *m_sqManager, *m_fsManager));
+	m_soundmanager.reset(new SoundManager(*this, *m_sqManager, *m_fsManager));
 
     IVEngineServer_SpewFunc.Hook(m_engineServer->m_vtable, SpewFuncHook);
     _Host_RunFrame.Hook(WRAPPED_MEMBER(RunFrameHook));
@@ -188,6 +189,12 @@ SourceInterface<IInputSystem>& TTF2SDK::GetInputSystem()
     return m_inputSystem;
 }
 
+SoundManager& TTF2SDK::GetSoundManager()
+{
+	return *m_soundmanager;
+}
+
+
 void TTF2SDK::RunFrameHook(double absTime, float frameTime)
 {
     static bool translatorUpdated = false;
@@ -277,6 +284,7 @@ TTF2SDK::~TTF2SDK()
     m_modManager.reset();
     m_uiManager.reset();
     m_sourceConsole.reset();
+	m_soundmanager.reset();
     // TODO: Add anything i've missed here
     
     MH_Uninitialize();
