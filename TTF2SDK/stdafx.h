@@ -68,6 +68,7 @@ namespace fs = std::experimental::filesystem;
 #include "ConCommandManager.h"
 #include "SquirrelManager.h"
 #include "FileSystemManager.h"
+#include "Soundmanager.h"
 #include "ModManager.h"
 #include "PakManager.h"
 #include "Preloader.h"
