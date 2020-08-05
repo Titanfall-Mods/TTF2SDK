@@ -63,6 +63,7 @@ private:
     std::unique_ptr<ModManager> m_modManager;
     std::unique_ptr<UIManager> m_uiManager;
     std::unique_ptr<SourceConsole> m_sourceConsole;
+	std::unique_ptr<SoundManager> m_soundmanager;
 
     std::unique_ptr<IcepickMenu> m_icepickMenu;
 
@@ -86,6 +87,7 @@ public:
     ModManager& GetModManager();
     UIManager& GetUIManager();
     SourceConsole& GetSourceConsole();
+	SoundManager& GetSoundManager();
 
     ID3D11Device** GetD3D11DevicePtr();
 
