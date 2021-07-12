@@ -52,7 +52,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <RunCodeAnalysis>true</RunCodeAnalysis>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
     <CustomBuildBeforeTargets>PreBuildEvent</CustomBuildBeforeTargets>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -63,7 +63,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;TTF2SDK_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\thirdparty\;..\thirdparty\protobuf\src;..\thirdparty\imgui;..\thirdparty\spdlog;..\thirdparty\rapidjson\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\thirdparty\;..\thirdparty\protobuf\src;..\thirdparty\imgui;..\thirdparty\spdlog;..\thirdparty\rapidjson\include;..\thirdparty\minhook\include</AdditionalIncludeDirectories>
       <EnablePREfast>false</EnablePREfast>
       <DisableSpecificWarnings>4146</DisableSpecificWarnings>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -71,8 +71,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\thirdparty\MinHook;..\thirdparty\tier0</AdditionalLibraryDirectories>
-      <AdditionalDependencies>tier0.lib;D3DCompiler.lib;libMinHook-x64-v142-md.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\lib\Debug;..\thirdparty\tier0</AdditionalLibraryDirectories>
+      <AdditionalDependencies>tier0.lib;D3DCompiler.lib;libMinHook.x64.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <CustomBuildStep>
@@ -90,7 +90,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;TTF2SDK_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\thirdparty\;..\thirdparty\protobuf\src;..\thirdparty\imgui;..\thirdparty\spdlog;..\thirdparty\rapidjson\include;..\thirdparty\breakpad</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\thirdparty\;..\thirdparty\protobuf\src;..\thirdparty\imgui;..\thirdparty\spdlog;..\thirdparty\rapidjson\include;..\thirdparty\breakpad;..\thirdparty\minhook\include</AdditionalIncludeDirectories>
       <EnablePREfast>true</EnablePREfast>
       <DisableSpecificWarnings>4146</DisableSpecificWarnings>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -100,8 +100,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\thirdparty\MinHook;..\thirdparty\tier0;..\thirdparty\breakpad</AdditionalLibraryDirectories>
-      <AdditionalDependencies>common.lib;crash_generation_client.lib;exception_handler.lib;tier0.lib;D3DCompiler.lib;libMinHook-x64-v142-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\lib\Release;..\thirdparty\tier0;..\thirdparty\breakpad</AdditionalLibraryDirectories>
+      <AdditionalDependencies>common.lib;crash_generation_client.lib;exception_handler.lib;tier0.lib;D3DCompiler.lib;libMinHook.x64.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <CustomBuildStep>
@@ -226,6 +226,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\thirdparty\minhook\build\VC16\libMinHook.vcxproj">
+      <Project>{f142a341-5ee0-442d-a15f-98ae9b48dbae}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\thirdparty\protobuf_build\libprotobuf.vcxproj">
       <Project>{de263872-a991-3378-95fb-97d626fcaa17}</Project>
     </ProjectReference>

@@ -58,7 +58,7 @@ namespace fs = std::filesystem;
 #include <regex>
 #include <mutex>
 #include <thread>
-#include <MinHook/MinHook.h>
+#include <MinHook.h>
 #include <sstream>
 #include "SDKSettings.h"
 #include "Console.h"

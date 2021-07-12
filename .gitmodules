@@ -7,3 +7,6 @@
 [submodule "thirdparty/rapidjson"]
 	path = thirdparty/rapidjson
 	url = https://github.com/Tencent/rapidjson.git
+[submodule "thirdparty/minhook"]
+	path = thirdparty/minhook
+	url = https://github.com/TsudaKageyu/minhook.git
