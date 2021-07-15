@@ -374,6 +374,13 @@ void ModManager::CompileMods()
 
         try
         {
+            // Check if the mod is disabled
+            if (fs::exists(p.path() / "disabled"))
+            {
+                m_logger->info("Skipping disabled mod: {}", p.path().filename().string());
+                continue;
+            }
+
             // Load the mod details
             Mod mod(p.path());
 
