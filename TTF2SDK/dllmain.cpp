@@ -43,7 +43,11 @@ extern "C" __declspec(dllexport) DWORD InitialiseSDK(LPVOID lpParameter)
     SDKSettings* args = reinterpret_cast<SDKSettings*>(lpParameter);
     SDKSettings newSettings(*args);
     g_settings = newSettings;
-    CreateThread(NULL, 0, OnAttach, NULL, 0, NULL);
+    HANDLE hThread = CreateThread(NULL, 0, OnAttach, NULL, 0, NULL);
+    if (hThread != NULL)
+    {
+        CloseHandle(hThread);
+    }
     return 0;
 }
 
