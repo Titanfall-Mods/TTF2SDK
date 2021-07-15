@@ -31,7 +31,7 @@ struct ShaderInfo
     int32_t type;
 };
 
-#pragma pack(push,1)
+#pragma pack(push, 1)
 struct TextureInfo
 {
     char unknown[8];
@@ -84,16 +84,15 @@ struct CachedMaterialData
 
 class PakManager;
 template <typename T> class HookedRegistrationFunc;
-template<typename R, typename ...Args>
-class HookedRegistrationFunc<R(PakManager::*)(Args...)>
+template <typename R, typename... Args> class HookedRegistrationFunc<R (PakManager::*)(Args...)>
 {
     bool m_hooked = false;
     TypeRegistration* m_registration = nullptr;
     int m_funcNum = 0;
-    R(*m_origFunc)(Args...) = nullptr;
+    R (*m_origFunc)(Args...) = nullptr;
 
 public:
-    void Hook(TypeRegistration* registration, int funcNum, R(*hookFunc)(Args...))
+    void Hook(TypeRegistration* registration, int funcNum, R (*hookFunc)(Args...))
     {
         if (m_hooked)
         {
@@ -125,7 +124,7 @@ public:
 struct PakAllocFuncs
 {
     void* (*Alloc)(int64_t a1, size_t size, size_t alignment);
-    void(*Free)(int64_t a1, void* ptr);
+    void (*Free)(int64_t a1, void* ptr);
 };
 
 struct model_t
@@ -174,7 +173,8 @@ typedef CClientState* (*tClientStateFunc)();
 class PakManager
 {
 public:
-    PakManager(ConCommandManager& conCommandManager, SourceInterface<IVEngineServer> engineServer, SquirrelManager& squirrelManager, ID3D11Device** ppD3DDevice);
+    PakManager(ConCommandManager& conCommandManager, SourceInterface<IVEngineServer> engineServer,
+               SquirrelManager& squirrelManager, ID3D11Device** ppD3DDevice);
     void PrintRegistrations(const CCommand& args);
     void PrintPakRefs(const CCommand& args);
     void PrintCachedMaterialData(const CCommand& args);
@@ -192,8 +192,10 @@ public:
     bool LoadCacheFile();
     void PreloadAllPaks();
     void SortCachedMaterialData();
-    
-    void ReloadExternalPak(const std::string& pakFile, std::unordered_set<std::string>&& newMaterialsToLoad, std::unordered_set<std::string>&& newTexturesToLoad, std::unordered_set<std::string>&& newShadersToLoad);
+
+    void ReloadExternalPak(const std::string& pakFile, std::unordered_set<std::string>&& newMaterialsToLoad,
+                           std::unordered_set<std::string>&& newTexturesToLoad,
+                           std::unordered_set<std::string>&& newShadersToLoad);
     void LoadExternalPak(const std::string& pakFile);
     bool IsExternalPakLoaded(const std::string& pakFile);
     void UnloadAllPaks();
@@ -222,10 +224,18 @@ public:
     bool LoadMapPakHook(const char* name);
 
     void CreateDummyShaders(ID3D11Device** ppD3DDevice);
-    HRESULT STDMETHODCALLTYPE CreateVertexShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11VertexShader** ppVertexShader);
-    HRESULT STDMETHODCALLTYPE CreateGeometryShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11GeometryShader** ppGeometryShader);
-    HRESULT STDMETHODCALLTYPE CreatePixelShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11PixelShader** ppPixelShader);
-    HRESULT STDMETHODCALLTYPE CreateComputeShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11ComputeShader** ppComputeShader);
+    HRESULT STDMETHODCALLTYPE CreateVertexShader_Hook(ID3D11Device* This, const void* pShaderBytecode,
+                                                      SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage,
+                                                      ID3D11VertexShader** ppVertexShader);
+    HRESULT STDMETHODCALLTYPE CreateGeometryShader_Hook(ID3D11Device* This, const void* pShaderBytecode,
+                                                        SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage,
+                                                        ID3D11GeometryShader** ppGeometryShader);
+    HRESULT STDMETHODCALLTYPE CreatePixelShader_Hook(ID3D11Device* This, const void* pShaderBytecode,
+                                                     SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage,
+                                                     ID3D11PixelShader** ppPixelShader);
+    HRESULT STDMETHODCALLTYPE CreateComputeShader_Hook(ID3D11Device* This, const void* pShaderBytecode,
+                                                       SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage,
+                                                       ID3D11ComputeShader** ppComputeShader);
 
     int* RegistrationUpdater1Hook(int64_t a1, int a2);
     int64_t RegistrationUpdater2Hook(int* a1);
@@ -237,7 +247,7 @@ private:
     CGameServer* m_gameServer;
     CClientState* m_clientState;
     TypeRegistration* m_typeRegistrations;
-    
+
     int32_t* m_pakRefs;
     PakState m_state;
     std::string m_currentLevelPak;

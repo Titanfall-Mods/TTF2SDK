@@ -4,7 +4,6 @@
 
 ModuleScan::ModuleScan(const std::string& moduleName) : ModuleScan(GetModuleHandle(Util::Widen(moduleName).c_str()))
 {
-
 }
 
 ModuleScan::ModuleScan(HMODULE module)
@@ -67,5 +66,6 @@ void* ModuleScan::Scan(const char* sig, const char* mask, size_t sigLength)
         pData++;
     }
 
-    throw SigScanException(fmt::sprintf("Signature could not be resolved - %s", Util::DataToHex(sig, sigLength).c_str()));
+    throw SigScanException(
+        fmt::sprintf("Signature could not be resolved - %s", Util::DataToHex(sig, sigLength).c_str()));
 }

@@ -19,7 +19,8 @@ struct SDKSettings
         DeveloperMode = other.DeveloperMode;
     }
 
-    SDKSettings& operator=(SDKSettings tmp) {
+    SDKSettings& operator=(SDKSettings tmp)
+    {
         std::swap(BasePath, tmp.BasePath);
         DeveloperMode = tmp.DeveloperMode;
         return *this;

@@ -16,7 +16,9 @@ struct DelayedFunc
 class DelayedFuncTask : public IFrameTask
 {
 public:
-    virtual ~DelayedFuncTask() {}
+    virtual ~DelayedFuncTask()
+    {
+    }
     virtual void RunFrame()
     {
         for (auto& delay : m_delayedFuncs)
@@ -28,10 +30,8 @@ public:
             }
         }
 
-        auto newEnd = std::remove_if(m_delayedFuncs.begin(), m_delayedFuncs.end(), [](const DelayedFunc& delay)
-        {
-            return delay.FramesTilRun == 0;
-        });
+        auto newEnd = std::remove_if(m_delayedFuncs.begin(), m_delayedFuncs.end(),
+                                     [](const DelayedFunc& delay) { return delay.FramesTilRun == 0; });
         m_delayedFuncs.erase(newEnd, m_delayedFuncs.end());
     }
 

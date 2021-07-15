@@ -1,22 +1,23 @@
 #include "stdafx.h"
-#include "FileSystemManager.h"
 
 FileSystemManager& FSManager()
 {
     return SDK().GetFSManager();
 }
 
+// clang-format off
 #define WRAPPED_MEMBER(name) MemberWrapper<decltype(&FileSystemManager::##name), &FileSystemManager::##name, decltype(&FSManager), &FSManager>::Call
 
 HookedVTableFunc<decltype(&IFileSystem::VTable::AddSearchPath), &IFileSystem::VTable::AddSearchPath> IFileSystem_AddSearchPath;
 HookedVTableFunc<decltype(&IFileSystem::VTable::ReadFromCache), &IFileSystem::VTable::ReadFromCache> IFileSystem_ReadFromCache;
 HookedVTableFunc<decltype(&IFileSystem::VTable::MountVPK), &IFileSystem::VTable::MountVPK> IFileSystem_MountVPK;
 HookedFunc<FileHandle_t, VPKData*, __int32*, const char*> ReadFileFromVPK("filesystem_stdio.dll", "\x48\x89\x5C\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x49\x8B\xC0\x48\x8B\xDA", "xxxx?xxxx????xxxxxx");
+// clang-format on
 
 std::regex FileSystemManager::s_mapFromVPKRegex("client_(.+)\\.bsp");
 
-FileSystemManager::FileSystemManager(const std::string& basePath, ConCommandManager& conCommandManager) :
-    m_engineFileSystem("filesystem_stdio.dll", "VFileSystem017")
+FileSystemManager::FileSystemManager(const std::string& basePath, ConCommandManager& conCommandManager)
+    : m_engineFileSystem("filesystem_stdio.dll", "VFileSystem017")
 {
     m_logger = spdlog::get("logger");
     if (basePath[basePath.size()] == '\\' || basePath[basePath.size()] == '/')
@@ -33,7 +34,7 @@ FileSystemManager::FileSystemManager(const std::string& basePath, ConCommandMana
     m_dumpPath = m_basePath / "assets_dump";
     m_modsPath = m_basePath / "mods";
     m_savesPath = m_basePath / "saves";
-	m_spawnlistsPath = m_basePath / "spawnlists";
+    m_spawnlistsPath = m_basePath / "spawnlists";
 
     m_requestingOriginalFile = false;
     CacheMapVPKs();
@@ -44,7 +45,8 @@ FileSystemManager::FileSystemManager(const std::string& basePath, ConCommandMana
     IFileSystem_ReadFromCache.Hook(m_engineFileSystem->m_vtable, WRAPPED_MEMBER(ReadFromCacheHook));
     IFileSystem_MountVPK.Hook(m_engineFileSystem->m_vtable, WRAPPED_MEMBER(MountVPKHook));
     ReadFileFromVPK.Hook(WRAPPED_MEMBER(ReadFileFromVPKHook));
-    conCommandManager.RegisterCommand("dump_scripts", WRAPPED_MEMBER(DumpAllScripts), "Dump all scripts to development folder", 0);
+    conCommandManager.RegisterCommand("dump_scripts", WRAPPED_MEMBER(DumpAllScripts),
+                                      "Dump all scripts to development folder", 0);
 }
 
 void FileSystemManager::CacheMapVPKs()
@@ -79,14 +81,16 @@ void FileSystemManager::EnsurePathsCreated()
     fs::create_directories(m_compiledPath);
     fs::create_directories(m_modsPath);
     fs::create_directories(m_savesPath);
-	fs::create_directories(m_spawnlistsPath);
+    fs::create_directories(m_spawnlistsPath);
 }
 
 // TODO: Do we maybe need to add the search path in a frame hook or will this do?
 // TODO: If the search path has been added and this class is destroyed, should remove the search path
-void FileSystemManager::AddSearchPathHook(IFileSystem* fileSystem, const char* pPath, const char* pathID, SearchPathAdd_t addType)
+void FileSystemManager::AddSearchPathHook(IFileSystem* fileSystem, const char* pPath, const char* pathID,
+                                          SearchPathAdd_t addType)
 {
-    SPDLOG_LOGGER_TRACE(m_logger, "IFileSystem::AddSearchPath: path = {}, pathID = {}, addType = {}", pPath, pathID != nullptr ? pathID : "", addType);
+    SPDLOG_LOGGER_TRACE(m_logger, "IFileSystem::AddSearchPath: path = {}, pathID = {}, addType = {}", pPath,
+                        pathID != nullptr ? pathID : "", addType);
 
     // Add the path as intended
     IFileSystem_AddSearchPath(fileSystem, pPath, pathID, addType);
@@ -192,7 +196,7 @@ void FileSystemManager::MountAllVPKs()
     }
 }
 
-bool FileSystemManager::FileExists(const char * fileName, const char * pathID)
+bool FileSystemManager::FileExists(const char* fileName, const char* pathID)
 {
     m_requestingOriginalFile = true;
     bool result = m_engineFileSystem->m_vtable2->FileExists(&m_engineFileSystem->m_vtable2, fileName, pathID);
@@ -206,7 +210,8 @@ std::string FileSystemManager::ReadOriginalFile(const char* path, const char* pa
     Util::FindAndReplaceAll(normalisedPath, "\\", "/");
 
     m_requestingOriginalFile = true;
-    FileHandle_t handle = m_engineFileSystem->m_vtable2->Open(&m_engineFileSystem->m_vtable2, normalisedPath.c_str(), "rb", "GAME", 0);
+    FileHandle_t handle =
+        m_engineFileSystem->m_vtable2->Open(&m_engineFileSystem->m_vtable2, normalisedPath.c_str(), "rb", "GAME", 0);
     m_requestingOriginalFile = false;
 
     if (handle == nullptr)
@@ -257,8 +262,7 @@ void FileSystemManager::DumpFile(FileHandle_t handle, const std::string& dir, co
         readBytes = m_engineFileSystem->m_vtable2->Read(&m_engineFileSystem->m_vtable2, data, std::size(data), handle);
         f.write(data, readBytes);
         totalBytes += readBytes;
-    }
-    while (readBytes == std::size(data));
+    } while (readBytes == std::size(data));
 
     SPDLOG_LOGGER_TRACE(m_logger, "Wrote {} bytes to {}", totalBytes, path);
 }
@@ -283,10 +287,12 @@ void FileSystemManager::DumpVPKScripts(const std::string& vpkPath)
 
         // TODO: Better error handling here
         m_requestingOriginalFile = true;
-        std::string path = fmt::format("{}/{}.{}", result->entries[i].directory, result->entries[i].filename, result->entries[i].extension);
+        std::string path = fmt::format("{}/{}.{}", result->entries[i].directory, result->entries[i].filename,
+                                       result->entries[i].extension);
         Util::FindAndReplaceAll(path, "\\", "/");
         SPDLOG_LOGGER_TRACE(m_logger, "Dumping {}", path);
-        FileHandle_t handle = m_engineFileSystem->m_vtable2->Open(&m_engineFileSystem->m_vtable2, path.c_str(), "rb", "GAME", 0);
+        FileHandle_t handle =
+            m_engineFileSystem->m_vtable2->Open(&m_engineFileSystem->m_vtable2, path.c_str(), "rb", "GAME", 0);
         SPDLOG_LOGGER_TRACE(m_logger, "Handle = {}", handle);
         DumpFile(handle, result->entries[i].directory, path); // TODO: Refactor this
         m_engineFileSystem->m_vtable2->Close(m_engineFileSystem, handle);
@@ -326,5 +332,5 @@ const fs::path& FileSystemManager::GetSavesPath()
 
 const fs::path& FileSystemManager::GetSpawnlistsPath()
 {
-	return m_spawnlistsPath;
+    return m_spawnlistsPath;
 }

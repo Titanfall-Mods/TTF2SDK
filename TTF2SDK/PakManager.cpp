@@ -17,11 +17,9 @@ void PakFree(int64_t a1, void* ptr)
     _aligned_free(ptr);
 }
 
-PakAllocFuncs g_SDKAllocFuncs = {
-    PakAlloc,
-    PakFree
-};
+PakAllocFuncs g_SDKAllocFuncs = {PakAlloc, PakFree};
 
+// clang-format off
 #define WRAPPED_MEMBER(name) MemberWrapper<decltype(&PakManager::##name), &PakManager::##name, decltype(&PakMan), &PakMan>::Call
 
 SigScanFunc<void> PakRefFinder("engine.dll", "\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x00\x83\x3D\x00\x00\x00\x00\x00\x44\x8B\x0D\x00\x00\x00\x00", "xxxx?xxxx?xxxx?xx?????xxx????");
@@ -49,19 +47,16 @@ HookedVTableFunc<decltype(&ID3D11DeviceVtbl::CreateComputeShader), &ID3D11Device
 
 HookedFunc<int*, int64_t, int> RegistrationUpdater1("rtech_game.dll", "\x48\x89\x5C\x24\x00\x44\x8B\x59\x00\x4C\x8B\xC1", "xxxx?xxx?xxx");
 HookedFunc<int64_t, int*> RegistrationUpdater2("rtech_game.dll", "\x44\x8B\x51\x00", "xxx?");
+// clang-format on
 
 const int MAT_REG_INDEX = 4;
 const int TEX_REG_INDEX = 12;
 const int SHADER_REG_INDEX = 13;
 const int UI_IMG_INDEX = 15;
 
-PakManager::PakManager(
-    ConCommandManager& conCommandManager, 
-    SourceInterface<IVEngineServer> engineServer,
-    SquirrelManager& squirrelManager,
-    ID3D11Device** ppD3DDevice
-) :
-    m_modelInfo("engine.dll", "VModelInfoServer002")
+PakManager::PakManager(ConCommandManager& conCommandManager, SourceInterface<IVEngineServer> engineServer,
+                       SquirrelManager& squirrelManager, ID3D11Device** ppD3DDevice)
+    : m_modelInfo("engine.dll", "VModelInfoServer002")
 {
     m_logger = spdlog::get("logger");
     m_state = PAK_STATE_NONE;
@@ -141,15 +136,21 @@ PakManager::PakManager(
     RegistrationUpdater1.Hook(WRAPPED_MEMBER(RegistrationUpdater1Hook));
     RegistrationUpdater2.Hook(WRAPPED_MEMBER(RegistrationUpdater2Hook));
 
-    conCommandManager.RegisterCommand("print_registrations", WRAPPED_MEMBER(PrintRegistrations), "Print type registrations for pak system", 0);
+    conCommandManager.RegisterCommand("print_registrations", WRAPPED_MEMBER(PrintRegistrations),
+                                      "Print type registrations for pak system", 0);
     conCommandManager.RegisterCommand("print_pak_refs", WRAPPED_MEMBER(PrintPakRefs), "Print engine pak references", 0);
-    conCommandManager.RegisterCommand("print_cached_materials", WRAPPED_MEMBER(PrintCachedMaterialData), "Print cached material data", 0);
-    conCommandManager.RegisterCommand("print_external_models", WRAPPED_MEMBER(PrintExternalModels), "Prints all the models loaded from external VPKs", 0);
-    conCommandManager.RegisterCommand("print_current_level_pak", WRAPPED_MEMBER(PrintCurrentLevelPak), "Prints current level pak file", 0);
+    conCommandManager.RegisterCommand("print_cached_materials", WRAPPED_MEMBER(PrintCachedMaterialData),
+                                      "Print cached material data", 0);
+    conCommandManager.RegisterCommand("print_external_models", WRAPPED_MEMBER(PrintExternalModels),
+                                      "Prints all the models loaded from external VPKs", 0);
+    conCommandManager.RegisterCommand("print_current_level_pak", WRAPPED_MEMBER(PrintCurrentLevelPak),
+                                      "Prints current level pak file", 0);
     // TODO: Command to print stuff we want to load
 
-    squirrelManager.AddFuncRegistration(CONTEXT_SERVER, "void", "EnableExternalSpawnMode", "", "", WRAPPED_MEMBER(EnableExternalSpawnMode));
-    squirrelManager.AddFuncRegistration(CONTEXT_SERVER, "void", "DisableExternalSpawnMode", "", "", WRAPPED_MEMBER(DisableExternalSpawnMode));
+    squirrelManager.AddFuncRegistration(CONTEXT_SERVER, "void", "EnableExternalSpawnMode", "", "",
+                                        WRAPPED_MEMBER(EnableExternalSpawnMode));
+    squirrelManager.AddFuncRegistration(CONTEXT_SERVER, "void", "DisableExternalSpawnMode", "", "",
+                                        WRAPPED_MEMBER(DisableExternalSpawnMode));
 }
 
 void PakManager::PrintRegistrations(const CCommand& args)
@@ -161,7 +162,8 @@ void PakManager::PrintRegistrations(const CCommand& args)
         TypeRegistration* reg = &m_typeRegistrations[i];
         if (reg->IsValid())
         {
-            m_logger->info("Reg {}: {}{}{}{} - {}", i, reg->type[0], reg->type[1], reg->type[2], reg->type[3], reg->niceName);
+            m_logger->info("Reg {}: {}{}{}{} - {}", i, reg->type[0], reg->type[1], reg->type[2], reg->type[3],
+                           reg->niceName);
         }
         else
         {
@@ -273,12 +275,13 @@ void PakManager::ResolveMaterials(const std::string& pakName)
         {
             data.pakFiles.emplace_back(pakName);
         }
-        
-        if (std::find(data.shaderNames.begin(), data.shaderNames.end(), mat->shaderGlue->name) == data.shaderNames.end())
+
+        if (std::find(data.shaderNames.begin(), data.shaderNames.end(), mat->shaderGlue->name) ==
+            data.shaderNames.end())
         {
             data.shaderNames.emplace_back(mat->shaderGlue->name);
         }
-        
+
         std::string texName = mat->name;
         std::smatch m;
         std::regex_search(texName, m, textureFileRegex);
@@ -377,7 +380,8 @@ bool PakManager::LoadCacheFile()
     // Check that the cache is the same as our expected file version
     if (pbCache.cacheversion() != PAK_CACHE_FILE_VERSION)
     {
-        m_logger->warn("Pak cache version mismatch (file = {}, current = {})", pbCache.cacheversion(), PAK_CACHE_FILE_VERSION);
+        m_logger->warn("Pak cache version mismatch (file = {}, current = {})", pbCache.cacheversion(),
+                       PAK_CACHE_FILE_VERSION);
         return false;
     }
 
@@ -440,7 +444,9 @@ void PakManager::SortCachedMaterialData()
     }
 }
 
-void PakManager::ReloadExternalPak(const std::string& pakFile, std::unordered_set<std::string>&& newMaterialsToLoad, std::unordered_set<std::string>&& newTexturesToLoad, std::unordered_set<std::string>&& newShadersToLoad)
+void PakManager::ReloadExternalPak(const std::string& pakFile, std::unordered_set<std::string>&& newMaterialsToLoad,
+                                   std::unordered_set<std::string>&& newTexturesToLoad,
+                                   std::unordered_set<std::string>&& newShadersToLoad)
 {
     std::vector<std::string> modelsToReload;
     if (IsExternalPakLoaded(pakFile))
@@ -459,8 +465,9 @@ void PakManager::ReloadExternalPak(const std::string& pakFile, std::unordered_se
         SPDLOG_LOGGER_DEBUG(m_logger, "Pak state restored");
     }
 
-    m_logger->info("Loading {} materials, {} textures, {} shaders from {}", newMaterialsToLoad.size(), newTexturesToLoad.size(), newShadersToLoad.size(), pakFile);
-   
+    m_logger->info("Loading {} materials, {} textures, {} shaders from {}", newMaterialsToLoad.size(),
+                   newTexturesToLoad.size(), newShadersToLoad.size(), pakFile);
+
     // Update the actual lists with new items to load
     m_materialsToLoad.merge(std::move(newMaterialsToLoad));
     m_texturesToLoad.merge(std::move(newTexturesToLoad));
@@ -480,9 +487,10 @@ void PakManager::ReloadExternalPak(const std::string& pakFile, std::unordered_se
 
         const LoadMaterialArgs& args = m_loadMaterialArgs[mdl];
         SPDLOG_LOGGER_TRACE(m_logger, "Loading materials for {}", mdl->szName);
-         
+
         {
-            std::vector<int> materialFlags(args.lodData->pMaterialFlags, args.lodData->pMaterialFlags + args.lodData->numMaterials);
+            std::vector<int> materialFlags(args.lodData->pMaterialFlags,
+                                           args.lodData->pMaterialFlags + args.lodData->numMaterials);
             m_savedMaterialFlags.insert_or_assign(args.phdr, std::move(materialFlags));
         }
 
@@ -530,7 +538,7 @@ void PakManager::LoadExternalPak(const std::string& pakFile)
         m_logger->error("Failed to load pak, PakFunc9 failed ({})", result);
         return;
     }
-    
+
     m_logger->info("Finished loading {}", pakFile);
     m_loadedExternalPaks.emplace(pakFile, pakRef);
 }
@@ -563,7 +571,7 @@ void PakManager::UnloadAllPaks()
     m_texturesToLoad.clear();
     m_shadersToLoad.clear();
     m_loadedExternalPaks.clear();
-    
+
     m_logger->info("Finished unloading models");
     m_state = origState;
     SPDLOG_LOGGER_DEBUG(m_logger, "Pak state restored");
@@ -584,7 +592,7 @@ void PakManager::WriteCacheToFile(const std::string& filename)
         {
             data->add_pakfiles(pakFile);
         }
-        
+
         for (const auto& shaderName : it.second.shaderNames)
         {
             data->add_shadernames(shaderName);
@@ -614,7 +622,8 @@ void PakManager::WritePakCache()
 
 void PakManager::MaterialFunc1Hook(CMaterialGlue* glue, MaterialData* data)
 {
-    SPDLOG_LOGGER_TRACE(m_logger, "MaterialFunc1: {}, glue = {}", (glue->name != NULL) ? glue->name : "NULL", (void*)glue);
+    SPDLOG_LOGGER_TRACE(m_logger, "MaterialFunc1: {}, glue = {}", (glue->name != NULL) ? glue->name : "NULL",
+                        (void*)glue);
 
     if (m_state == PAK_STATE_PRELOAD)
     {
@@ -716,7 +725,8 @@ void PakManager::TextureFunc3Hook(TextureInfo* dst, TextureInfo* src, void* a3)
 
 void PakManager::ShaderFunc1Hook(ShaderInfo* info, int64_t a2)
 {
-    SPDLOG_LOGGER_TRACE(m_logger, "ShaderFunc1: {}, type = {}", (info->name != nullptr) ? info->name : "NULL", info->type);
+    SPDLOG_LOGGER_TRACE(m_logger, "ShaderFunc1: {}, type = {}", (info->name != nullptr) ? info->name : "NULL",
+                        info->type);
 
     if (m_state == PAK_STATE_PRELOAD)
     {
@@ -724,7 +734,9 @@ void PakManager::ShaderFunc1Hook(ShaderInfo* info, int64_t a2)
         m_tempLoadedShaders.emplace(info->name);
     }
 
-    if (((m_state == PAK_STATE_SPAWN_EXTERNAL || m_state == PAK_STATE_UNLOAD_EXTERNAL) && info->name != nullptr && m_shadersToLoad.find(info->name) != m_shadersToLoad.end()) || m_state == PAK_STATE_PRELOAD)
+    if (((m_state == PAK_STATE_SPAWN_EXTERNAL || m_state == PAK_STATE_UNLOAD_EXTERNAL) && info->name != nullptr &&
+         m_shadersToLoad.find(info->name) != m_shadersToLoad.end()) ||
+        m_state == PAK_STATE_PRELOAD)
     {
         SPDLOG_LOGGER_TRACE(m_logger, "Blocking shader {} from loading", info->name);
         std::lock_guard<std::mutex> lock(m_dummyShaderMutex);
@@ -745,8 +757,11 @@ void PakManager::ShaderFunc1Hook(ShaderInfo* info, int64_t a2)
 
 void PakManager::ShaderFunc2Hook(ShaderInfo* info)
 {
-    SPDLOG_LOGGER_TRACE(m_logger, "ShaderFunc2: {}, type = {}", (info->name != nullptr) ? info->name : "NULL", info->type);
-    if ((m_state == PAK_STATE_SPAWN_EXTERNAL && info->name != nullptr && m_shadersToLoad.find(info->name) != m_shadersToLoad.end()) || m_state == PAK_STATE_PRELOAD)
+    SPDLOG_LOGGER_TRACE(m_logger, "ShaderFunc2: {}, type = {}", (info->name != nullptr) ? info->name : "NULL",
+                        info->type);
+    if ((m_state == PAK_STATE_SPAWN_EXTERNAL && info->name != nullptr &&
+         m_shadersToLoad.find(info->name) != m_shadersToLoad.end()) ||
+        m_state == PAK_STATE_PRELOAD)
     {
         SPDLOG_LOGGER_TRACE(m_logger, "Ignoring unload for shader {}", info->name);
         return;
@@ -820,7 +835,7 @@ int64_t PakManager::Studio_LoadModelHook(void* modelLoader, model_t* model)
 std::string GetMaterialPath(int32_t* phdr, int32_t index)
 {
     int32_t* v14 = (int32_t*)((char*)&phdr[11 * index] + phdr[53]);
-    char *v15 = (char *)v14 + *v14;
+    char* v15 = (char*)v14 + *v14;
     if (*v15 == '\\' || *v15 == '/')
     {
         ++v15;
@@ -907,10 +922,9 @@ uint64_t PakManager::LoadMaterialsHook(int64_t a1, int32_t* phdr, int64_t a3, st
             else
             {
                 std::sort(pakCandidates.begin(), pakCandidates.end());
-                auto end = std::set_intersection(
-                    pakCandidates.begin(), pakCandidates.end(),
-                    matData.pakFiles.begin(), matData.pakFiles.end(),
-                    pakCandidates.begin() // intersection is written into pakCandidates
+                auto end = std::set_intersection(pakCandidates.begin(), pakCandidates.end(), matData.pakFiles.begin(),
+                                                 matData.pakFiles.end(),
+                                                 pakCandidates.begin() // intersection is written into pakCandidates
                 );
                 pakCandidates.erase(end, pakCandidates.end()); // erase redundant elements
             }
@@ -937,7 +951,8 @@ uint64_t PakManager::LoadMaterialsHook(int64_t a1, int32_t* phdr, int64_t a3, st
                 }
                 else if (std::find(pakCandidates.begin(), pakCandidates.end(), expectedPak) == pakCandidates.end())
                 {
-                    m_logger->warn("Expected pak ({}) not found in candidates ({})", expectedPak, Util::ConcatStrings(pakCandidates, ","));
+                    m_logger->warn("Expected pak ({}) not found in candidates ({})", expectedPak,
+                                   Util::ConcatStrings(pakCandidates, ","));
                     pakName = pakCandidates[0];
                 }
                 else
@@ -952,7 +967,8 @@ uint64_t PakManager::LoadMaterialsHook(int64_t a1, int32_t* phdr, int64_t a3, st
                 }
                 else
                 {
-                    ReloadExternalPak(pakName, std::move(newMaterialsToLoad), std::move(newTexturesToLoad), std::move(newShadersToLoad));
+                    ReloadExternalPak(pakName, std::move(newMaterialsToLoad), std::move(newTexturesToLoad),
+                                      std::move(newShadersToLoad));
 
                     // Capture all the models that we spawn in extenal mode to free them later
                     m_loadedExternalModels[pakName].insert(m_savedModelPtr);
@@ -991,7 +1007,7 @@ int64_t PakManager::SetModelHook(void* ent, const char* modelName)
 bool PakManager::LoadMapPakHook(const char* name)
 {
     SPDLOG_LOGGER_TRACE(m_logger, "LoadMapPak: {}", name);
-    
+
     // Get the current level from name
     std::string strName(name);
     size_t found = strName.find_last_of(".bsp");
@@ -1016,7 +1032,8 @@ bool PakManager::LoadMapPakHook(const char* name)
 void PakManager::CreateDummyShaders(ID3D11Device** ppD3DDevice)
 {
     const char* shaderText = "void main() { return; }";
-    const char* geometryShaderText = "struct GS_INPUT {}; [maxvertexcount(4)] void main(point GS_INPUT a[1]) { return; }";
+    const char* geometryShaderText =
+        "struct GS_INPUT {}; [maxvertexcount(4)] void main(point GS_INPUT a[1]) { return; }";
     const char* computeShaderText = "[numthreads(1, 1, 1)] void main() { return; }";
 
     m_dummyGeometryShader = nullptr;
@@ -1025,19 +1042,8 @@ void PakManager::CreateDummyShaders(ID3D11Device** ppD3DDevice)
     m_dummyVertexShader = nullptr;
 
     ID3DBlob* vertexShaderBlob = nullptr;
-    HRESULT result = D3DCompile(
-        shaderText,
-        strlen(shaderText),
-        "TTF2SDK_VS",
-        nullptr,
-        nullptr,
-        "main",
-        "vs_5_0",
-        D3DCOMPILE_OPTIMIZATION_LEVEL0,
-        0,
-        &vertexShaderBlob,
-        nullptr
-    );
+    HRESULT result = D3DCompile(shaderText, strlen(shaderText), "TTF2SDK_VS", nullptr, nullptr, "main", "vs_5_0",
+                                D3DCOMPILE_OPTIMIZATION_LEVEL0, 0, &vertexShaderBlob, nullptr);
 
     if (!SUCCEEDED(result))
     {
@@ -1050,19 +1056,8 @@ void PakManager::CreateDummyShaders(ID3D11Device** ppD3DDevice)
     }
 
     ID3DBlob* pixelShaderBlob = nullptr;
-    result = D3DCompile(
-        shaderText,
-        strlen(shaderText),
-        "TTF2SDK_PS",
-        nullptr,
-        nullptr,
-        "main",
-        "ps_5_0",
-        D3DCOMPILE_OPTIMIZATION_LEVEL0,
-        0,
-        &pixelShaderBlob,
-        nullptr
-    );
+    result = D3DCompile(shaderText, strlen(shaderText), "TTF2SDK_PS", nullptr, nullptr, "main", "ps_5_0",
+                        D3DCOMPILE_OPTIMIZATION_LEVEL0, 0, &pixelShaderBlob, nullptr);
 
     if (!SUCCEEDED(result))
     {
@@ -1075,19 +1070,8 @@ void PakManager::CreateDummyShaders(ID3D11Device** ppD3DDevice)
     }
 
     ID3DBlob* geometryShaderBlob = nullptr;
-    result = D3DCompile(
-        geometryShaderText,
-        strlen(geometryShaderText),
-        "TTF2SDK_GS",
-        nullptr,
-        nullptr,
-        "main",
-        "gs_5_0",
-        D3DCOMPILE_OPTIMIZATION_LEVEL0,
-        0,
-        &geometryShaderBlob,
-        nullptr
-    );
+    result = D3DCompile(geometryShaderText, strlen(geometryShaderText), "TTF2SDK_GS", nullptr, nullptr, "main",
+                        "gs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL0, 0, &geometryShaderBlob, nullptr);
 
     if (!SUCCEEDED(result))
     {
@@ -1100,19 +1084,8 @@ void PakManager::CreateDummyShaders(ID3D11Device** ppD3DDevice)
     }
 
     ID3DBlob* computeShaderBlob = nullptr;
-    result = D3DCompile(
-        computeShaderText,
-        strlen(computeShaderText),
-        "TTF2SDK_CS",
-        nullptr,
-        nullptr,
-        "main",
-        "cs_5_0",
-        D3DCOMPILE_OPTIMIZATION_LEVEL0,
-        0,
-        &computeShaderBlob,
-        nullptr
-    );
+    result = D3DCompile(computeShaderText, strlen(computeShaderText), "TTF2SDK_CS", nullptr, nullptr, "main", "cs_5_0",
+                        D3DCOMPILE_OPTIMIZATION_LEVEL0, 0, &computeShaderBlob, nullptr);
 
     if (!SUCCEEDED(result))
     {
@@ -1125,13 +1098,9 @@ void PakManager::CreateDummyShaders(ID3D11Device** ppD3DDevice)
     }
 
     ID3D11Device* dev = *ppD3DDevice;
-    result = dev->lpVtbl->CreateGeometryShader(
-        dev,
-        geometryShaderBlob->lpVtbl->GetBufferPointer(geometryShaderBlob),
-        geometryShaderBlob->lpVtbl->GetBufferSize(geometryShaderBlob),
-        nullptr,
-        &m_dummyGeometryShader
-    );
+    result = dev->lpVtbl->CreateGeometryShader(dev, geometryShaderBlob->lpVtbl->GetBufferPointer(geometryShaderBlob),
+                                               geometryShaderBlob->lpVtbl->GetBufferSize(geometryShaderBlob), nullptr,
+                                               &m_dummyGeometryShader);
 
     if (!SUCCEEDED(result))
     {
@@ -1143,13 +1112,9 @@ void PakManager::CreateDummyShaders(ID3D11Device** ppD3DDevice)
         SPDLOG_LOGGER_DEBUG(m_logger, "Geometry shader: {}", (void*)m_dummyGeometryShader);
     }
 
-    result = dev->lpVtbl->CreateVertexShader(
-        dev,
-        vertexShaderBlob->lpVtbl->GetBufferPointer(vertexShaderBlob),
-        vertexShaderBlob->lpVtbl->GetBufferSize(vertexShaderBlob),
-        nullptr,
-        &m_dummyVertexShader
-    );
+    result = dev->lpVtbl->CreateVertexShader(dev, vertexShaderBlob->lpVtbl->GetBufferPointer(vertexShaderBlob),
+                                             vertexShaderBlob->lpVtbl->GetBufferSize(vertexShaderBlob), nullptr,
+                                             &m_dummyVertexShader);
 
     if (!SUCCEEDED(result))
     {
@@ -1161,13 +1126,9 @@ void PakManager::CreateDummyShaders(ID3D11Device** ppD3DDevice)
         SPDLOG_LOGGER_DEBUG(m_logger, "Vertex shader: {}", (void*)m_dummyVertexShader);
     }
 
-    result = dev->lpVtbl->CreatePixelShader(
-        dev,
-        pixelShaderBlob->lpVtbl->GetBufferPointer(pixelShaderBlob),
-        pixelShaderBlob->lpVtbl->GetBufferSize(pixelShaderBlob),
-        NULL,
-        &m_dummyPixelShader
-    );
+    result = dev->lpVtbl->CreatePixelShader(dev, pixelShaderBlob->lpVtbl->GetBufferPointer(pixelShaderBlob),
+                                            pixelShaderBlob->lpVtbl->GetBufferSize(pixelShaderBlob), NULL,
+                                            &m_dummyPixelShader);
 
     if (!SUCCEEDED(result))
     {
@@ -1179,13 +1140,9 @@ void PakManager::CreateDummyShaders(ID3D11Device** ppD3DDevice)
         SPDLOG_LOGGER_DEBUG(m_logger, "Pixel shader: {}", (void*)m_dummyPixelShader);
     }
 
-    result = dev->lpVtbl->CreateComputeShader(
-        dev,
-        computeShaderBlob->lpVtbl->GetBufferPointer(computeShaderBlob),
-        computeShaderBlob->lpVtbl->GetBufferSize(computeShaderBlob),
-        NULL,
-        &m_dummyComputeShader
-    );
+    result = dev->lpVtbl->CreateComputeShader(dev, computeShaderBlob->lpVtbl->GetBufferPointer(computeShaderBlob),
+                                              computeShaderBlob->lpVtbl->GetBufferSize(computeShaderBlob), NULL,
+                                              &m_dummyComputeShader);
 
     if (!SUCCEEDED(result))
     {
@@ -1198,7 +1155,9 @@ void PakManager::CreateDummyShaders(ID3D11Device** ppD3DDevice)
     }
 }
 
-HRESULT STDMETHODCALLTYPE PakManager::CreateVertexShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11VertexShader** ppVertexShader)
+HRESULT STDMETHODCALLTYPE PakManager::CreateVertexShader_Hook(ID3D11Device* This, const void* pShaderBytecode,
+                                                              SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage,
+                                                              ID3D11VertexShader** ppVertexShader)
 {
     if (m_loadingExtranousShader && m_dummyVertexShader != nullptr)
     {
@@ -1211,7 +1170,10 @@ HRESULT STDMETHODCALLTYPE PakManager::CreateVertexShader_Hook(ID3D11Device* This
     }
 }
 
-HRESULT STDMETHODCALLTYPE PakManager::CreateGeometryShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11GeometryShader** ppGeometryShader)
+HRESULT STDMETHODCALLTYPE PakManager::CreateGeometryShader_Hook(ID3D11Device* This, const void* pShaderBytecode,
+                                                                SIZE_T BytecodeLength,
+                                                                ID3D11ClassLinkage* pClassLinkage,
+                                                                ID3D11GeometryShader** ppGeometryShader)
 {
     if (m_loadingExtranousShader && m_dummyGeometryShader != nullptr)
     {
@@ -1220,11 +1182,14 @@ HRESULT STDMETHODCALLTYPE PakManager::CreateGeometryShader_Hook(ID3D11Device* Th
     }
     else
     {
-        return ID3D11Device_CreateGeometryShader(This, pShaderBytecode, BytecodeLength, pClassLinkage, ppGeometryShader);
+        return ID3D11Device_CreateGeometryShader(This, pShaderBytecode, BytecodeLength, pClassLinkage,
+                                                 ppGeometryShader);
     }
 }
 
-HRESULT STDMETHODCALLTYPE PakManager::CreatePixelShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11PixelShader** ppPixelShader)
+HRESULT STDMETHODCALLTYPE PakManager::CreatePixelShader_Hook(ID3D11Device* This, const void* pShaderBytecode,
+                                                             SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage,
+                                                             ID3D11PixelShader** ppPixelShader)
 {
     if (m_loadingExtranousShader && m_dummyPixelShader != nullptr)
     {
@@ -1237,7 +1202,9 @@ HRESULT STDMETHODCALLTYPE PakManager::CreatePixelShader_Hook(ID3D11Device* This,
     }
 }
 
-HRESULT STDMETHODCALLTYPE PakManager::CreateComputeShader_Hook(ID3D11Device* This, const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage, ID3D11ComputeShader** ppComputeShader)
+HRESULT STDMETHODCALLTYPE PakManager::CreateComputeShader_Hook(ID3D11Device* This, const void* pShaderBytecode,
+                                                               SIZE_T BytecodeLength, ID3D11ClassLinkage* pClassLinkage,
+                                                               ID3D11ComputeShader** ppComputeShader)
 {
     if (m_loadingExtranousShader && m_dummyComputeShader != nullptr)
     {

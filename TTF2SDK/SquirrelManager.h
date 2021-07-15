@@ -1,9 +1,9 @@
 #pragma once
 
-#define SQ_SUCCEEDED(res) (res>=0)
+#define SQ_SUCCEEDED(res) (res >= 0)
 
-#define SQTrue	(1)
-#define SQFalse	(0)
+#define SQTrue (1)
+#define SQFalse (0)
 
 typedef float SQFloat;
 typedef long SQInteger;
@@ -14,10 +14,10 @@ typedef SQUnsignedInteger SQBool;
 typedef SQInteger SQRESULT;
 
 typedef struct SQVM* HSQUIRRELVM;
-typedef void(*SQPRINTFUNCTION)(HSQUIRRELVM, const SQChar*, ...);
-typedef SQInteger(*SQFUNCTION)(HSQUIRRELVM);
+typedef void (*SQPRINTFUNCTION)(HSQUIRRELVM, const SQChar*, ...);
+typedef SQInteger (*SQFUNCTION)(HSQUIRRELVM);
 
-#pragma pack(push,1)
+#pragma pack(push, 1)
 struct SQSharedState
 {
     unsigned char unknownData[0x4350];
@@ -69,19 +69,9 @@ struct SQFuncRegistrationInternal
 class SQFuncRegistration
 {
 public:
-    SQFuncRegistration(
-        ExecutionContext context,
-        const std::string& returnType,
-        const std::string& name,
-        const std::string& argTypes,
-        const std::string& helpText,
-        SQFUNCTION funcPtr
-    ) : 
-        m_context(context),
-        m_retValueType(returnType),
-        m_funcName(name),
-        m_argTypes(argTypes),
-        m_helpText(helpText)
+    SQFuncRegistration(ExecutionContext context, const std::string& returnType, const std::string& name,
+                       const std::string& argTypes, const std::string& helpText, SQFUNCTION funcPtr)
+        : m_context(context), m_retValueType(returnType), m_funcName(name), m_argTypes(argTypes), m_helpText(helpText)
     {
         m_internalReg.squirrelFuncName = m_funcName.c_str();
         m_internalReg.cppFuncName = m_funcName.c_str();
@@ -128,37 +118,28 @@ private:
 public:
     SquirrelManager(ConCommandManager& conCommandManager);
 
-    template<ExecutionContext context>
-    SQInteger BasePrintHook(HSQUIRRELVM v);
+    template <ExecutionContext context> SQInteger BasePrintHook(HSQUIRRELVM v);
     void PrintFunc(HSQUIRRELVM v, const SQChar* source, const SQChar* s, va_list args);
 
     HSQUIRRELVM GetClientSQVM();
     HSQUIRRELVM GetServerSQVM();
 
-    template<ExecutionContext context>
+    template <ExecutionContext context>
     void CompilerErrorHook(HSQUIRRELVM v, const SQChar* sErr, const SQChar* sSource, SQInteger line, SQInteger column);
 
     void RunServerCommand(const CCommand& args);
     void RunClientCommand(const CCommand& args);
 
-    template<ExecutionContext context>
-    void ExecuteCode(const char* code);
+    template <ExecutionContext context> void ExecuteCode(const char* code);
     void ExecuteServerCode(const char* code);
     void ExecuteClientCode(const char* code);
 
     void RegisterFunction(R2SquirrelVM* vm, SQFuncRegistration& reg);
 
-    void AddFuncRegistration(
-        ExecutionContext context,
-        const std::string& returnType,
-        const std::string& name,
-        const std::string& argTypes,
-        const std::string& helpText,
-        SQFUNCTION func
-    );
+    void AddFuncRegistration(ExecutionContext context, const std::string& returnType, const std::string& name,
+                             const std::string& argTypes, const std::string& helpText, SQFUNCTION func);
 
-    template<ExecutionContext context>
-    R2SquirrelVM* CreateNewVMHook(int64_t a1, int a2, float a3);
+    template <ExecutionContext context> R2SquirrelVM* CreateNewVMHook(int64_t a1, int a2, float a3);
 
     int64_t RunClientInitCallbacksHook();
     int64_t RunServerInitCallbacksHook();

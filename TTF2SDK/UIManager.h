@@ -24,12 +24,13 @@ enum CursorCode
 class UIManager
 {
 public:
-    UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqManager, FileSystemManager& fsManager, ID3D11Device** ppD3DDevice);
+    UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqManager, FileSystemManager& fsManager,
+              ID3D11Device** ppD3DDevice);
     ~UIManager();
 
     void InitImGui(const fs::path& modsPath, ID3D11Device** ppD3DDevice);
     void ShowCursorCommand(const CCommand& args);
-	
+
     SQInteger SQShowCursor(HSQUIRRELVM v);
     SQInteger SQHideCursor(HSQUIRRELVM v);
 

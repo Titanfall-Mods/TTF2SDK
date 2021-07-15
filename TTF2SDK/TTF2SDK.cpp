@@ -11,6 +11,7 @@ TTF2SDK& SDK()
 // TODO: Add a hook for the script error function (not just compile error)
 // TODO: Hook CoreMsgV
 
+// clang-format off
 #define WRAPPED_MEMBER(name) MemberWrapper<decltype(&TTF2SDK::##name), &TTF2SDK::##name, decltype(&SDK), &SDK>::Call
 
 HookedFunc<void, double, float> _Host_RunFrame("engine.dll", "\x48\x8B\xC4\x48\x89\x58\x00\xF3\x0F\x11\x48\x00\xF2\x0F\x11\x40\x00", "xxxxxx?xxxx?xxxx?");
@@ -22,15 +23,10 @@ SigScanFunc<void> secondMpJumpPatchFinder("engine.dll", "\x0F\x84\x00\x00\x00\x0
 SigScanFunc<int64_t, void*> EnableNoclip("server.dll", "\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x00\x48\x8B\x01\x41\x83\xC8\x00\x33\xD2\x48\x8B\xF9", "xxxx?xxxx?xxxxxx?xxxxx");
 SigScanFunc<int64_t, void*> DisableNoclip("server.dll", "\x48\x89\x5C\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x33\xC0", "xxxx?xxxx????xx");
 SigScanFunc<void*, int> UTIL_EntityByIndex("server.dll", "\x66\x83\xF9\xFF\x75\x03\x33\xC0\xC3", "xxxxxxxxx");
+// clang-format on
 
-
-void InvalidParameterHandler(
-    const wchar_t* expression,
-    const wchar_t* function,
-    const wchar_t* file,
-    unsigned int line,
-    uintptr_t pReserved
-)
+void InvalidParameterHandler(const wchar_t* expression, const wchar_t* function, const wchar_t* file, unsigned int line,
+                             uintptr_t pReserved)
 {
     // Do nothing so that _vsnprintf_s returns an error instead of aborting
 }
@@ -80,10 +76,9 @@ int64_t compareFuncHook(const char* first, const char* second, int64_t count)
     }
 }
 
-TTF2SDK::TTF2SDK(const SDKSettings& settings) :
-    m_engineServer("engine.dll", "VEngineServer022"),
-    m_engineClient("engine.dll", "VEngineClient013"),
-    m_inputSystem("inputsystem.dll", "InputSystemVersion001")
+TTF2SDK::TTF2SDK(const SDKSettings& settings)
+    : m_engineServer("engine.dll", "VEngineServer022"), m_engineClient("engine.dll", "VEngineClient013"),
+      m_inputSystem("inputsystem.dll", "InputSystemVersion001")
 {
     m_logger = spdlog::get("logger");
 
@@ -109,7 +104,8 @@ TTF2SDK::TTF2SDK(const SDKSettings& settings) :
     m_uiManager.reset(new UIManager(*m_conCommandManager, *m_sqManager, *m_fsManager, m_ppD3D11Device));
     m_pakManager.reset(new PakManager(*m_conCommandManager, m_engineServer, *m_sqManager, m_ppD3D11Device));
     m_modManager.reset(new ModManager(*m_conCommandManager, *m_sqManager));
-    m_sourceConsole.reset(new SourceConsole(*m_conCommandManager, settings.DeveloperMode ? spdlog::level::debug : spdlog::level::info));
+    m_sourceConsole.reset(
+        new SourceConsole(*m_conCommandManager, settings.DeveloperMode ? spdlog::level::debug : spdlog::level::info));
 
     m_icepickMenu.reset(new IcepickMenu(*m_conCommandManager, *m_uiManager, *m_sqManager, *m_fsManager));
 
@@ -215,16 +211,15 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
         UpdateSETranslator();
         translatorUpdated = true;
     }
-    
+
     for (const auto& frameTask : m_frameTasks)
     {
         frameTask->RunFrame();
     }
 
-    m_frameTasks.erase(std::remove_if(m_frameTasks.begin(), m_frameTasks.end(), [](const std::shared_ptr<IFrameTask>& t)
-    { 
-        return t->IsFinished();
-    }), m_frameTasks.end());
+    m_frameTasks.erase(std::remove_if(m_frameTasks.begin(), m_frameTasks.end(),
+                                      [](const std::shared_ptr<IFrameTask>& t) { return t->IsFinished(); }),
+                       m_frameTasks.end());
 
     static bool called = false;
     if (!called)
@@ -234,7 +229,7 @@ void TTF2SDK::RunFrameHook(double absTime, float frameTime)
         m_pakManager->PreloadAllPaks();
         called = true;
     }
-   
+
     return _Host_RunFrame(absTime, frameTime);
 }
 
@@ -295,14 +290,9 @@ void TTF2SDK::StartIPC()
         return;
     }
 
-    m_ipcPipe.reset(CreateNamedPipe(TEXT("\\\\.\\pipe\\TTF2SDK"),
-        PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED,
-        PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
-        1,
-        16 * 1024,
-        16 * 1024,
-        NMPWAIT_USE_DEFAULT_WAIT,
-        NULL));
+    m_ipcPipe.reset(CreateNamedPipe(TEXT("\\\\.\\pipe\\TTF2SDK"), PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED,
+                                    PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
+                                    1, 16 * 1024, 16 * 1024, NMPWAIT_USE_DEFAULT_WAIT, NULL));
 
     if (m_ipcPipe.get() == INVALID_HANDLE_VALUE)
     {
@@ -322,7 +312,7 @@ bool TTF2SDK::ConnectToIPCClient()
         return false;
     }
 
-    OVERLAPPED ol = { 0 };
+    OVERLAPPED ol = {0};
     ol.hEvent = hEvent.get();
     BOOL connected = ConnectNamedPipe(m_ipcPipe.get(), &ol);
 
@@ -333,7 +323,7 @@ bool TTF2SDK::ConnectToIPCClient()
         return false;
     }
 
-    HANDLE waitHandles[] = { m_stopIpcThread.get(), ol.hEvent };
+    HANDLE waitHandles[] = {m_stopIpcThread.get(), ol.hEvent};
 
     DWORD error = GetLastError();
     if (error == ERROR_IO_PENDING)
@@ -406,7 +396,7 @@ void TTF2SDK::NamedPipeThread()
                 return;
             }
 
-            OVERLAPPED ol = { 0 };
+            OVERLAPPED ol = {0};
             ol.hEvent = hEvent.get();
             BOOL result = ReadFile(m_ipcPipe.get(), buffer.get(), BUFFER_SIZE - 1, &bytesRead, &ol);
             DWORD error = GetLastError();
@@ -419,7 +409,7 @@ void TTF2SDK::NamedPipeThread()
             }
             else if (error == ERROR_IO_PENDING)
             {
-                HANDLE waitHandles[] = { m_stopIpcThread.get(), ol.hEvent };
+                HANDLE waitHandles[] = {m_stopIpcThread.get(), ol.hEvent};
                 DWORD waitResult = WaitForMultipleObjects(2, waitHandles, FALSE, INFINITE);
                 if (waitResult == WAIT_OBJECT_0) // Thread cancelled
                 {
@@ -446,7 +436,7 @@ void TTF2SDK::NamedPipeThread()
                 break;
             }
         }
-        
+
         DisconnectNamedPipe(m_ipcPipe.get());
     }
 }
@@ -465,19 +455,19 @@ TTF2SDK::~TTF2SDK()
     m_uiManager.reset();
     m_sourceConsole.reset();
     // TODO: Add anything i've missed here
-    
+
     MH_Uninitialize();
 }
 
 class flushed_file_sink_mt : public spdlog::sinks::sink
 {
-public:
-    explicit flushed_file_sink_mt(const spdlog::filename_t &filename, bool truncate = false) : file_sink_(filename, truncate)
+  public:
+    explicit flushed_file_sink_mt(const spdlog::filename_t& filename, bool truncate = false)
+        : file_sink_(filename, truncate)
     {
-
     }
 
-    void log(const spdlog::details::log_msg &msg) override
+    void log(const spdlog::details::log_msg& msg) override
     {
         file_sink_.log(msg);
         flush();
@@ -488,7 +478,7 @@ public:
         file_sink_.flush();
     }
 
-    void set_pattern(const std::string &pattern) override
+    void set_pattern(const std::string& pattern) override
     {
         file_sink_.set_pattern(pattern);
     }
@@ -498,7 +488,7 @@ public:
         file_sink_.set_formatter(std::move(sink_formatter));
     }
 
-private:
+  private:
     spdlog::sinks::basic_file_sink_mt file_sink_;
 };
 
@@ -506,7 +496,7 @@ void SetupLogger(const std::string& filename, bool enableWindowsConsole)
 {
     // Create sinks to file and console
     std::vector<spdlog::sink_ptr> sinks;
-    
+
     if (enableWindowsConsole)
     {
         g_console = std::make_unique<Console>();

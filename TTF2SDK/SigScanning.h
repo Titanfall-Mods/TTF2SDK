@@ -28,11 +28,10 @@ public:
     void ResolveAll();
 };
 
-template<typename T, typename... Args>
-class SigScanFunc : public BaseSigScanFunc
+template <typename T, typename... Args> class SigScanFunc : public BaseSigScanFunc
 {
 protected:
-    T(*m_func)(Args...) = nullptr;
+    T (*m_func)(Args...) = nullptr;
 
 public:
     SigScanFunc(const char* moduleName, const char* signature, const char* mask)
@@ -42,7 +41,7 @@ public:
 
     void SetFuncPtr(void* ptr)
     {
-        m_func = reinterpret_cast<T(*)(Args...)>(ptr);
+        m_func = reinterpret_cast<T (*)(Args...)>(ptr);
     }
 
     void* GetFuncPtr()
@@ -56,26 +55,24 @@ public:
     }
 };
 
-template <typename T>
-inline MH_STATUS MH_CreateHookEx(LPVOID pTarget, LPVOID pDetour, T** ppOriginal)
+template <typename T> inline MH_STATUS MH_CreateHookEx(LPVOID pTarget, LPVOID pDetour, T** ppOriginal)
 {
     return MH_CreateHook(pTarget, pDetour, reinterpret_cast<LPVOID*>(ppOriginal));
 }
 
-template<typename T, typename... Args>
-class HookedFunc : public SigScanFunc<T, Args...>
+template <typename T, typename... Args> class HookedFunc : public SigScanFunc<T, Args...>
 {
 private:
     bool m_hooked = false;
-    T(*m_hookedFunc)(Args...) = nullptr;
+    T (*m_hookedFunc)(Args...) = nullptr;
 
 public:
-    HookedFunc(const char* moduleName, const char* signature, const char* mask) : SigScanFunc<T, Args...>(moduleName, signature, mask)
+    HookedFunc(const char* moduleName, const char* signature, const char* mask)
+        : SigScanFunc<T, Args...>(moduleName, signature, mask)
     {
-
     }
 
-    void Hook(T(*detourFunc)(Args...))
+    void Hook(T (*detourFunc)(Args...))
     {
         if (m_hooked)
         {
@@ -119,16 +116,15 @@ enum ExecutionContext
     CONTEXT_SERVER
 };
 
-template<typename T>
-class SharedFunc
+template <typename T> class SharedFunc
 {
     T m_clientFunc;
     T m_serverFunc;
 
 public:
-    SharedFunc(const char* signature, const char* mask) : m_clientFunc("client.dll", signature, mask), m_serverFunc("server.dll", signature, mask)
+    SharedFunc(const char* signature, const char* mask)
+        : m_clientFunc("client.dll", signature, mask), m_serverFunc("server.dll", signature, mask)
     {
-
     }
 
     T& GetClientFunc()
@@ -141,29 +137,24 @@ public:
         return m_serverFunc;
     }
 
-    template<ExecutionContext context>
-    T& GetFuncForContext() = delete;
+    template <ExecutionContext context> T& GetFuncForContext() = delete;
 
-    template<>
-    T& GetFuncForContext<CONTEXT_CLIENT>()
+    template <> T& GetFuncForContext<CONTEXT_CLIENT>()
     {
         return m_clientFunc;
     }
 
-    template<>
-    T& GetFuncForContext<CONTEXT_SERVER>()
+    template <> T& GetFuncForContext<CONTEXT_SERVER>()
     {
         return m_serverFunc;
     }
 };
 
-template<typename T, typename... Args>
-class SharedSigFunc : public SharedFunc<SigScanFunc<T, Args...>>
+template <typename T, typename... Args> class SharedSigFunc : public SharedFunc<SigScanFunc<T, Args...>>
 {
 public:
     SharedSigFunc(const char* signature, const char* mask) : SharedFunc<SigScanFunc<T, Args...>>(signature, mask)
     {
-
     }
 
     T CallClient(Args... args)
@@ -176,23 +167,20 @@ public:
         return GetFuncForContext<CONTEXT_SERVER>()(args...);
     }
 
-    template<ExecutionContext context>
-    T Call(Args... args)
+    template <ExecutionContext context> T Call(Args... args)
     {
         return GetFuncForContext<context>()(args...);
     }
 };
 
-template<typename T, typename... Args>
-class SharedHookedFunc : public SharedFunc<HookedFunc<T, Args...>>
+template <typename T, typename... Args> class SharedHookedFunc : public SharedFunc<HookedFunc<T, Args...>>
 {
 public:
     SharedHookedFunc(const char* signature, const char* mask) : SharedFunc<HookedFunc<T, Args...>>(signature, mask)
     {
-
     }
 
-    void Hook(T(*clientDetourFunc)(Args...), T(*serverDetourFunc)(Args...))
+    void Hook(T (*clientDetourFunc)(Args...), T (*serverDetourFunc)(Args...))
     {
         GetClientFunc().Hook(clientDetourFunc);
         GetServerFunc().Hook(serverDetourFunc);
@@ -208,8 +196,7 @@ public:
         return GetFuncForContext<CONTEXT_SERVER>()(args...);
     }
 
-    template<ExecutionContext context>
-    T Call(Args... args)
+    template <ExecutionContext context> T Call(Args... args)
     {
         return GetFuncForContext<context>()(args...);
     }

@@ -24,15 +24,15 @@ public:
 };
 
 template <typename TVTable, TVTable> class HookedVTableFunc;
-template <typename TVTable, typename R, typename ...Args, R(*(TVTable::*mf))(Args...)>
-class HookedVTableFunc<R(*(TVTable::*))(Args...), mf>
+template <typename TVTable, typename R, typename... Args, R (*(TVTable::*mf))(Args...)>
+class HookedVTableFunc<R (*(TVTable::*))(Args...), mf>
 {
     bool m_hooked = false;
     TVTable* m_vtable = nullptr;
-    R(*m_origFunc)(Args...) = nullptr;
+    R (*m_origFunc)(Args...) = nullptr;
 
 public:
-    void Hook(TVTable* vtablePtr, R(*hookFunc)(Args...))
+    void Hook(TVTable* vtablePtr, R (*hookFunc)(Args...))
     {
         if (m_hooked)
         {

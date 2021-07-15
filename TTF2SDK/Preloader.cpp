@@ -1,16 +1,13 @@
 #include "stdafx.h"
 
-Preloader::Preloader(const std::vector<std::string>& maps) :
-    m_state(PRELOADER_STATE_PRELOAD_NEXT),
-    m_mapsToPreload(maps),
-    m_totalMaps(maps.size())
+Preloader::Preloader(const std::vector<std::string>& maps)
+    : m_state(PRELOADER_STATE_PRELOAD_NEXT), m_mapsToPreload(maps), m_totalMaps(maps.size())
 {
     SDK().GetUIManager().AddDrawCallback("Preload_UI", std::bind(&Preloader::DrawUI, this));
 }
 
 Preloader::~Preloader()
 {
-
 }
 
 void Preloader::RunFrame()
@@ -52,7 +49,8 @@ bool Preloader::IsFinished()
 void Preloader::DrawUI()
 {
     std::call_once(m_popupFlag, ImGui::OpenPopup, "Preloading Assets", 0);
-    if (ImGui::BeginPopupModal("Preloading Assets", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse))
+    if (ImGui::BeginPopupModal("Preloading Assets", nullptr,
+                               ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse))
     {
         ImGui::Text("Please wait while all game assets are enumerated.");
         ImGui::Separator();

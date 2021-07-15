@@ -1,6 +1,6 @@
 #include "stdafx.h"
-#include <iostream>
 #include <functional>
+#include <iostream>
 #include <string>
 
 const int MAX_SIG_SCAN_REGISTRATIONS = 100;

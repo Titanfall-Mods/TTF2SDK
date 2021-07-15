@@ -12,7 +12,7 @@ private:
     fs::path m_dumpPath;
     fs::path m_modsPath;
     fs::path m_savesPath;
-	fs::path m_spawnlistsPath;
+    fs::path m_spawnlistsPath;
     std::vector<std::string> m_mapVPKs;
     std::vector<std::string> m_mapNames;
     std::string m_lastMapReadFrom;
@@ -44,5 +44,5 @@ public:
     const fs::path& GetModsPath();
     const fs::path& GetCompilePath();
     const fs::path& GetSavesPath();
-	const fs::path& GetSpawnlistsPath();
+    const fs::path& GetSpawnlistsPath();
 };

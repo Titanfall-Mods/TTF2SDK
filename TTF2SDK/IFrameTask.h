@@ -3,7 +3,9 @@
 class IFrameTask
 {
 public:
-    virtual ~IFrameTask() {}
+    virtual ~IFrameTask()
+    {
+    }
     virtual void RunFrame() = 0;
     virtual bool IsFinished() = 0;
 };

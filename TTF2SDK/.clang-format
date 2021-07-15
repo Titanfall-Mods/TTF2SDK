@@ -1,0 +1,4 @@
+BasedOnStyle: Microsoft
+DerivePointerAlignment: false
+PointerAlignment: Left
+AccessModifierOffset: -4

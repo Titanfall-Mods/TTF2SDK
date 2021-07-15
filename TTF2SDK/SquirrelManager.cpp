@@ -19,6 +19,7 @@ struct CompileBufferState
     }
 };
 
+// clang-format off
 #define WRAPPED_MEMBER(name) MemberWrapper<decltype(&SquirrelManager::##name), &SquirrelManager::##name, decltype(&SQManager), &SQManager>::Call
 
 SharedHookedFunc<SQInteger, HSQUIRRELVM> base_print("\x40\x53\x48\x83\xEC\x30\xBA\x00\x00\x00\x00\x48\x8B\xD9\xE8\x00\x00\x00\x00\x8B\x53\x68", "xxxxxxx????xxxx????xxx");
@@ -47,6 +48,7 @@ HookedFunc<int64_t> RunServerInitCallbacks("server.dll", "\x48\x89\x5C\x24\x00\x
 SharedSigFunc<bool, R2SquirrelVM*, const char*> RunCallback("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x48\x83\xEC\x60\x48\x8B\x59\x08\x48\x8B\xE9", "xxxxxxxxxxxxxxxxxxxxxxxxxxx");
 
 SharedSigFunc<int64_t, R2SquirrelVM*, SQFuncRegistrationInternal*, char> AddSquirrelReg("\x48\x83\xEC\x00\x45\x0F\xB6\xC8\x45\x33\xC0", "xxx?xxxxxxx");
+// clang-format on
 
 SquirrelManager::SquirrelManager(ConCommandManager& conCommandManager)
 {
@@ -65,18 +67,20 @@ SquirrelManager::SquirrelManager(ConCommandManager& conCommandManager)
     m_ppServerVM = (R2SquirrelVM**)(funcBase + 17 + offset);
 
     base_print.Hook(WRAPPED_MEMBER(BasePrintHook<CONTEXT_CLIENT>), WRAPPED_MEMBER(BasePrintHook<CONTEXT_SERVER>));
-    sqstd_compiler_error.Hook(WRAPPED_MEMBER(CompilerErrorHook<CONTEXT_CLIENT>), WRAPPED_MEMBER(CompilerErrorHook<CONTEXT_SERVER>));
+    sqstd_compiler_error.Hook(WRAPPED_MEMBER(CompilerErrorHook<CONTEXT_CLIENT>),
+                              WRAPPED_MEMBER(CompilerErrorHook<CONTEXT_SERVER>));
     CreateNewVM.Hook(WRAPPED_MEMBER(CreateNewVMHook<CONTEXT_CLIENT>), WRAPPED_MEMBER(CreateNewVMHook<CONTEXT_SERVER>));
     RunClientInitCallbacks.Hook(WRAPPED_MEMBER(RunClientInitCallbacksHook));
     RunServerInitCallbacks.Hook(WRAPPED_MEMBER(RunServerInitCallbacksHook));
 
     // Add concommands to run client and server code
-    conCommandManager.RegisterCommand("run_server", WRAPPED_MEMBER(RunServerCommand), "Execute Squirrel code in server context", 0);
-    conCommandManager.RegisterCommand("run_client", WRAPPED_MEMBER(RunClientCommand), "Execute Squirrel code in client context", 0);
+    conCommandManager.RegisterCommand("run_server", WRAPPED_MEMBER(RunServerCommand),
+                                      "Execute Squirrel code in server context", 0);
+    conCommandManager.RegisterCommand("run_client", WRAPPED_MEMBER(RunClientCommand),
+                                      "Execute Squirrel code in client context", 0);
 }
 
-template<ExecutionContext context>
-SQInteger SquirrelManager::BasePrintHook(HSQUIRRELVM v)
+template <ExecutionContext context> SQInteger SquirrelManager::BasePrintHook(HSQUIRRELVM v)
 {
     static auto printFuncLambda = [](HSQUIRRELVM v, const SQChar* s, ...) {
         va_list vl;
@@ -129,8 +133,9 @@ HSQUIRRELVM SquirrelManager::GetServerSQVM()
     return nullptr;
 }
 
-template<ExecutionContext context>
-void SquirrelManager::CompilerErrorHook(HSQUIRRELVM v, const SQChar* sErr, const SQChar* sSource, SQInteger line, SQInteger column)
+template <ExecutionContext context>
+void SquirrelManager::CompilerErrorHook(HSQUIRRELVM v, const SQChar* sErr, const SQChar* sSource, SQInteger line,
+                                        SQInteger column)
 {
     m_logger->error("{} SCRIPT COMPILE ERROR", Util::GetContextName(context));
     m_logger->error("{} line = ({}) column = ({}) error = {}", sSource, line, column, sErr);
@@ -156,14 +161,9 @@ void SquirrelManager::ExecuteClientCode(const char* code)
     ExecuteCode<CONTEXT_CLIENT>(code);
 }
 
-void SquirrelManager::AddFuncRegistration(
-    ExecutionContext context,
-    const std::string& returnType,
-    const std::string& name,
-    const std::string& argTypes,
-    const std::string& helpText,
-    SQFUNCTION func
-)
+void SquirrelManager::AddFuncRegistration(ExecutionContext context, const std::string& returnType,
+                                          const std::string& name, const std::string& argTypes,
+                                          const std::string& helpText, SQFUNCTION func)
 {
     m_funcsToRegister.emplace_back(context, returnType, name, argTypes, helpText, func);
 }
@@ -208,16 +208,13 @@ void SquirrelManager::ClearCallbacks()
     m_serverCallbacks.clear();
 }
 
-template<ExecutionContext context>
-void SquirrelManager::ExecuteCode(const char* code)
+template <ExecutionContext context> void SquirrelManager::ExecuteCode(const char* code)
 {
     if (!ThreadInMainThread())
     {
         SPDLOG_LOGGER_DEBUG(m_logger, "Delaying execution into main thread: {}", code);
         std::string strCode(code);
-        SDK().AddDelayedFunc([this, strCode]() {
-            this->ExecuteCode<context>(strCode.c_str());
-        }, 0);
+        SDK().AddDelayedFunc([this, strCode]() { this->ExecuteCode<context>(strCode.c_str()); }, 0);
         return;
     }
 
@@ -263,8 +260,7 @@ void SquirrelManager::RegisterFunction(R2SquirrelVM* vm, SQFuncRegistration& reg
     }
 }
 
-template<ExecutionContext context>
-R2SquirrelVM* SquirrelManager::CreateNewVMHook(int64_t a1, int a2, float a3)
+template <ExecutionContext context> R2SquirrelVM* SquirrelManager::CreateNewVMHook(int64_t a1, int a2, float a3)
 {
     R2SquirrelVM* vm = CreateNewVM.Call<context>(a2, a2, a3);
     SPDLOG_LOGGER_TRACE(m_logger, "CreateNewVM ({}): {}", Util::GetContextName(context), (void*)vm);

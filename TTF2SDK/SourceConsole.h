@@ -34,14 +34,13 @@ struct SourceColor
 class IConsoleDisplayFunc
 {
 public:
-    virtual void ColorPrint(const SourceColor& clr, const char *pMessage) = 0;
-    virtual void Print(const char *pMessage) = 0;
-    virtual void DPrint(const char *pMessage) = 0;
+    virtual void ColorPrint(const SourceColor& clr, const char* pMessage) = 0;
+    virtual void Print(const char* pMessage) = 0;
+    virtual void DPrint(const char* pMessage) = 0;
 };
 
 class CConsolePanel : public EditablePanel, public IConsoleDisplayFunc
 {
-
 };
 
 class CConsoleDialog
@@ -50,7 +49,7 @@ public:
     struct VTable
     {
         void* unknown[298];
-        void(*OnCommandSubmitted)(CConsoleDialog* consoleDialog, const char* pCommand);
+        void (*OnCommandSubmitted)(CConsoleDialog* consoleDialog, const char* pCommand);
     };
 
     VTable* m_vtable;
@@ -104,7 +103,8 @@ private:
     std::shared_ptr<spdlog::logger> m_logger;
     std::shared_ptr<SourceConsoleSink> m_sink;
     SourceInterface<CGameConsole> m_gameConsole;
-    HookedVTableFunc<decltype(&CConsoleDialog::VTable::OnCommandSubmitted), &CConsoleDialog::VTable::OnCommandSubmitted> CConsoleDialog_OnCommandSubmitted;
+    HookedVTableFunc<decltype(&CConsoleDialog::VTable::OnCommandSubmitted), &CConsoleDialog::VTable::OnCommandSubmitted>
+        CConsoleDialog_OnCommandSubmitted;
 };
 
 class SourceConsoleSink : public spdlog::sinks::base_sink<std::mutex>

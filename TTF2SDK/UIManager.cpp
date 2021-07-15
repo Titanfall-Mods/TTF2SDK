@@ -1,6 +1,6 @@
 #include "stdafx.h"
-#include <regex>
 #include <algorithm>
+#include <regex>
 #include <string>
 
 UIManager& UIMan()
@@ -8,6 +8,7 @@ UIManager& UIMan()
     return SDK().GetUIManager();
 }
 
+// clang-format off
 #define WRAPPED_MEMBER(name) MemberWrapper<decltype(&UIManager::##name), &UIManager::##name, decltype(&UIMan), &UIMan>::Call
 
 SigScanFunc<void> d3d11ContextFinder("materialsystem_dx11.dll", "\x40\x53\x48\x83\xEC\x00\x48\x8B\x0D\x00\x00\x00\x00\x48\x8B\x01\xFF\x90\x00\x00\x00\x00\xE8\x00\x00\x00\x00", "xxxxx?xxx????xxxxx????x????");
@@ -19,9 +20,11 @@ HookedFunc<int, void*, HWND, UINT, WPARAM, LPARAM> GameWindowProc("inputsystem.d
 
 HookedVTableFunc<decltype(&ISurface::VTable::LockCursor), &ISurface::VTable::LockCursor> ISurface_LockCursor;
 HookedVTableFunc<decltype(&ISurface::VTable::SetCursor), &ISurface::VTable::SetCursor> ISurface_SetCursor;
+// clang-format on
 
-UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqManager, FileSystemManager& fsManager, ID3D11Device** ppD3DDevice) :
-    m_surface("vguimatsurface.dll", "VGUI_Surface031")
+UIManager::UIManager(ConCommandManager& conCommandManager, SquirrelManager& sqManager, FileSystemManager& fsManager,
+                     ID3D11Device** ppD3DDevice)
+    : m_surface("vguimatsurface.dll", "VGUI_Surface031")
 {
     m_logger = spdlog::get("logger");
 
@@ -73,11 +76,11 @@ void UIManager::InitImGui(const fs::path& modsPath, ID3D11Device** ppD3DDevice)
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(*ppD3DDevice, *m_ppD3D11DeviceContext);
     ImGui::StyleColorsDark();
-	ImGuiStyle* style = &ImGui::GetStyle();
-	ImVec4* colors = style->Colors;
-	colors[ImGuiCol_Header] = ImVec4( 0.06f, 0.39f, 0.79f, 0.41f );
-	colors[ImGuiCol_HeaderHovered] = ImVec4( 0.06f, 0.39f, 0.79f, 0.80f );
-	colors[ImGuiCol_HeaderActive] = ImVec4( 0.06f, 0.39f, 0.79f, 1.00f );
+    ImGuiStyle* style = &ImGui::GetStyle();
+    ImVec4* colors = style->Colors;
+    colors[ImGuiCol_Header] = ImVec4(0.06f, 0.39f, 0.79f, 0.41f);
+    colors[ImGuiCol_HeaderHovered] = ImVec4(0.06f, 0.39f, 0.79f, 0.80f);
+    colors[ImGuiCol_HeaderActive] = ImVec4(0.06f, 0.39f, 0.79f, 1.00f);
 
     ImGui::GetIO().IniFilename = nullptr;
 
@@ -127,12 +130,17 @@ void UIManager::DrawGUI()
 {
     const float DISTANCE = 10.0f;
     static int corner = 0;
-    ImVec2 window_pos = ImVec2((corner & 1) ? ImGui::GetIO().DisplaySize.x - DISTANCE : DISTANCE, (corner & 2) ? ImGui::GetIO().DisplaySize.y - DISTANCE : DISTANCE);
+    ImVec2 window_pos = ImVec2((corner & 1) ? ImGui::GetIO().DisplaySize.x - DISTANCE : DISTANCE,
+                               (corner & 2) ? ImGui::GetIO().DisplaySize.y - DISTANCE : DISTANCE);
     ImVec2 window_pos_pivot = ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
     if (corner != -1)
         ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
     ImGui::SetNextWindowBgAlpha(0.3f); // Transparent background
-    if (ImGui::Begin("DebugOverlay", nullptr, (corner != -1 ? ImGuiWindowFlags_NoMove : 0) | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+    if (ImGui::Begin("DebugOverlay", nullptr,
+                     (corner != -1 ? ImGuiWindowFlags_NoMove : 0) | ImGuiWindowFlags_NoInputs |
+                         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize |
+                         ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
+                         ImGuiWindowFlags_NoNav))
     {
         if (ImGui::IsMousePosValid())
             ImGui::Text("Mouse Position: (%.1f,%.1f)", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
@@ -199,7 +207,7 @@ int UIManager::WindowProcHook(void* game, HWND hWnd, UINT uMsg, WPARAM wParam, L
     }
 
     ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
-    
+
     // Do not pass to game if we're forcing the cursor
     bool forcedCursor = m_enableCursor && !m_engineCursorSet;
 
@@ -208,7 +216,7 @@ int UIManager::WindowProcHook(void* game, HWND hWnd, UINT uMsg, WPARAM wParam, L
     {
         return 0;
     }
-    
+
     if (IsKeyMsg(uMsg) && ImGui::GetIO().WantCaptureKeyboard)
     {
         return 0;
@@ -220,7 +228,7 @@ int UIManager::WindowProcHook(void* game, HWND hWnd, UINT uMsg, WPARAM wParam, L
 static bool ImGui_UpdateMouseCursor(ISurface* surface)
 {
     ImGuiIO& io = ImGui::GetIO();
-    //if (io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange)
+    // if (io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange)
     //    return false;
 
     ImGuiMouseCursor imgui_cursor = io.MouseDrawCursor ? ImGuiMouseCursor_None : ImGui::GetMouseCursor();
@@ -235,15 +243,33 @@ static bool ImGui_UpdateMouseCursor(ISurface* surface)
         unsigned int cursor = dc_arrow;
         switch (imgui_cursor)
         {
-        case ImGuiMouseCursor_Arrow:        cursor = dc_arrow; break;
-        case ImGuiMouseCursor_TextInput:    cursor = dc_ibeam; break;
-        case ImGuiMouseCursor_ResizeAll:    cursor = dc_sizeall; break;
-        case ImGuiMouseCursor_ResizeEW:     cursor = dc_sizewe; break;
-        case ImGuiMouseCursor_ResizeNS:     cursor = dc_sizens; break;
-        case ImGuiMouseCursor_ResizeNESW:   cursor = dc_sizenesw; break;
-        case ImGuiMouseCursor_ResizeNWSE:   cursor = dc_sizenwse; break;
-        case ImGuiMouseCursor_Hand:         cursor = dc_hand; break;
-        case ImGuiMouseCursor_NotAllowed:   cursor = dc_no; break;
+        case ImGuiMouseCursor_Arrow:
+            cursor = dc_arrow;
+            break;
+        case ImGuiMouseCursor_TextInput:
+            cursor = dc_ibeam;
+            break;
+        case ImGuiMouseCursor_ResizeAll:
+            cursor = dc_sizeall;
+            break;
+        case ImGuiMouseCursor_ResizeEW:
+            cursor = dc_sizewe;
+            break;
+        case ImGuiMouseCursor_ResizeNS:
+            cursor = dc_sizens;
+            break;
+        case ImGuiMouseCursor_ResizeNESW:
+            cursor = dc_sizenesw;
+            break;
+        case ImGuiMouseCursor_ResizeNWSE:
+            cursor = dc_sizenwse;
+            break;
+        case ImGuiMouseCursor_Hand:
+            cursor = dc_hand;
+            break;
+        case ImGuiMouseCursor_NotAllowed:
+            cursor = dc_no;
+            break;
         }
         ISurface_SetCursor(surface, cursor);
     }
@@ -279,7 +305,7 @@ void UIManager::SetCursorHook(ISurface* surface, unsigned int cursor)
         ImGui_UpdateMouseCursor(surface);
         return;
     }
-    
+
     // Otherwise let the game handle it
     ISurface_SetCursor(surface, cursor);
 }

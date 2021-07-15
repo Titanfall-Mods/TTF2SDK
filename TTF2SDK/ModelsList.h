@@ -4,48 +4,45 @@
 
 struct ModelsDirectory
 {
-	std::string FullPath;
-	std::string Path;
-	std::map<std::string, ModelsDirectory> SubDirectories;
-	std::vector<std::string> Models;
-	std::vector<std::string> ModelNames;
+    std::string FullPath;
+    std::string Path;
+    std::map<std::string, ModelsDirectory> SubDirectories;
+    std::vector<std::string> Models;
+    std::vector<std::string> ModelNames;
 };
 
 struct Spawnlist
 {
-	std::string Name;
-	std::string Path;
-	bool CanWriteTo;
-	std::vector<std::string> Props;
+    std::string Name;
+    std::string Path;
+    bool CanWriteTo;
+    std::vector<std::string> Props;
 };
 
 class ModelsList
 {
 
 public:
+    ModelsList(FileSystemManager& fsManager);
 
-	ModelsList( FileSystemManager & fsManager );
+    void LoadSpawnlists();
 
-	void LoadSpawnlists();
+    void ChangeSpawnlist(std::string target);
 
-	void ChangeSpawnlist( std::string target );
+    void AppendToSpawnlist(Spawnlist& appendTarget, std::string newModel);
 
-	void AppendToSpawnlist( Spawnlist & appendTarget, std::string newModel );
+    std::vector<Spawnlist> Spawnlists;
 
-	std::vector<Spawnlist> Spawnlists;
+    Spawnlist* CurrentSpawnlist;
 
-	Spawnlist * CurrentSpawnlist;
-
-	ModelsDirectory BaseDir;
+    ModelsDirectory BaseDir;
 
 protected:
+    static std::string DefaultSpawnlist;
 
-	static std::string DefaultSpawnlist;
+    void UpdateSpawnlist(Spawnlist& newSpawnlist);
 
-	void UpdateSpawnlist( Spawnlist & newSpawnlist );
+    FileSystemManager* m_fsManager;
 
-	FileSystemManager * m_fsManager;
-
-	std::unordered_map< std::string, std::string > SpawnlistsFileMap;
-
+    std::unordered_map<std::string, std::string> SpawnlistsFileMap;
 };

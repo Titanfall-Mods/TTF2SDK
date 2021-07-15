@@ -1,7 +1,6 @@
 #include "stdafx.h"
 
-Console::Console()
-    : m_winConsole(), m_conOut("CONOUT$", "w", stdout), m_conIn("CONIN$", "r", stdin)
+Console::Console() : m_winConsole(), m_conOut("CONOUT$", "w", stdout), m_conIn("CONIN$", "r", stdin)
 {
     RemoveMenu(GetSystemMenu(GetConsoleWindow(), FALSE), SC_CLOSE, MF_BYCOMMAND);
     SetConsoleCtrlHandler(NULL, TRUE);
@@ -12,7 +11,7 @@ Console::~Console()
     SetConsoleCtrlHandler(NULL, FALSE);
 }
 
-FileStreamWrapper::FileStreamWrapper(const char * filename, const char * mode, FILE * oldStream) : m_file(nullptr)
+FileStreamWrapper::FileStreamWrapper(const char* filename, const char* mode, FILE* oldStream) : m_file(nullptr)
 {
     errno_t err = freopen_s(&m_file, filename, mode, oldStream);
     if (err != 0)

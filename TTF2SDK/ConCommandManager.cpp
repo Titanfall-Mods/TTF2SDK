@@ -1,14 +1,16 @@
 #include "stdafx.h"
 
-SigScanFunc<void, ConCommand*, const char*, void(*)(const CCommand&), const char*, int, void*> ConCommand_ConCommand("engine.dll", "\x40\x53\x48\x83\xEC\x00\x48\x8B\xD9\x45\x33\xD2", "xxxxx?xxxxxx");
+// clang-format off
+SigScanFunc<void, ConCommand*, const char*, void (*)(const CCommand&), const char*, int, void*> ConCommand_ConCommand("engine.dll", "\x40\x53\x48\x83\xEC\x00\x48\x8B\xD9\x45\x33\xD2", "xxxxx?xxxxxx");
+// clang-format on
 
-ConCommandManager::ConCommandManager() noexcept
-    : m_cvar("vstdlib.dll", "VEngineCvar007")
+ConCommandManager::ConCommandManager() noexcept : m_cvar("vstdlib.dll", "VEngineCvar007")
 {
     m_logger = spdlog::get("logger");
 }
 
-void ConCommandManager::RegisterCommand(const char* name, void(*callback)(const CCommand&), const char* helpString, int flags)
+void ConCommandManager::RegisterCommand(const char* name, void (*callback)(const CCommand&), const char* helpString,
+                                        int flags)
 {
     m_logger->info("Adding console command: {}", name);
     m_commands.emplace_back();

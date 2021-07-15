@@ -4,24 +4,26 @@
 #include "client/windows/handler/exception_handler.h"
 
 google_breakpad::ExceptionHandler* g_breakpadHandler;
-LONG(*g_breakpadHandleException)(EXCEPTION_POINTERS* exinfo);
+LONG (*g_breakpadHandleException)(EXCEPTION_POINTERS* exinfo);
 
+// clang-format off
 SigScanFunc<void*, _se_translator_function> engine_set_se_translator("engine.dll", "\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x00\x48\x8B\xF9\xE8\x00\x00\x00\x00\x48\x8B\x98\x00\x00\x00\x00", "xxxx?xxxx?xxxx????xxx????");
+// clang-format on
 
-bool DumpCompleted(const wchar_t* dump_path,
-    const wchar_t* minidump_id,
-    void* context,
-    EXCEPTION_POINTERS* exinfo,
-    MDRawAssertionInfo* assertion,
-    bool succeeded)
+bool DumpCompleted(const wchar_t* dump_path, const wchar_t* minidump_id, void* context, EXCEPTION_POINTERS* exinfo,
+                   MDRawAssertionInfo* assertion, bool succeeded)
 {
     if (succeeded)
     {
-        MessageBox(NULL, L"An error occurred with TF|2 Icepick and Titanfall 2 needs to close. A crash dump has been written to the crash_dumps folder.", L"Error", MB_OK | MB_ICONERROR);
+        MessageBox(NULL,
+                   L"An error occurred with TF|2 Icepick and Titanfall 2 needs to close. A crash dump has been written "
+                   L"to the crash_dumps folder.",
+                   L"Error", MB_OK | MB_ICONERROR);
     }
     else
     {
-        MessageBox(NULL, L"An error occurred with TF|2 Icepick and Titanfall 2 needs to close.", L"Error", MB_OK | MB_ICONERROR);
+        MessageBox(NULL, L"An error occurred with TF|2 Icepick and Titanfall 2 needs to close.", L"Error",
+                   MB_OK | MB_ICONERROR);
     }
 
     return succeeded;
@@ -39,13 +41,8 @@ bool SetupBreakpad(const SDKSettings& settings)
     fs::path crashDumpsPath(basePath / "crash_dumps");
     fs::create_directories(crashDumpsPath);
 
-    g_breakpadHandler = new google_breakpad::ExceptionHandler(
-        crashDumpsPath.wstring(),
-        nullptr,
-        DumpCompleted,
-        nullptr,
-        google_breakpad::ExceptionHandler::HANDLER_ALL
-    );
+    g_breakpadHandler = new google_breakpad::ExceptionHandler(crashDumpsPath.wstring(), nullptr, DumpCompleted, nullptr,
+                                                              google_breakpad::ExceptionHandler::HANDLER_ALL);
 
     g_breakpadHandleException = SetUnhandledExceptionFilter(nullptr);
     SetUnhandledExceptionFilter(g_breakpadHandleException);

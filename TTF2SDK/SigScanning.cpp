@@ -6,14 +6,10 @@ SigScanFuncRegistry& SigScanFuncRegistry::GetInstance()
     return instance;
 }
 
-void SigScanFuncRegistry::AddSigScanFunc(BaseSigScanFunc& func, const char* moduleName, const char* signature, const char* mask)
+void SigScanFuncRegistry::AddSigScanFunc(BaseSigScanFunc& func, const char* moduleName, const char* signature,
+                                         const char* mask)
 {
-    m_registrations[m_numRegistrations++] = {
-        &func,
-        moduleName,
-        signature,
-        mask
-    };
+    m_registrations[m_numRegistrations++] = {&func, moduleName, signature, mask};
 }
 
 void SigScanFuncRegistry::ResolveAll()
@@ -27,7 +23,7 @@ void SigScanFuncRegistry::ResolveAll()
         std::string moduleName(reg.moduleName);
 
         // Check if the map contains a modulescan for the module
-        // If not, try get a handle to the module with GetModuleHandle 
+        // If not, try get a handle to the module with GetModuleHandle
         // If no module handle available, resort to fancy loading callback stuff (TODO)
         if (moduleScanners.count(moduleName) == 0)
         {
@@ -52,7 +48,8 @@ void SigScanFuncRegistry::ResolveAll()
             funcData++;
         }
 
-        logger->debug("Signature {} in {} found at {}", Util::DataToHex(reg.signature, strlen(reg.mask)), moduleName, (void*)funcData);
+        logger->debug("Signature {} in {} found at {}", Util::DataToHex(reg.signature, strlen(reg.mask)), moduleName,
+                      (void*)funcData);
         reg.func->SetFuncPtr(funcData);
     }
 }

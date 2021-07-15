@@ -3,8 +3,9 @@
 class SigScanException : public std::runtime_error
 {
 public:
-    SigScanException(const std::string& errorStr)
-        : std::runtime_error(errorStr) {}
+    SigScanException(const std::string& errorStr) : std::runtime_error(errorStr)
+    {
+    }
 };
 
 class ModuleScan
