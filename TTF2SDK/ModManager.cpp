@@ -286,6 +286,7 @@ Mod::Mod(const fs::path& modFolder) : m_folder(modFolder)
         }
 
         fs::path path = dirIter.path();
+        fs::path extension = path.extension();
 
         // If the path is inside the scripts folder, need to do some special processing
         std::string pathString = path.string();
@@ -331,8 +332,23 @@ Mod::Mod(const fs::path& modFolder) : m_folder(modFolder)
         }
         else if (path.parent_path() != m_folder) // Don't add assets in the root folder
         {
-            // Add the file as a custom asset
-            m_customAssets.emplace_back(relative);
+            if (extension == ".txt" || extension == ".res" || extension == ".menu" || extension == ".cfg")
+            {
+                // We can patch these file types, so if they already exist, we'll add it as a file to patch
+                if (SDK().GetFSManager().FileExists(relative.c_str(), "GAME"))
+                {
+                    m_filesToPatch.emplace_back(relative);
+                }
+                else
+                {
+                    m_customAssets.emplace_back(relative);
+                }
+            }
+            else
+            {
+                // Add the file as a custom asset
+                m_customAssets.emplace_back(relative);
+            }
         }
     }
 }
