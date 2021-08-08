@@ -292,6 +292,15 @@ Mod::Mod(const fs::path& modFolder) : m_folder(modFolder)
         if (!pathString.compare(0, scriptsFolder.size(), scriptsFolder) &&
             pathString.compare(0, mpLevelsFolder.size(), mpLevelsFolder))
         {
+            // Warn the user if the mod has scripts.rson and ignore it
+            if (path.filename() == "scripts.rson")
+            {
+                logger->warn(
+                    "{} contains a scripts.rson file. This will not be loaded - use CustomScripts in mod.json instead",
+                    m_name);
+                continue;
+            }
+
             // If it's already marked as a custom file, move on
             if (customPaths.find(pathString) != customPaths.end())
             {
