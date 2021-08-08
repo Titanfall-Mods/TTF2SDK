@@ -269,14 +269,15 @@ Mod::Mod(const fs::path& modFolder) : m_folder(modFolder)
                 m_customScripts.resize(m_customScripts.size() + 1);
 
                 CreateCustomScriptInfo(m_customScripts[i], m_folder, customScripts[i]);
-                customPaths.insert((basePath / m_customScripts[i].Path).string());
+                std::string customPath = (basePath / m_customScripts[i].Path).make_preferred().string();
+                customPaths.insert(customPath);
             }
         }
     }
 
     // Iterate over all the files in the mod, putting relevant files into patches and customs
     std::string scriptsFolder = (m_folder / "scripts").string();
-    std::string mpLevelsFolder = (m_folder / "scripts/vscripts/mp/levels").string();
+    std::string mpLevelsFolder = (m_folder / "scripts" / "vscripts" / "mp" / "levels").string();
     for (auto& dirIter : fs::recursive_directory_iterator(m_folder))
     {
         if (dirIter.status().type() == fs::file_type::directory)
