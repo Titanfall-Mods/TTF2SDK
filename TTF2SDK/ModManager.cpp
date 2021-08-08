@@ -314,17 +314,20 @@ Mod::Mod(const fs::path& modFolder) : m_folder(modFolder)
                 continue;
             }
 
-            // Check if the path exists in the engine
             if (!SDK().GetFSManager().FileExists(relative.c_str(), "GAME"))
             {
-                logger->warn("{} in {} is not a custom script and does not correspond to a file in the game - it will "
+                // If it's a file in scripts and it's not marked as a custom script, it might never get loaded, but
+                // we'll add it as a custom asset anyway
+                logger->warn("{} in {} is not a custom script and does not correspond to a file in the game - it may "
                              "not be loaded",
-                             relative, m_folder);
-                continue;
+                             relative, m_name);
+                m_customAssets.emplace_back(relative);
             }
-
-            // Add the file as a patch
-            m_filesToPatch.emplace_back(relative);
+            else
+            {
+                // Add the file as a patch
+                m_filesToPatch.emplace_back(relative);
+            }
         }
         else if (path.parent_path() != m_folder) // Don't add assets in the root folder
         {
