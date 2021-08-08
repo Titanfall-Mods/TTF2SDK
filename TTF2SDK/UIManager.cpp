@@ -67,14 +67,12 @@ UIManager::~UIManager()
 
 void UIManager::InitImGui(const fs::path& modsPath, ID3D11Device** ppD3DDevice)
 {
-    // TODO: Make this a bit more reliable
-    HWND hwnd = FindWindow(NULL, L"Titanfall 2");
-    m_logger->info("Game window = {}", (void*)hwnd);
+    m_ppDevice = ppD3DDevice;
+    m_gameWindow = FindWindow(NULL, L"Titanfall 2");
+    m_logger->info("Game window = {}", (void*)m_gameWindow);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGui_ImplWin32_Init(hwnd);
-    ImGui_ImplDX11_Init(*ppD3DDevice, *m_ppD3D11DeviceContext);
     ImGui::StyleColorsDark();
     ImGuiStyle* style = &ImGui::GetStyle();
     ImVec4* colors = style->Colors;
@@ -324,6 +322,8 @@ HRESULT UIManager::PresentHook(IDXGISwapChain* SwapChain, UINT SyncInterval, UIN
     static bool deviceObjectsInitialised = false;
     if (!deviceObjectsInitialised)
     {
+        ImGui_ImplWin32_Init(m_gameWindow);
+        ImGui_ImplDX11_Init(*m_ppDevice, *m_ppD3D11DeviceContext);
         ImGui_ImplDX11_CreateDeviceObjects();
         deviceObjectsInitialised = true;
     }
