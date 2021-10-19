@@ -73,6 +73,7 @@ public:
 
     std::string FriendlyName;
     std::string EntityId;
+    bool show = true;
 };
 
 struct EntityCategory
@@ -90,6 +91,7 @@ public:
     std::string CallbackName;
     std::vector<SpawnEntity> Ents;
     ExecutionContext Context = CONTEXT_SERVER;
+    bool show = true;
 };
 
 struct SpawnmenuPage
@@ -104,6 +106,7 @@ public:
     std::string Id;
     std::string FriendlyName;
     std::vector<EntityCategory> Categories;
+    bool show = true;
 };
 
 class IcepickMenu
@@ -147,8 +150,15 @@ public:
 
     SQInteger ClearSpawnmenu(HSQUIRRELVM v);
     SQInteger RegisterSpawnmenuPage(HSQUIRRELVM v);
+    SQInteger DeRegisterSpawnmenuPage(HSQUIRRELVM v);
+    SQInteger ShowSpawnmenuPage(HSQUIRRELVM v);
+    SQInteger HideSpawnmenuPage(HSQUIRRELVM v);
     SQInteger RegisterPageCategory(HSQUIRRELVM v);
     SQInteger RegisterCategoryItem(HSQUIRRELVM v);
+    SQInteger ShowPageCategory(HSQUIRRELVM v);
+    SQInteger HidePageCategory(HSQUIRRELVM v);
+    SQInteger ShowCategoryItem(HSQUIRRELVM v);
+    SQInteger HideCategoryItem(HSQUIRRELVM v);
 
     SQInteger ClearSaveBuffer(HSQUIRRELVM v);
     SQInteger AddSaveItem(HSQUIRRELVM v);
