@@ -332,15 +332,17 @@ Mod::Mod(const fs::path& modFolder) : m_folder(modFolder)
         }
         else if (path.parent_path() != m_folder) // Don't add assets in the root folder
         {
-            if (extension == ".txt" || extension == ".res" || extension == ".menu" || extension == ".cfg")
+            if (extension == ".txt" || extension == ".res" || extension == ".menu" || extension == ".cfg" || extension == ".vtf" || extension == ".vmt" || extension == ".pcf")
             {
                 // We can patch these file types, so if they already exist, we'll add it as a file to patch
                 if (SDK().GetFSManager().FileExists(relative.c_str(), "GAME"))
                 {
+                    spdlog::get("logger")->warn(relative);
                     m_filesToPatch.emplace_back(relative);
                 }
                 else
                 {
+                    spdlog::get("logger")->error(relative);
                     m_customAssets.emplace_back(relative);
                 }
             }

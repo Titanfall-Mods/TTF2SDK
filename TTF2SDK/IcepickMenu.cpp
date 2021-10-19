@@ -76,14 +76,36 @@ IcepickMenu::IcepickMenu(ConCommandManager& conCommandManager, UIManager& uiMana
 
     sqManager.AddFuncRegistration(CONTEXT_CLIENT, "void", "ClearSpawnmenu", "", "Help text",
                                   WRAPPED_MEMBER(ClearSpawnmenu));
+
     sqManager.AddFuncRegistration(CONTEXT_CLIENT, "void", "RegisterSpawnmenuPage", "string id, string friendlyName",
                                   "Help text", WRAPPED_MEMBER(RegisterSpawnmenuPage));
+    sqManager.AddFuncRegistration(CONTEXT_CLIENT, "void", "DeRegisterSpawnmenuPage", "string id",
+                                  "Help text", WRAPPED_MEMBER(DeRegisterSpawnmenuPage));
+
+    sqManager.AddFuncRegistration(CONTEXT_CLIENT, "void", "HideSpawnmenuPage", "string id", "Help text",
+                                  WRAPPED_MEMBER(HideSpawnmenuPage));
+    sqManager.AddFuncRegistration(CONTEXT_CLIENT, "void", "ShowSpawnmenuPage", "string id", "Help text",
+                                  WRAPPED_MEMBER(ShowSpawnmenuPage));
+
     sqManager.AddFuncRegistration(CONTEXT_CLIENT, "void", "RegisterPageCategory",
                                   "string pageId, string id, string friendlyName, string callbackName", "Help text",
                                   WRAPPED_MEMBER(RegisterPageCategory));
     sqManager.AddFuncRegistration(CONTEXT_CLIENT, "void", "RegisterCategoryItem",
                                   "string categoryId, string itemId, string friendlyName", "Help text",
                                   WRAPPED_MEMBER(RegisterCategoryItem));
+
+    sqManager.AddFuncRegistration(CONTEXT_CLIENT, "void", "ShowPageCategory",
+                                  "string id", "Help text",
+                                  WRAPPED_MEMBER(ShowPageCategory));
+    sqManager.AddFuncRegistration(CONTEXT_CLIENT, "void", "ShowCategoryItem",
+                                  "string categoryId, string itemId", "Help text",
+                                  WRAPPED_MEMBER(ShowCategoryItem));
+    sqManager.AddFuncRegistration(CONTEXT_CLIENT, "void", "HidePageCategory",
+                                  "string id", "Help text",
+                                  WRAPPED_MEMBER(HidePageCategory));
+    sqManager.AddFuncRegistration(CONTEXT_CLIENT, "void", "HideCategoryItem",
+                                  "string categoryId, string itemId", "Help text",
+                                  WRAPPED_MEMBER(HideCategoryItem));
 
     // Add models
     m_ModelsList = new ModelsList(fsManager);
@@ -210,6 +232,78 @@ SQInteger IcepickMenu::RegisterSpawnmenuPage(HSQUIRRELVM v)
     SpawnmenuPage newPage = SpawnmenuPage(pageId, pageName);
     m_Pages.push_back(newPage);
 
+    return 0;
+}
+
+SQInteger IcepickMenu::DeRegisterSpawnmenuPage(HSQUIRRELVM v)
+{
+    const SQChar* pageId = sq_getstring.CallClient(v, 1);
+    int counter = 0;
+    for (SpawnmenuPage i : m_Pages)
+    {
+        if (i.Id == pageId)
+        {
+            m_Pages.erase(m_Pages.begin()+counter);
+        }
+        counter++;
+    }
+    return 0;
+}
+
+SQInteger IcepickMenu::ShowSpawnmenuPage(HSQUIRRELVM v)
+{
+    const SQChar* pageId = sq_getstring.CallClient(v, 1);
+    GetPageFromId(pageId)->show = true;
+    return 0;
+}
+SQInteger IcepickMenu::HideSpawnmenuPage(HSQUIRRELVM v)
+{
+    const SQChar* pageId = sq_getstring.CallClient(v, 1);
+    GetPageFromId(pageId)->show = false;
+    return 0;
+}
+
+SQInteger IcepickMenu::ShowPageCategory(HSQUIRRELVM v)
+{
+    const SQChar* CategoryId = sq_getstring.CallClient(v, 1);
+    GetCategoryFromId(CategoryId)->show = true;
+    return 0;
+}
+
+SQInteger IcepickMenu::HidePageCategory(HSQUIRRELVM v)
+{
+    const SQChar* CategoryId = sq_getstring.CallClient(v, 1);
+    GetCategoryFromId(CategoryId)->show = false;
+    return 0;
+}
+
+SQInteger IcepickMenu::ShowCategoryItem(HSQUIRRELVM v)
+{
+    const SQChar* CategoryId = sq_getstring.CallClient(v, 1);
+    const SQChar* ItemId = sq_getstring.CallClient(v, 2);
+    EntityCategory* entCategory = GetCategoryFromId(CategoryId);
+    for (SpawnEntity& ent : entCategory->Ents)
+    {
+        if (ent.EntityId == ItemId)
+        {
+            ent.show = true;
+        }
+    }
+    return 0;
+}
+
+SQInteger IcepickMenu::HideCategoryItem(HSQUIRRELVM v)
+{
+    const SQChar* CategoryId = sq_getstring.CallClient(v, 1);
+    const SQChar* ItemId = sq_getstring.CallClient(v, 2);
+    EntityCategory* entCategory = GetCategoryFromId(CategoryId);
+    for (SpawnEntity& ent : entCategory->Ents)
+    {
+        if (ent.EntityId == ItemId)
+        {
+            ent.show = false;
+        }
+    }
     return 0;
 }
 
@@ -701,29 +795,36 @@ void IcepickMenu::DrawPage(int idx)
     {
         for (EntityCategory& entCategory : currentPage->Categories)
         {
-            ImGui::SetNextTreeNodeOpen(true, ImGuiCond_FirstUseEver);
-            if (ImGui::CollapsingHeader(entCategory.Title.c_str()))
+            if (entCategory.show)
             {
-                ImGui::Columns(NumColumns, nullptr, false);
-                for (SpawnEntity& ent : entCategory.Ents)
+                ImGui::SetNextTreeNodeOpen(true, ImGuiCond_FirstUseEver);
+                if (ImGui::CollapsingHeader(entCategory.Title.c_str()))
                 {
-                    if (ImGui::Button(ent.FriendlyName.c_str(), ImVec2(m_SpawnmenuButtonSize, m_SpawnmenuButtonSize)))
+                    ImGui::Columns(NumColumns, nullptr, false);
+                    for (SpawnEntity& ent : entCategory.Ents)
                     {
-                        std::string ExecuteString = entCategory.CallbackName + "( \"" + ent.EntityId + "\" )";
-                        switch (entCategory.Context)
+                        if (ent.show)
                         {
-                        case CONTEXT_CLIENT:
-                            SDK().GetSQManager().ExecuteClientCode(ExecuteString.c_str());
-                            break;
-                        default:
-                        case CONTEXT_SERVER:
-                            SDK().GetSQManager().ExecuteServerCode(ExecuteString.c_str());
-                            break;
+                            if (ImGui::Button(ent.FriendlyName.c_str(),
+                                              ImVec2(m_SpawnmenuButtonSize, m_SpawnmenuButtonSize)))
+                            {
+                                std::string ExecuteString = entCategory.CallbackName + "( \"" + ent.EntityId + "\" )";
+                                switch (entCategory.Context)
+                                {
+                                case CONTEXT_CLIENT:
+                                    SDK().GetSQManager().ExecuteClientCode(ExecuteString.c_str());
+                                    break;
+                                default:
+                                case CONTEXT_SERVER:
+                                    SDK().GetSQManager().ExecuteServerCode(ExecuteString.c_str());
+                                    break;
+                                }
+                            }
+                            ImGui::NextColumn();
                         }
                     }
-                    ImGui::NextColumn();
+                    ImGui::Columns(1);
                 }
-                ImGui::Columns(1);
             }
         }
     }
@@ -884,9 +985,12 @@ void IcepickMenu::DrawCallback()
             }
             for (int i = 0; i < m_Pages.size(); ++i)
             {
-                if (ImGui::MenuItem(m_Pages[i].FriendlyName.c_str()))
+                if (m_Pages[i].show)
                 {
-                    m_DisplayingPage = i + 1;
+                    if (ImGui::MenuItem(m_Pages[i].FriendlyName.c_str()))
+                    {
+                        m_DisplayingPage = i + 1;
+                    }
                 }
             }
 
