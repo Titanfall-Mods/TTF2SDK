@@ -21,6 +21,8 @@ public:
     }
     virtual void RunFrame()
     {
+        std::lock_guard<std::recursive_mutex> l(m_lock);
+
         for (auto& delay : m_delayedFuncs)
         {
             delay.FramesTilRun = std::max(delay.FramesTilRun - 1, 0);
@@ -42,12 +44,12 @@ public:
 
     void AddFunc(std::function<void()> func, int frames)
     {
-        std::lock_guard<std::mutex> l(m_lock);
+        std::lock_guard<std::recursive_mutex> l(m_lock);
         m_delayedFuncs.emplace_back(frames, func);
     }
 
 private:
-    std::mutex m_lock;
+    std::recursive_mutex m_lock;
     std::list<DelayedFunc> m_delayedFuncs;
 };
 
